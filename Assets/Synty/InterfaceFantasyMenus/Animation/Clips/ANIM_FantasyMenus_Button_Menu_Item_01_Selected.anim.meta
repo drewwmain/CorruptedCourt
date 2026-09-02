@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 20a918a3cd432a744b1b3d8b4491607e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Animation/Clips/ANIM_FantasyMenus_Button_Menu_Item_01_Selected.anim
+  uploadId: 911276

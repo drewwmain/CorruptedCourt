@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: e3a13eb2a4c17d44f9d9c6b8c7f8f9ce
+timeCreated: 1629414989
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Food_Eggplant_01.prefab
+  uploadId: 975982

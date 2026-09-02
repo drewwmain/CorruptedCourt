@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: c4c3ca9c46d0431468447978683ccfab
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 1043198333315833643
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376760
+  packageName: POLYGON - Fantasy Village - Art by Synty
+  packageVersion: 1.0.1
+  assetPath: Assets/Synty/PolygonFantasyVillage/Models/GeneratedCollision/SM_Prop_Chest_02_Convex
+    - Copy.asset
+  uploadId: 976824

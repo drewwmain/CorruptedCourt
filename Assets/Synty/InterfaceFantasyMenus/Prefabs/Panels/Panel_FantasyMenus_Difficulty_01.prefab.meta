@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: d31b0ff9ed60cf841bfffc6bac286f3b
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/Panels/Panel_FantasyMenus_Difficulty_01.prefab
+  uploadId: 911276

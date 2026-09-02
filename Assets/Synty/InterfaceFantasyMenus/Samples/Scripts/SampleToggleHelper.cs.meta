@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 3a89d71c95ca3467e96bbdbba27b9112
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Samples/Scripts/SampleToggleHelper.cs
+  uploadId: 911276

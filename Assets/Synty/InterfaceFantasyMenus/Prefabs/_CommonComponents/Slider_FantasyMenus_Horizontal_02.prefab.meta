@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 281d684220a852b4c8c8ddde78a2250d
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/_CommonComponents/Slider_FantasyMenus_Horizontal_02.prefab
+  uploadId: 911276

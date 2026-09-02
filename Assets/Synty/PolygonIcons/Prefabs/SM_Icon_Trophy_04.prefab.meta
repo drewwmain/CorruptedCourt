@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 2f6ea7882d0a37046831790ff96dff4e
+timeCreated: 1629768992
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Trophy_04.prefab
+  uploadId: 975982

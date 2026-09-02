@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 54ee8bc2eb5858441a82aa37e659166d
+timeCreated: 1629415002
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Crop_01.prefab
+  uploadId: 975982

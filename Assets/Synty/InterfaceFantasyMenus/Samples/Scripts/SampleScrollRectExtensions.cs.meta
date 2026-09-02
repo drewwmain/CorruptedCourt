@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 256846021a9d64f2d8831d5f9c09f02f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Samples/Scripts/SampleScrollRectExtensions.cs
+  uploadId: 911276

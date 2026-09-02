@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 2596fffdde86178478f0ee8fc20b687d
+timeCreated: 1629414986
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Food_Popcorn_01.prefab
+  uploadId: 975982

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 6ae3c557eba38224da045a3b13171a0b
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/Screens/Screen_FantasyMenus_AdjustBrightness_01.prefab
+  uploadId: 911276

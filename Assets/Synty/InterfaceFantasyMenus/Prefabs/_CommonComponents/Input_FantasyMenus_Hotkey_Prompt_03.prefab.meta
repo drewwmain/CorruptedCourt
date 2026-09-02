@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 5c0bcd3eed745d740a11ffe759418268
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/_CommonComponents/Input_FantasyMenus_Hotkey_Prompt_03.prefab
+  uploadId: 911276

@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
+  m_Name: gown_wear
+  m_EditorClassIdentifier: 
+  taskID: gown_wear
+  taskName: Don Formalwear
+  taskDescription: Put on your formal groomsmen suit or bridesmaid gown.
+  isSabotage: 0
+  allowedStages: 02000000
+  autoSpawnItemPrefab: {fileID: 0}
+  autoSpawnLocationID: 
+  prerequisiteTask: {fileID: 11400000, guid: e333db0b17ebc4742a202f43f703d51c, type: 2}
+  steps:
+  - rid: 5911507330253979769
+  - rid: 5911507330253979770
+  currentStepIndex: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 5911507330253979769
+      type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        isCompleted: 0
+        minigamePrefab: {fileID: 0}
+        requiredItemName: "\u2060Formalwear\u2060"
+    - rid: 5911507330253979770
+      type: {class: DepositItemStep/EquipClothingStep, ns: , asm: Assembly-CSharp}
+      data:
+        isCompleted: 0
+        minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
+        clothingName: "\u2060Formalwear\u2060"

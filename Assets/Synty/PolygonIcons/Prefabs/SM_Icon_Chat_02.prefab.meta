@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 9d7a27e6bed83904d9c7d780e8d794f2
+timeCreated: 1629414916
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Chat_02.prefab
+  uploadId: 975982

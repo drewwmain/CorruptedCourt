@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 6d6825c255322e342b9e2fa361ba8a97
+timeCreated: 1629769006
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Island_01.prefab
+  uploadId: 975982

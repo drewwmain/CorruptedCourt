@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 7ae038274c915054d970df826d4b6933
+timeCreated: 1629414933
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Face_Female_04.prefab
+  uploadId: 975982

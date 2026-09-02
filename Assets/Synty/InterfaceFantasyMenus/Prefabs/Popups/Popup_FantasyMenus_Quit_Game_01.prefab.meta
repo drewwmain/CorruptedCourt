@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 721ece50b890c144bbd82f31640729f7
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/Popups/Popup_FantasyMenus_Quit_Game_01.prefab
+  uploadId: 911276

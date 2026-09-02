@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c8bb43ae9e41b584f9ffea69e531cb6d
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: -1897743435052264460
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376760
+  packageName: POLYGON - Fantasy Village - Art by Synty
+  packageVersion: 1.0.1
+  assetPath: Assets/Synty/PolygonFantasyVillage/Models/GeneratedCollision/SM_Prop_Teapot_01_Convex.asset
+  uploadId: 976824

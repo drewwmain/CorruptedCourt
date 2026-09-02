@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 0a15df87399ccff47bb1eb8a19c94303
+timeCreated: 1629414992
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Fire_01.prefab
+  uploadId: 975982

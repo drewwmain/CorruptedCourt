@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: ec3f4ea44704f684ba0273e5f0ea62e5
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Animation/Controllers/AC_FantasyMenus_Screen_Loading_01.controller
+  uploadId: 911276

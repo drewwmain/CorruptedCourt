@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: b69886e01265efe4b94fec2d3d7949a3
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/_CommonComponents/Label_FantasyMenus_Body.prefab
+  uploadId: 911276

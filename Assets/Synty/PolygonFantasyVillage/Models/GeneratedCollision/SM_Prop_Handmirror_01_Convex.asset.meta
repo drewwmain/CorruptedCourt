@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e45d89cd271ea2c43aa3acc7bf49ca12
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 8873305480649041238
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376760
+  packageName: POLYGON - Fantasy Village - Art by Synty
+  packageVersion: 1.0.1
+  assetPath: Assets/Synty/PolygonFantasyVillage/Models/GeneratedCollision/SM_Prop_Handmirror_01_Convex.asset
+  uploadId: 976824

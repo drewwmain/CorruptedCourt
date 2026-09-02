@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: f60777c8546d694459752693b4143363
+timeCreated: 1629414991
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Food_Apple_01.prefab
+  uploadId: 975982

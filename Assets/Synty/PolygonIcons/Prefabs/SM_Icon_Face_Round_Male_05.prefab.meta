@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: ef2350a9f48063e4f87f3a3c336c8b59
+timeCreated: 1629414995
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Face_Round_Male_05.prefab
+  uploadId: 975982

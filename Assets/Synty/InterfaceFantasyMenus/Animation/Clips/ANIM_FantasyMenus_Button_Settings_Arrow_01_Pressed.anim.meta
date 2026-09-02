@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d76aff9d6c1a84c42954109b644e4cef
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Animation/Clips/ANIM_FantasyMenus_Button_Settings_Arrow_01_Pressed.anim
+  uploadId: 911276

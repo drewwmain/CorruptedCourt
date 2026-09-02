@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 37f020fe07352d34c87e9aa2fad3b5ff
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Animation/Clips/ANIM_FantasyMenus_Button_Menu_Item_01_Disabled.anim
+  uploadId: 911276

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f3e8aae04ed400444bdd45838005ec5b
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Animation/Controllers/AC_FantasyMenus_SaveLoad_Selected_Ring_01.controller
+  uploadId: 911276

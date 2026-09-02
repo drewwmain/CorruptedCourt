@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 973366aa296fe214689140e83bdb9326
+timeCreated: 1629414945
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Money_Rupee_01.prefab
+  uploadId: 975982

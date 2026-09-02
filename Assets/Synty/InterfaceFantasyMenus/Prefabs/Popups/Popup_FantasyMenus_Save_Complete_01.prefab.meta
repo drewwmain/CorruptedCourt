@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e98b7b3b919cd9b4791f01fbe233961d
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/Popups/Popup_FantasyMenus_Save_Complete_01.prefab
+  uploadId: 911276

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 682395d3b1ae3e0428303eada9404796
+timeCreated: 1629414952
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Paperclip_01.prefab
+  uploadId: 975982

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 510d1e65ca700a94881c377a0936135e
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/Screens/Screen_FantasyMenus_Load_Game_01.prefab
+  uploadId: 911276

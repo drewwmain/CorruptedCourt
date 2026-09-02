@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: b037fb072808d5949b060aec67f14397
+timeCreated: 1629414931
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Crafting_Nut_02.prefab
+  uploadId: 975982

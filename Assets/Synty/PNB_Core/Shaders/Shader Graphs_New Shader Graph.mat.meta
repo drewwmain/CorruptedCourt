@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 41a23e3e0cfc13840878eacac1d16759
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376760
+  packageName: POLYGON - Fantasy Village - Art by Synty
+  packageVersion: 1.0.1
+  assetPath: Assets/Synty/PNB_Core/Shaders/Shader Graphs_New Shader Graph.mat
+  uploadId: 976824

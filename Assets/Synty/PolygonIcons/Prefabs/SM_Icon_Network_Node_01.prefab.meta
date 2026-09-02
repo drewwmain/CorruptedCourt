@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 925fb567d59a4b24a9747fc20b95da38
+timeCreated: 1629414947
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Network_Node_01.prefab
+  uploadId: 975982

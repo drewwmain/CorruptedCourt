@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 7456b9e8c1d47ad469562e9378bb3cfa
+timeCreated: 1629414965
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Money_Pound_01.prefab
+  uploadId: 975982

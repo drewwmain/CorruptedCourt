@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: bec4d02ac8427a444a3a7079542ff7e5
+timeCreated: 1629414956
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Play_01.prefab
+  uploadId: 975982

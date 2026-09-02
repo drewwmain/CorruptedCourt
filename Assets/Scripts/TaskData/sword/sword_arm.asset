@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
+  m_Name: sword_arm
+  m_EditorClassIdentifier: 
+  taskID: sword_arm
+  taskName: Prepare for the Melee
+  taskDescription: Carry a practice sword to the tournament grounds.
+  isSabotage: 0
+  allowedStages: 01000000
+  autoSpawnItemPrefab: {fileID: 0}
+  autoSpawnLocationID: 
+  prerequisiteTask: {fileID: 11400000, guid: f5b567c42f6c3d547aa51dc1218c0cd2, type: 2}
+  steps:
+  - rid: 5911507332722851840
+  - rid: 5911507332722851841
+  currentStepIndex: 2
+  references:
+    version: 2
+    RefIds:
+    - rid: 5911507332722851840
+      type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        isCompleted: 1
+        minigamePrefab: {fileID: 0}
+        requiredItemName: ProcessedSword
+    - rid: 5911507332722851841
+      type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        isCompleted: 1
+        minigamePrefab: {fileID: 0}
+        requiredItemName: ProcessedSword
+        targetStationID: WeaponRack

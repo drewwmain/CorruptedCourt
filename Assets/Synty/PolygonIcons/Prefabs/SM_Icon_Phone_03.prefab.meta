@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: e1ad34b299cf5c04db1f1ac92ac2c19f
+timeCreated: 1629414949
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Phone_03.prefab
+  uploadId: 975982

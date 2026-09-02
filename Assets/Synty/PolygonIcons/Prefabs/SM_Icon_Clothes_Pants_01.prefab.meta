@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 7135398f3ecbacb42afac13097e0ade3
+timeCreated: 1629414927
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Clothes_Pants_01.prefab
+  uploadId: 975982

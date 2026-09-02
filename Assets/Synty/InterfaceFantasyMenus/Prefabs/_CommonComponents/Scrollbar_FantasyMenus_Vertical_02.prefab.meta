@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 5d03f2d36434870488c5e2d5621ed18a
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/_CommonComponents/Scrollbar_FantasyMenus_Vertical_02.prefab
+  uploadId: 911276

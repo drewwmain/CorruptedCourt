@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 934064a85f463354587c2a36d0a560f9
+timeCreated: 1629414961
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Light_Area_01.prefab
+  uploadId: 975982

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d3d5f5759348838459744d6ea81a0c0b
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 9154918839931302939
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 376760
+  packageName: POLYGON - Fantasy Village - Art by Synty
+  packageVersion: 1.0.1
+  assetPath: Assets/Synty/PolygonFantasyVillage/Models/GeneratedCollision/SM_Prop_Chopping_Block_01_Convex.asset
+  uploadId: 976824

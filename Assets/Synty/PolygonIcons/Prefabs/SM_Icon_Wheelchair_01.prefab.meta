@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 3242135a409d10644b989b82d05806a2
+timeCreated: 1629414970
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Wheelchair_01.prefab
+  uploadId: 975982

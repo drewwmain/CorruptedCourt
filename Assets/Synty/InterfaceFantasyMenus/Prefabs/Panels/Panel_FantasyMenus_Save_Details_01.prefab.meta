@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: a63e3ede569d4374ba17ea9ed8dcaa15
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/Panels/Panel_FantasyMenus_Save_Details_01.prefab
+  uploadId: 911276

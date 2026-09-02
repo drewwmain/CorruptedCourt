@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 6f372a2e0b176bc448b5849a3484bda8
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/Buttons/Button_FantasyMenus_Settings_Handle_01.prefab
+  uploadId: 911276

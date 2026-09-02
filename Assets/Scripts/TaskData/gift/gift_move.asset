@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
+  m_Name: gift_move
+  m_EditorClassIdentifier: 
+  taskID: gift_move
+  taskName: Deliver the Tribute
+  taskDescription: Carry the sealed gift box out to the gift table for the newlywed
+    couple.
+  isSabotage: 0
+  allowedStages: 02000000
+  autoSpawnItemPrefab: {fileID: 0}
+  autoSpawnLocationID: 
+  prerequisiteTask: {fileID: 11400000, guid: 90d2a2f99ea48b14daf1510e4c6ad83b, type: 2}
+  steps:
+  - rid: 5911507330253979760
+  - rid: 5911507330253979761
+  currentStepIndex: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 5911507330253979760
+      type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        isCompleted: 0
+        minigamePrefab: {fileID: 0}
+        requiredItemName: "\u2060GiftBox\u2060"
+    - rid: 5911507330253979761
+      type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        isCompleted: 0
+        minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
+        requiredItemName: GiftBox
+        targetStationID: GiftTable

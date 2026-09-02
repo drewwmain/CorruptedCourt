@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e5c2bfcb0e95b044f8c6cc9bf560676d
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 311498
+  packageName: Fantasy Menus - Synty INTERFACE - GUI
+  packageVersion: 1.0.4
+  assetPath: Assets/Synty/InterfaceFantasyMenus/Prefabs/_CommonComponents/Slider_FantasyMenus_Vertical_01.prefab
+  uploadId: 911276

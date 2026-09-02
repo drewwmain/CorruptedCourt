@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: aec1f5182bbb8ac41b4cb201d306686a
+timeCreated: 1629414960
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Pulse_01.prefab
+  uploadId: 975982

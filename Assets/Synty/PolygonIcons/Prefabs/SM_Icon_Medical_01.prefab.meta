@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 3241d465fe47a1a488518705a32c39ef
+timeCreated: 1629414979
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Medical_01.prefab
+  uploadId: 975982

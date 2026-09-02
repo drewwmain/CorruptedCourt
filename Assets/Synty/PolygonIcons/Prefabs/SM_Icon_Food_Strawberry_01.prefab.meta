@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 8f04f20afbe546f4e923d8bb383000db
+timeCreated: 1629414986
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Food_Strawberry_01.prefab
+  uploadId: 975982

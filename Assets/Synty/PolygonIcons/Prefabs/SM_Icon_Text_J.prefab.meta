@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 1649da39a84215c4ba231c9819bb778f
+timeCreated: 1629414940
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Text_J.prefab
+  uploadId: 975982

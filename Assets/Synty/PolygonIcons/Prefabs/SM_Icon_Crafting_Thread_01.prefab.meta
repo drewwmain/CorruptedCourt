@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 2bb9cb4e61c2123448c60d6e87c99400
+timeCreated: 1629415003
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 202117
+  packageName: POLYGON - Icons Pack - Art by Synty
+  packageVersion: 1.2.2
+  assetPath: Assets/Synty/PolygonIcons/Prefabs/SM_Icon_Crafting_Thread_01.prefab
+  uploadId: 975982

@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
+  m_Name: cake_eat
+  m_EditorClassIdentifier: 
+  taskID: cake_eat
+  taskName: Sample the Dessert
+  taskDescription: Grab a plate of cake and eat it.
+  isSabotage: 0
+  allowedStages: 02000000
+  autoSpawnItemPrefab: {fileID: 0}
+  autoSpawnLocationID: 
+  prerequisiteTask: {fileID: 11400000, guid: a9267073a6f70eb47bd34214d14fb649, type: 2}
+  steps:
+  - rid: 5911507330253979758
+  - rid: 5911507330253979759
+  currentStepIndex: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 5911507330253979758
+      type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        isCompleted: 0
+        minigamePrefab: {fileID: 0}
+        requiredItemName: CakePlate
+    - rid: 5911507330253979759
+      type: {class: DepositItemStep/ConsumeItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        isCompleted: 0
+        minigamePrefab: {fileID: 4843060717586299352, guid: 5a37ab99966fbb640b0a5c43dd2142fa, type: 3}
+        requiredItemName: CakePlate
