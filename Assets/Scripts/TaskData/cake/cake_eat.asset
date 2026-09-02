@@ -34,7 +34,7 @@ MonoBehaviour:
         minigamePrefab: {fileID: 0}
         requiredItemName: CakePlate
     - rid: 5911507330253979759
-      type: {class: DepositItemStep/ConsumeItemStep, ns: , asm: Assembly-CSharp}
+      type: {class: ConsumeItemStep, ns: , asm: Assembly-CSharp}
       data:
         isCompleted: 0
         minigamePrefab: {fileID: 4843060717586299352, guid: 5a37ab99966fbb640b0a5c43dd2142fa, type: 3}

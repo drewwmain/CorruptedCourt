@@ -42,7 +42,7 @@ MonoBehaviour:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         requiredHeldItemName: "\u2060WineGlass\u2060"
     - rid: 5911507330253979768
-      type: {class: DepositItemStep/ConsumeItemStep, ns: , asm: Assembly-CSharp}
+      type: {class: ConsumeItemStep, ns: , asm: Assembly-CSharp}
       data:
         isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}

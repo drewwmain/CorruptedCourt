@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 
 // ---------------------------------------------------
 // 1. ACQUIRE ITEM (Standard or Heavy)
@@ -49,7 +50,7 @@ public class StationInteractStep : TaskStep
 {
     [Tooltip("The ID or Name of the station to interact with.")]
     public string targetStationID;
-    
+
     [Tooltip("Set to > 1 if multiple players must interact simultaneously.")]
     public int requiredSimultaneousPlayers = 1;
 
@@ -73,15 +74,15 @@ public class StationInteractStep : TaskStep
             {
                 int playersNearby = 0;
                 Collider[] hits = Physics.OverlapSphere(targetInteractable.transform.position, player.InteractionRange, player.CharacterLayer);
-                
+
                 foreach (var hit in hits)
                 {
                     if (hit.GetComponent<PlayerController>() != null) playersNearby++;
                 }
-                
+
                 return playersNearby >= requiredSimultaneousPlayers;
             }
-            
+
             return true; // Standard single-player interaction successful
         }
         return false;
@@ -116,7 +117,7 @@ public class PlayerInteractStep : TaskStep
         // Empty-handed check
         if (string.IsNullOrEmpty(requiredHeldItemName))
         {
-            return player.GetHeldItem() == null; 
+            return player.GetHeldItem() == null;
         }
         // Specific item check
         else
@@ -135,7 +136,7 @@ public class DataRetrievalStep : TaskStep
 {
     public string sourceStationID;
     public string inputStationID;
-    
+
     // We now store the generated code directly inside the step itself!
     [HideInInspector] public bool hasCode = false;
     [HideInInspector] public string generatedCode = "";
@@ -159,18 +160,18 @@ public class DataRetrievalStep : TaskStep
             {
                 hasCode = true;
                 generatedCode = Random.Range(100, 999).ToString(); // Generate the code
-                
+
                 Debug.Log($"[Task System] Code {generatedCode} acquired from {sourceStationID}!");
-                
+
                 // Trigger the UI Popup
                 if (UIManager.Instance != null)
                 {
                     UIManager.Instance.ShowDataCodePopup(generatedCode);
                 }
-                
+
                 // Force the waypoints to update to the new destination
                 player.RefreshLocalWaypoints();
-                
+
                 return false; // Return false because the step isn't fully complete until they input it!
             }
         }
@@ -182,25 +183,25 @@ public class DataRetrievalStep : TaskStep
                 // Unlock the mouse so they can click the keypad UI
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
-                
+
                 // Trigger the Keypad UI
                 if (UIManager.Instance != null)
                 {
-                    // Note: You may need to update your OpenDataInputPanel method to accept 
+                    // Note: You may need to update your OpenDataInputPanel method to accept
                     // this specific step or code string instead of the old TaskData object!
                     // UIManager.Instance.OpenDataInputPanel(player, generatedCode);
                 }
-                
+
                 return true; // Step fully completed!
             }
         }
-        
+
         return false;
     }
 }
 
 // ---------------------------------------------------
-// 6. DEPOSIT ITEM 
+// 6. DEPOSIT ITEM
 // ---------------------------------------------------
 [System.Serializable]
 public class DepositItemStep : TaskStep
@@ -239,10 +240,12 @@ public class DepositItemStep : TaskStep
         }
         return false;
     }
+}
 
-    // ---------------------------------------------------
+// ---------------------------------------------------
 // 7. CONSUME ITEM (Eat / Drink - destroys item)
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/ConsumeItemStep")]
 [System.Serializable]
 public class ConsumeItemStep : TaskStep
 {
@@ -273,6 +276,7 @@ public class ConsumeItemStep : TaskStep
 // ---------------------------------------------------
 // 8. PROCESS ITEM (Cut, Polish, Light)
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/ProcessItemStep")]
 [System.Serializable]
 public class ProcessItemStep : TaskStep
 {
@@ -293,6 +297,7 @@ public class ProcessItemStep : TaskStep
 // ---------------------------------------------------
 // 9. EQUIP CLOTHING STEP
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/EquipClothingStep")]
 [System.Serializable]
 public class EquipClothingStep : TaskStep
 {
@@ -312,12 +317,13 @@ public class EquipClothingStep : TaskStep
 // ---------------------------------------------------
 // 10. MUTUAL PLAYER INTERACT (Duels, Jousts)
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/MutualPlayerInteractStep")]
 [System.Serializable]
 public class MutualPlayerInteractStep : TaskStep
 {
     [Tooltip("What the player initiating the interaction must be holding.")]
     public string myRequiredItemName;
-    
+
     [Tooltip("What the TARGET player must be holding to allow the interaction.")]
     public string targetRequiredItemName;
 
@@ -341,19 +347,20 @@ public class MutualPlayerInteractStep : TaskStep
         var theirItem = targetPlayer.GetHeldItem();
         if (theirItem == null || theirItem.itemName != targetRequiredItemName) return false;
 
-        return true; 
+        return true;
     }
 }
 
 // ---------------------------------------------------
 // 11. GROUP NAVIGATE (Bedding Ceremony)
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/GroupNavigateStep")]
 [System.Serializable]
 public class GroupNavigateStep : TaskStep
 {
     [Tooltip("The ID of the room the crowd must gather in.")]
     public string targetZoneID;
-    
+
     [Tooltip("How many total players must be in the room to complete the step.")]
     public int requiredPlayerCount;
 
@@ -381,5 +388,4 @@ public class GroupNavigateStep : TaskStep
 
         return playersInRoom >= requiredPlayerCount;
     }
-}
 }

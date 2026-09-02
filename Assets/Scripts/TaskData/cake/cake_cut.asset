@@ -30,7 +30,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 5911507241021997137
-      type: {class: DepositItemStep/ProcessItemStep, ns: , asm: Assembly-CSharp}
+      type: {class: ProcessItemStep, ns: , asm: Assembly-CSharp}
       data:
         isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: 81edbe2c70654ab47a68678b1c282c36, type: 3}

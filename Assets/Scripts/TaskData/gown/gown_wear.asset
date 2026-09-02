@@ -34,7 +34,7 @@ MonoBehaviour:
         minigamePrefab: {fileID: 0}
         requiredItemName: "\u2060Formalwear\u2060"
     - rid: 5911507330253979770
-      type: {class: DepositItemStep/EquipClothingStep, ns: , asm: Assembly-CSharp}
+      type: {class: EquipClothingStep, ns: , asm: Assembly-CSharp}
       data:
         isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}

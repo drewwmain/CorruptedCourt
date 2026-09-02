@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
-using static DepositItemStep;
 
 public class WaypointManager : MonoBehaviour
 {
