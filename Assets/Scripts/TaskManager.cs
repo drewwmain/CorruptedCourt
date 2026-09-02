@@ -101,14 +101,9 @@ public class TaskManager : MonoBehaviour
             }
         }
 
-        // After EVERY player in the lobby has been handed their tasks, refresh the UI 
+        // After EVERY player in the lobby has been handed their tasks, refresh the UI
         // so it can accurately scan the dummy players for matching multiplayer tasks!
-        GameObject localPlayerObj = GameObject.Find("Player");
-        if (localPlayerObj != null)
-        {
-            PlayerController localPlayer = localPlayerObj.GetComponent<PlayerController>();
-            if (localPlayer != null) localPlayer.RefreshLocalWaypoints();
-        }
+        if (PlayerController.Local != null) PlayerController.Local.RefreshLocalWaypoints();
     }
 
     private List<TaskData> GenerateRandomTasks(int amount)

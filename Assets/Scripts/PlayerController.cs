@@ -25,6 +25,20 @@ public enum MinigameTargetType
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerController : MonoBehaviour
 {
+    [Header("Identity")]
+    [Tooltip("The player THIS machine's user controls. Exactly one PlayerController in the scene should have this checked. UNCHECK it on dummy players and network clones.")]
+    [SerializeField] private bool isLocalPlayer = true;
+
+    /// <summary>True for the player this machine's user controls.</summary>
+    public bool IsLocal => isLocalPlayer;
+
+    /// <summary>The local player. Set in Awake; null until the local PlayerController has awoken.</summary>
+    public static PlayerController Local { get; private set; }
+
+    // Static state must not survive a Play session when Domain Reload is disabled.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => Local = null;
+
     [Header("Movement Settings")]
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float sprintSpeed = 8f;
@@ -303,6 +317,15 @@ public class PlayerController : MonoBehaviour
 
     void Awake()
     {
+        if (isLocalPlayer)
+        {
+            if (Local != null && Local != this)
+                Debug.LogWarning($"[PlayerController] Two local players detected ('{Local.name}' and '{name}'). " +
+                                 "Uncheck 'Is Local Player' on dummy players and network clones.");
+            Local = this;
+        }
+        RoleManager.Instance?.Register(this);
+
         characterController = GetComponent<CharacterController>();
         playerInput = GetComponent<PlayerInput>();
         // Grab the Animator from the child CharacterVisuals model
@@ -337,10 +360,16 @@ public class PlayerController : MonoBehaviour
         }
 
         // 2. Make it instantly invisible so it's ready to fade in later
-        if (interactionCanvasGroup != null) 
+        if (interactionCanvasGroup != null)
         {
             interactionCanvasGroup.alpha = 0f;
         }    }
+
+    void OnDestroy()
+    {
+        if (Local == this) Local = null;
+        RoleManager.Instance?.Unregister(this);
+    }
 
     void Update()
     {
@@ -2868,10 +2897,10 @@ public class PlayerController : MonoBehaviour
             task.InitializeTask();
         }
 
-        if (gameObject.name == "Player" && UIManager.Instance != null)
+        if (IsLocal && UIManager.Instance != null)
         {
-            UIManager.Instance.UpdatePlayerTaskList(this, allAssignedTasks, activeTasks, currentRole); 
-            RefreshLocalWaypoints(); 
+            UIManager.Instance.UpdatePlayerTaskList(this, allAssignedTasks, activeTasks, currentRole);
+            RefreshLocalWaypoints();
         }
     }
 
@@ -2884,11 +2913,11 @@ public class PlayerController : MonoBehaviour
             activeTasks.Remove(completedTask); 
            
             // Inside RemoveCompletedTask(...)
-            if (gameObject.name == "Player" && UIManager.Instance != null)
+            if (IsLocal && UIManager.Instance != null)
             {
                 // Add 'this' as the first parameter
-                UIManager.Instance.UpdatePlayerTaskList(this, allAssignedTasks, activeTasks, currentRole); 
-                RefreshLocalWaypoints(); 
+                UIManager.Instance.UpdatePlayerTaskList(this, allAssignedTasks, activeTasks, currentRole);
+                RefreshLocalWaypoints();
             }
         }
     }
@@ -2896,7 +2925,7 @@ public class PlayerController : MonoBehaviour
     // A centralized helper to refresh the UI markers dynamically
     public void RefreshLocalWaypoints()
     {
-        if (gameObject.name == "Player")
+        if (IsLocal)
         {
             if (UIManager.Instance != null)
             {

@@ -59,18 +59,22 @@ public class UIManager : MonoBehaviour
     // so we don't un-freeze them when the menu closes.
     private bool controlsWereLockedBeforeMenu = false;
 
-    private PlayerController localPlayer;
+    private PlayerController localPlayerCache;
+
+    // Resolved lazily - PlayerController.Local may not be set yet when UIManager wakes.
+    private PlayerController LocalPlayer
+    {
+        get
+        {
+            if (localPlayerCache == null) localPlayerCache = PlayerController.Local;
+            return localPlayerCache;
+        }
+    }
 
     void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
-    }
-
-    void Start()
-    {
-        GameObject playerObj = GameObject.Find("Player");
-        if (playerObj != null) localPlayer = playerObj.GetComponent<PlayerController>();
     }
 
     void Update()
@@ -233,12 +237,13 @@ public class UIManager : MonoBehaviour
 
         if (tmpText != null) tmpText.text = buttonText;
 
-        btn.onClick.AddListener(() => 
+        btn.onClick.AddListener(() =>
         {
-            if (VotingManager.Instance != null && localPlayer != null)
+            PlayerController local = LocalPlayer;
+            if (VotingManager.Instance != null && local != null)
             {
-                VotingManager.Instance.CastVote(localPlayer, voteOption);
-                btn.image.color = Color.gray; 
+                VotingManager.Instance.CastVote(local, voteOption);
+                btn.image.color = Color.gray;
             }
         });
     }
@@ -397,21 +402,17 @@ public class UIManager : MonoBehaviour
         if (inGameSettingsPanel != null) inGameSettingsPanel.SetActive(isSettingsOpen);
 
         // Freeze / unfreeze the local player so the menu can be used independently.
-        if (localPlayer == null)
-        {
-            GameObject playerObj = GameObject.Find("Player");
-            if (playerObj != null) localPlayer = playerObj.GetComponent<PlayerController>();
-        }
-        if (localPlayer != null)
+        PlayerController local = LocalPlayer;
+        if (local != null)
         {
             if (isSettingsOpen)
             {
-                controlsWereLockedBeforeMenu = localPlayer.controlsLocked; // e.g. a minigame already froze them
-                localPlayer.SetControlsLocked(true);
+                controlsWereLockedBeforeMenu = local.controlsLocked; // e.g. a minigame already froze them
+                local.SetControlsLocked(true);
             }
             else if (!controlsWereLockedBeforeMenu)
             {
-                localPlayer.SetControlsLocked(false); // only un-freeze if the menu was what froze them
+                local.SetControlsLocked(false); // only un-freeze if the menu was what froze them
             }
         }
 

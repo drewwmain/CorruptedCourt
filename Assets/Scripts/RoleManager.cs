@@ -27,8 +27,33 @@ public class RoleManager : MonoBehaviour
 
     void Awake()
     {
-        if (Instance == null) Instance = this;
+        if (Instance == null)
+        {
+            Instance = this;
+            GatherExistingPlayers(); // pick up any PlayerController that awoke before this manager
+        }
         else Destroy(gameObject);
+    }
+
+    // Players self-register from PlayerController.Awake. This catches the ones that awoke first.
+    private void GatherExistingPlayers()
+    {
+        foreach (PlayerController pc in FindObjectsByType<PlayerController>(FindObjectsSortMode.None))
+            Register(pc);
+    }
+
+    /// <summary>Adds a player to the lobby list. Idempotent - safe to call more than once.</summary>
+    public void Register(PlayerController player)
+    {
+        if (player == null || allPlayers.Contains(player)) return;
+        allPlayers.Add(player);
+    }
+
+    /// <summary>Removes a player from the lobby list. Called from PlayerController.OnDestroy.</summary>
+    public void Unregister(PlayerController player)
+    {
+        if (player == null) return;
+        allPlayers.Remove(player);
     }
 
     // Called by the MatchManager at the very start of the game
@@ -45,9 +70,9 @@ public class RoleManager : MonoBehaviour
         }
 
         List<PlayerController> remainingPlayers = new List<PlayerController>(allPlayers);
-        
-        // Find the local player using their GameObject name
-        PlayerController localPlayer = remainingPlayers.Find(p => p.gameObject.name == "Player");
+
+        // The local player is flagged on its PlayerController (PlayerController.Local), not by name.
+        PlayerController localPlayer = PlayerController.Local;
 
         // Calculate how many Corrupted the match SHOULD have based on the 30% distribution table
         // Adding 0.5f ensures standard rounding (e.g., 15 players * 0.3 = 4.5, which rounds up to 5)
