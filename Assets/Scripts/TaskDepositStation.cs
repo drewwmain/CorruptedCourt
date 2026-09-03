@@ -155,7 +155,7 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
         {
             for (int i = player.activeTasks.Count - 1; i >= 0; i--)
             {
-                TaskData t = player.activeTasks[i];
+                TaskInstance t = player.activeTasks[i];
                 if (t != null && t.GetCurrentStep() is AcquireItemStep)
                     t.EvaluateCurrentStep(player, heldItem.gameObject);
             }
@@ -177,10 +177,10 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
         mg.BeginDeposit(heldItem, this); // the item stays with the player for the minigame
     }
 
-    private TaskData FindMatchingDepositTask(PlayerController player, string itemName)
+    private TaskInstance FindMatchingDepositTask(PlayerController player, string itemName)
     {
         if (player.activeTasks == null) return null;
-        foreach (TaskData t in player.activeTasks)
+        foreach (TaskInstance t in player.activeTasks)
         {
             if (t == null) continue;
             TaskStep step = t.GetCurrentStep();
@@ -290,8 +290,9 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
             }
 
             // Loop through active tasks to see if they need to acquire something from this table
-            foreach (TaskData task in player.activeTasks)
+            foreach (TaskInstance task in player.activeTasks)
             {
+                if (task == null) continue;
                 TaskStep activeStep = task.GetCurrentStep();
 
                 // If their current objective is to acquire an item...

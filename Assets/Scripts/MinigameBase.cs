@@ -27,7 +27,7 @@ public abstract class MinigameBase : MonoBehaviour
 
     // --- per-instance state ---------------------------------------------------------------------
     protected PlayerController player;
-    protected TaskData activeTask;
+    protected TaskInstance activeTask;
 
     /// <summary>Richer launch payload. Null when launched via the legacy 2-arg SetupMinigame.</summary>
     public MinigameContext Context { get; protected set; }
@@ -35,7 +35,7 @@ public abstract class MinigameBase : MonoBehaviour
     /// <summary>
     /// Legacy entry point: injects the player and task the moment the minigame spawns.
     /// </summary>
-    public virtual void SetupMinigame(PlayerController playerRef, TaskData task)
+    public virtual void SetupMinigame(PlayerController playerRef, TaskInstance task)
     {
         player = playerRef;
         activeTask = task;

@@ -39,29 +39,32 @@ public class TaskManager : MonoBehaviour
             // Ghosts and the King do not receive tasks
             if (player.isGhost || player.currentRole == PlayerRole.King)
             {
-                player.AssignTasks(new List<TaskData>()); // Empty list
+                player.AssignTasks(new List<TaskInstance>()); // Empty list
                 continue;
             }
-            
-            // Generate a random subset of tasks for this player
-            List<TaskData> playerTasks = GenerateRandomTasks(tasksPerStage);
+
+            // Generate a random subset of fresh per-player task instances
+            List<TaskInstance> playerTasks = GenerateRandomTasks(tasksPerStage);
             player.AssignTasks(playerTasks);
 
             // --- PREREQUISITE AUTO-SPAWN LOGIC ---
-            foreach (TaskData task in playerTasks)
+            foreach (TaskInstance task in playerTasks)
             {
+                if (task == null || task.Definition == null) continue;
+                TaskData def = task.Definition;
+
                 // If this task required a past event, and the Court FAILED to do it...
-                if (task.prerequisiteTask != null && !completedTasksHistory.Contains(task.prerequisiteTask))
+                if (def.prerequisiteTask != null && !completedTasksHistory.Contains(def.prerequisiteTask))
                 {
-                    if (task.autoSpawnItemPrefab != null && !string.IsNullOrEmpty(task.autoSpawnLocationID))
+                    if (def.autoSpawnItemPrefab != null && !string.IsNullOrEmpty(def.autoSpawnLocationID))
                     {
                         // Check if we already spawned this item for another player's task this round
-                        if (spawnedItemsThisStage.Contains(task.autoSpawnItemPrefab.itemName)) continue;
+                        if (spawnedItemsThisStage.Contains(def.autoSpawnItemPrefab.itemName)) continue;
 
                         // Find the required Task Deposit Station in the world
                         foreach (TaskLocation location in TaskLocation.AllLocations)
                         {
-                            if (location.locationID == task.autoSpawnLocationID)
+                            if (location.locationID == def.autoSpawnLocationID)
                             {
                                 TaskDepositStation station = location.GetComponent<TaskDepositStation>();
                                 if (station != null)
@@ -72,10 +75,10 @@ public class TaskManager : MonoBehaviour
                                         if (station.depositedItemSlots[i] == null)
                                         {
                                             // Instantiate the required item
-                                            PickupItem spawnedItem = Instantiate(task.autoSpawnItemPrefab);
-                                            
+                                            PickupItem spawnedItem = Instantiate(def.autoSpawnItemPrefab);
+
                                             // Clean "(Clone)" string so it matches task requirements
-                                            spawnedItem.itemName = task.autoSpawnItemPrefab.itemName; 
+                                            spawnedItem.itemName = def.autoSpawnItemPrefab.itemName;
                                             
                                             // Flag this as a normal item, not an infinite spawner, so the UI prioritizes it!
                                             spawnedItem.isInfiniteSource = false;
@@ -106,15 +109,17 @@ public class TaskManager : MonoBehaviour
         if (PlayerController.Local != null) PlayerController.Local.RefreshLocalWaypoints();
     }
 
-    private List<TaskData> GenerateRandomTasks(int amount)
+    private List<TaskInstance> GenerateRandomTasks(int amount)
     {
-        List<TaskData> generatedTasks = new List<TaskData>();
-        
+        List<TaskInstance> generatedTasks = new List<TaskInstance>();
+
         // We only want to hand out standard Court tasks to do, so we filter out Sabotages
         List<TaskData> pool = new List<TaskData>();
         foreach (var task in allPossibleTasks)
         {
-            if (!task.isSabotage) 
+            if (task == null) continue;
+
+            if (!task.isSabotage)
             {
                 // Check if MatchManager exists and if the task has allowed stages assigned
                 if (MatchManager.Instance != null && task.allowedStages != null && task.allowedStages.Count > 0)
@@ -138,18 +143,21 @@ public class TaskManager : MonoBehaviour
             if (pool.Count == 0) break;
 
             int randomIndex = Random.Range(0, pool.Count);
-            generatedTasks.Add(pool[randomIndex]);
-            
+            // A fresh instance IS the initialization - no InitializeTask() call needed.
+            generatedTasks.Add(new TaskInstance(pool[randomIndex]));
+
             // Remove it from the temporary pool so they don't get the exact same task twice in one stage
-            pool.RemoveAt(randomIndex); 
+            pool.RemoveAt(randomIndex);
         }
 
         return generatedTasks;
     }
 
-    public void CompleteTask(PlayerController player, TaskData task)
+    public void CompleteTask(PlayerController player, TaskInstance task)
     {
-        if (player.isGhost || !player.activeTasks.Contains(task)) return;
+        if (task == null || player.isGhost || !player.activeTasks.Contains(task)) return;
+
+        TaskData definition = task.Definition;
 
         // Remove the task from the player's personal list
         player.RemoveCompletedTask(task);
@@ -157,7 +165,7 @@ public class TaskManager : MonoBehaviour
         // NOTE: Corrupted players can "do" tasks to blend in, but they DO NOT fill the meter!
         if (player.currentRole == PlayerRole.Corrupted)
         {
-            Debug.Log($"{player.gameObject.name} (Corrupted) faked task: {task.taskName}. Meter unchanged.");
+            Debug.Log($"{player.gameObject.name} (Corrupted) faked task: {(definition != null ? definition.taskName : "<unknown>")}. Meter unchanged.");
             return;
         }
 
@@ -167,10 +175,11 @@ public class TaskManager : MonoBehaviour
         // Clamp the progress so it doesn't exceed 100%
         currentCourtProgress = Mathf.Clamp(currentCourtProgress, 0f, maxCourtProgress);
 
-        // Add to history so future rounds know it was completed!
-        if (!completedTasksHistory.Contains(task))
+        // Add to history so future rounds know it was completed! History holds the shared asset
+        // (Definition), which is what the prerequisite auto-spawn logic checks against.
+        if (definition != null && !completedTasksHistory.Contains(definition))
         {
-            completedTasksHistory.Add(task);
+            completedTasksHistory.Add(definition);
         }
 
         // Update the visual meter
@@ -179,6 +188,6 @@ public class TaskManager : MonoBehaviour
             UIManager.Instance.UpdateGlobalMeter(currentCourtProgress, maxCourtProgress);
         }
 
-        Debug.Log($"Court Task Completed: {task.taskName}! Global Meter: {currentCourtProgress}% / {maxCourtProgress}%");
+        Debug.Log($"Court Task Completed: {(definition != null ? definition.taskName : "<unknown>")}! Global Meter: {currentCourtProgress}% / {maxCourtProgress}%");
     }
 }

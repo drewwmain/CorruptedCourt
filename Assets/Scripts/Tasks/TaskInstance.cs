@@ -81,10 +81,9 @@ public class TaskInstance
             // Skipped when the caller already ran the minigame (e.g. a held item's own minigame).
             if (!skipMinigame && activeStep.minigamePrefab != null)
             {
-                // NOTE: PlayerController.StartMinigame still takes a TaskData, so we hand it
-                // Definition. That means the minigame's completion callback advances the shared
-                // asset, not this instance — a known gap closed once call sites move to TaskInstance.
-                player.StartMinigame(activeStep.minigamePrefab, Definition, targetInteractable);
+                // Hand the minigame THIS instance, so its completion callback
+                // (PlayerController.FinishMinigame) advances this player's copy, not the shared asset.
+                player.StartMinigame(activeStep.minigamePrefab, this, targetInteractable);
                 return false; // Return false because the step is NOT complete yet!
             }
 

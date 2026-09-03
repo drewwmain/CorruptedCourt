@@ -38,7 +38,7 @@ public class UIManager : MonoBehaviour
     
     // We need to remember who is typing and for what task
     private PlayerController currentDataPlayer;
-    private TaskData currentDataTask;
+    private TaskInstance currentDataTask;
 
     [Header("Corrupted UI")]
     public GameObject corruptedUIPanel;
@@ -97,7 +97,7 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void UpdatePlayerTaskList(PlayerController player, List<TaskData> allTasks, List<TaskData> activeTasks, PlayerRole role)
+    public void UpdatePlayerTaskList(PlayerController player, List<TaskInstance> allTasks, List<TaskInstance> activeTasks, PlayerRole role)
     {
         if (taskListText == null) return;
 
@@ -122,20 +122,20 @@ public class UIManager : MonoBehaviour
 
         for (int i = 0; i < allTasks.Count; i++)
         {
-            TaskData task = allTasks[i];
-            if (task == null) continue;
+            TaskInstance task = allTasks[i];
+            if (task == null || task.Definition == null) continue;
 
-            int taskNumber = i + 1; 
+            int taskNumber = i + 1;
             bool isCompleted = !activeTasks.Contains(task);
 
             if (isCompleted)
             {
-                sb.AppendLine($"<s><b><color=#7F8C8D>{taskNumber}. {task.taskName}</color></b></s>");
+                sb.AppendLine($"<s><b><color=#7F8C8D>{taskNumber}. {task.Definition.taskName}</color></b></s>");
             }
             else
             {
                 string dynamicDescription = GetDynamicTaskDescription(player, task);
-                sb.AppendLine($"<b>{taskNumber}. {task.taskName}</b>");
+                sb.AppendLine($"<b>{taskNumber}. {task.Definition.taskName}</b>");
                 sb.AppendLine($"   <size=80%><color=#BDC3C7>{dynamicDescription}</color></size>");
             }
             
@@ -145,9 +145,9 @@ public class UIManager : MonoBehaviour
         taskListText.text = sb.ToString();
     }
 
-    private string GetDynamicTaskDescription(PlayerController player, TaskData task)
+    private string GetDynamicTaskDescription(PlayerController player, TaskInstance task)
     {
-        // Because we moved all the logic into the TaskStep classes, 
+        // Because we moved all the logic into the TaskStep classes,
         // the UI Manager simply asks the task what to display!
         return task.GetCurrentObjectiveText();
     }
@@ -286,7 +286,7 @@ public class UIManager : MonoBehaviour
         if (dataPopupPanel != null) dataPopupPanel.SetActive(false);
     }
 
-    public void OpenDataInputPanel(PlayerController player, TaskData task)
+    public void OpenDataInputPanel(PlayerController player, TaskInstance task)
     {
         if (dataInputPanel != null && dataInputField != null)
         {
@@ -321,16 +321,15 @@ public class UIManager : MonoBehaviour
                 if (playerInput == dataStep.generatedCode)
                 {
                     Debug.Log("Code Accepted! Data Retrieval Complete.");
-                    
-                    // We must manually complete the step here because clicking a UI button 
+
+                    // We must manually complete the step here because clicking a UI button
                     // doesn't trigger the PlayerController's physical interaction raycast!
-                    dataStep.isCompleted = true;
-                    currentDataTask.currentStepIndex++;
-                    
+                    currentDataTask.CompleteActiveStep();
+
                     if (TaskManager.Instance != null)
                     {
                         // Check if that was the final step in the task
-                        if (currentDataTask.IsTaskComplete())
+                        if (currentDataTask.IsComplete)
                         {
                             TaskManager.Instance.CompleteTask(currentDataPlayer, currentDataTask);
                         }

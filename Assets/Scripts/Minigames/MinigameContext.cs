@@ -12,7 +12,7 @@ public class MinigameContext
     public PlayerController Player;
 
     /// <summary>The task whose current step this minigame satisfies. Null = faked / standalone.</summary>
-    public TaskData Task;
+    public TaskInstance Task;
 
     /// <summary>Station / Item / Player / None - resolved by the launcher.</summary>
     public MinigameTargetType TargetType = MinigameTargetType.None;
@@ -31,7 +31,7 @@ public class MinigameContext
 
     public MinigameContext() { }
 
-    public MinigameContext(PlayerController player, TaskData task)
+    public MinigameContext(PlayerController player, TaskInstance task)
     {
         Player = player;
         Task = task;

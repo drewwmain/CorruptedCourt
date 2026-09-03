@@ -27,9 +27,9 @@ public class WaypointManager : MonoBehaviour
     private Transform currentMeetingTarget;
     private RectTransform activeMeetingMarker;
 
-    // NEW: Updated dictionary structures to hold multiple targets/markers per TaskData
-    private Dictionary<TaskData, List<RectTransform>> activeWaypoints = new Dictionary<TaskData, List<RectTransform>>();
-    private Dictionary<TaskData, List<Transform>> taskTargets = new Dictionary<TaskData, List<Transform>>();
+    // NEW: Updated dictionary structures to hold multiple targets/markers per TaskInstance
+    private Dictionary<TaskInstance, List<RectTransform>> activeWaypoints = new Dictionary<TaskInstance, List<RectTransform>>();
+    private Dictionary<TaskInstance, List<Transform>> taskTargets = new Dictionary<TaskInstance, List<Transform>>();
 
     // NEW: A simple struct to help us sort markers by distance before drawing them
     private struct MarkerDrawData
@@ -45,7 +45,7 @@ public class WaypointManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
-    public void UpdateWaypoints(PlayerController localPlayer, List<TaskData> currentTasks)
+    public void UpdateWaypoints(PlayerController localPlayer, List<TaskInstance> currentTasks)
     {
         // 1. Clear out all existing lists of markers
         foreach (var markerList in activeWaypoints.Values)
@@ -65,9 +65,10 @@ public class WaypointManager : MonoBehaviour
 
         for (int i = 0; i < currentTasks.Count; i++)
         {
-            TaskData task = currentTasks[i];
+            TaskInstance task = currentTasks[i];
+            if (task == null || task.Definition == null) continue;
             int taskNumber = i + 1; // Start at 1 instead of 0 for the player UI
-            
+
             if (!localPlayer.activeTasks.Contains(task)) continue;
 
             // Hide this task's waypoint while its minigame UI is open.
@@ -111,7 +112,7 @@ public class WaypointManager : MonoBehaviour
                 }
                 else // They have the item (or don't need one), so point to matching players
                 {
-                    targetsForThisTask.AddRange(FindPlayersWithSameTask(localPlayer, task.taskID));
+                    targetsForThisTask.AddRange(FindPlayersWithSameTask(localPlayer, task.Definition.taskID));
                 }
             }
             // 5. Data Retrieval Step
@@ -208,13 +209,14 @@ public class WaypointManager : MonoBehaviour
                 // Ignore ourselves and ghosts
                 if (player == localPlayer || player.isGhost) continue;
 
-                // Check if they have the exact same task
-                foreach (TaskData task in player.activeTasks)
+                // Check if they have the exact same task (compare the shared Definition's ID,
+                // never the per-player instance reference).
+                foreach (TaskInstance task in player.activeTasks)
                 {
-                    if (task.taskID == taskIDToMatch)
+                    if (task != null && task.Definition != null && task.Definition.taskID == taskIDToMatch)
                     {
                         matchingPlayers.Add(player.transform);
-                        break; 
+                        break;
                     }
                 }
             }
@@ -239,7 +241,7 @@ public class WaypointManager : MonoBehaviour
             // 1. Gather all active markers and calculate their distance
             foreach (var kvp in activeWaypoints)
             {
-                TaskData task = kvp.Key;
+                TaskInstance task = kvp.Key;
                 List<RectTransform> markers = kvp.Value;
                 List<Transform> targets = taskTargets[task];
 

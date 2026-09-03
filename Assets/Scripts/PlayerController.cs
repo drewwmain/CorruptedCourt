@@ -214,10 +214,11 @@ public class PlayerController : MonoBehaviour
     
     [Header("Tasks")]
     [SerializeField] public bool showWaypoints = false;
-    // We now use a list of your new ScriptableObjects
-    public List<TaskData> activeTasks = new List<TaskData>();
+    // Per-player runtime task state. TaskInstance is a plain class (not a ScriptableObject), so these
+    // are runtime-only - Unity does not serialize them and they never appear in the Inspector.
+    public List<TaskInstance> activeTasks = new List<TaskInstance>();
     // The visual state list that never shrinks, keeping UI numbers synced
-    public List<TaskData> allAssignedTasks = new List<TaskData>();
+    public List<TaskInstance> allAssignedTasks = new List<TaskInstance>();
     // --- CHANGED: FIXED-SLOT CORRUPTED INVENTORY ---
     public PowerUpData[] corruptedInventory = new PowerUpData[3];
 
@@ -252,7 +253,7 @@ public class PlayerController : MonoBehaviour
     private GameObject activeMinigameInstance;
     private Transform activeMinigameStation;
     public GameObject activeMinigameTarget;
-    public TaskData activeMinigameTask; // The task the open minigame belongs to (its waypoint is hidden while playing)
+    public TaskInstance activeMinigameTask; // The task the open minigame belongs to (its waypoint is hidden while playing)
     private bool itemSwappedToLeftHand = false;
     // --- NEW: Tracks the current target for IK logic ---
     public MinigameTargetType currentMinigameTargetType = MinigameTargetType.None;
@@ -612,7 +613,7 @@ public class PlayerController : MonoBehaviour
         else leftHeldItem = null;
 
         Debug.Log($"Dropped {toDrop.itemName}.");
-        foreach (TaskData task in activeTasks) task.CheckForTaskRegression(this);
+        foreach (TaskInstance task in activeTasks) task.CheckForTaskRegression(this);
         RefreshLocalWaypoints();
     }
 
@@ -1244,7 +1245,7 @@ public class PlayerController : MonoBehaviour
         itemToThrow.DetachFromHand();
         ClearHeldItem(); 
 
-        foreach (TaskData task in activeTasks)
+        foreach (TaskInstance task in activeTasks)
         {
             task.CheckForTaskRegression(this);
         }
@@ -2463,7 +2464,7 @@ public class PlayerController : MonoBehaviour
             GameObject targetObj = (currentTarget as MonoBehaviour)?.gameObject;
             for (int i = activeTasks.Count - 1; i >= 0; i--)
             {
-                TaskData task = activeTasks[i];
+                TaskInstance task = activeTasks[i];
                 if (task.EvaluateCurrentStep(this, targetObj))
                 {
                     if (TaskManager.Instance != null) TaskManager.Instance.CompleteTask(this, task);
@@ -2522,7 +2523,7 @@ public class PlayerController : MonoBehaviour
             // --- UNIVERSAL TASK EVALUATION ---
             for (int i = activeTasks.Count - 1; i >= 0; i--)
             {
-                TaskData task = activeTasks[i];
+                TaskInstance task = activeTasks[i];
                 // Pass the held item as the target
                 if (task.EvaluateCurrentStep(this, currentlyHeldItem.gameObject)) 
                 {
@@ -2578,7 +2579,7 @@ public class PlayerController : MonoBehaviour
         GameObject stationObj = best.gameObject;
         for (int i = activeTasks.Count - 1; i >= 0; i--)
         {
-            TaskData task = activeTasks[i];
+            TaskInstance task = activeTasks[i];
             if (task.EvaluateCurrentStep(this, stationObj))
             {
                 if (TaskManager.Instance != null) TaskManager.Instance.CompleteTask(this, task);
@@ -2883,19 +2884,16 @@ public class PlayerController : MonoBehaviour
         walkSpeed *= 1.5f; 
     }
 
-    public void AssignTasks(List<TaskData> newTasks)
+    public void AssignTasks(List<TaskInstance> newTasks)
     {
-        activeTasks.Clear(); 
-        activeTasks.AddRange(newTasks); 
-        
+        activeTasks.Clear();
+        activeTasks.AddRange(newTasks);
+
         allAssignedTasks.Clear();
         allAssignedTasks.AddRange(newTasks);
 
-        // Initialize all active tasks using the new architecture
-        foreach (TaskData task in activeTasks)
-        {
-            task.InitializeTask();
-        }
+        // No InitializeTask() call - each TaskInstance is constructed fresh (step index 0, steps
+        // deep-copied and un-completed), so a new instance IS the initialization.
 
         if (IsLocal && UIManager.Instance != null)
         {
@@ -2905,7 +2903,7 @@ public class PlayerController : MonoBehaviour
     }
 
     // Called when the player successfully interacts with a task station
-    public void RemoveCompletedTask(TaskData completedTask)
+    public void RemoveCompletedTask(TaskInstance completedTask)
     {
         if (activeTasks.Contains(completedTask)) 
         {
@@ -2943,7 +2941,7 @@ public class PlayerController : MonoBehaviour
                 else
                 {
                     // Pass an empty list to clear out any active waypoints on the screen
-                    WaypointManager.Instance.UpdateWaypoints(this, new List<TaskData>());
+                    WaypointManager.Instance.UpdateWaypoints(this, new List<TaskInstance>());
                 }
             }
         }
@@ -2964,7 +2962,7 @@ public class PlayerController : MonoBehaviour
         // --- NEW: UNIVERSAL TASK EVALUATION ---
         for (int i = activeTasks.Count - 1; i >= 0; i--)
         {
-            TaskData task = activeTasks[i];
+            TaskInstance task = activeTasks[i];
             if (task.EvaluateCurrentStep(this, target.gameObject))
             {
                 if (TaskManager.Instance != null) TaskManager.Instance.CompleteTask(this, task);
@@ -2990,7 +2988,7 @@ public class PlayerController : MonoBehaviour
 
     // Added the Transform parameter with a default null fallback
     // CHANGED: Signature now takes GameObject targetInteractable instead of Transform stationTransform
-    public void StartMinigame(GameObject minigamePrefab, TaskData task, GameObject targetInteractable = null)
+    public void StartMinigame(GameObject minigamePrefab, TaskInstance task, GameObject targetInteractable = null)
     {
         if (isPlayingMinigame || minigamePrefab == null) return;
 
@@ -3047,7 +3045,7 @@ public class PlayerController : MonoBehaviour
                         Debug.Log($"Dropped off-hand {leftHeldItem.itemName} to free the left hand for the minigame.");
                         leftHeldItem.DetachFromHand();
                         leftHeldItem = null;
-                        foreach (TaskData regressionTask in activeTasks)
+                        foreach (TaskInstance regressionTask in activeTasks)
                         {
                             regressionTask.CheckForTaskRegression(this);
                         }
@@ -3125,7 +3123,7 @@ public class PlayerController : MonoBehaviour
         RefreshLocalWaypoints();
     }
 
-    public void FinishMinigame(TaskData task)
+    public void FinishMinigame(TaskInstance task)
     {
         isPlayingMinigame = false;
         isMinigameLooking = false;
@@ -3146,15 +3144,15 @@ public class PlayerController : MonoBehaviour
             //     (e.g. an AcquireItemStep for an item already in hand, or a NavigateStep for the
             //     zone the player is standing in). Passes no target, so steps that need a specific
             //     interaction object are left for the player to do.
-            while (!task.IsTaskComplete() && !isPlayingMinigame)
+            while (!task.IsComplete && !isPlayingMinigame)
             {
-                int before = task.currentStepIndex;
+                int before = task.CurrentStepIndex;
                 task.EvaluateCurrentStep(this, null);
-                if (task.currentStepIndex == before) break; // no progress this pass
+                if (task.CurrentStepIndex == before) break; // no progress this pass
             }
 
             // 3. Check if that was the final step of the entire task
-            if (task.IsTaskComplete() && TaskManager.Instance != null)
+            if (task.IsComplete && TaskManager.Instance != null)
             {
                 TaskManager.Instance.CompleteTask(this, task);
             }
@@ -3179,7 +3177,7 @@ public class PlayerController : MonoBehaviour
 
         for (int i = activeTasks.Count - 1; i >= 0; i--)
         {
-            TaskData task = activeTasks[i];
+            TaskInstance task = activeTasks[i];
             if (task.EvaluateCurrentStep(this, evalTarget, true)) // skipMinigame: true
             {
                 if (TaskManager.Instance != null) TaskManager.Instance.CompleteTask(this, task);
