@@ -21,23 +21,20 @@ MonoBehaviour:
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 11400000, guid: 90d2a2f99ea48b14daf1510e4c6ad83b, type: 2}
-  steps:
+  stepTemplates:
   - rid: 5911507330253979760
   - rid: 5911507330253979761
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507330253979760
       type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: "\u2060GiftBox\u2060"
     - rid: 5911507330253979761
       type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         requiredItemName: GiftBox
         targetStationID: GiftTable

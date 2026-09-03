@@ -17,27 +17,24 @@ MonoBehaviour:
   taskDescription: The High Table requires more decor. Haul the heavy flower vase
     over to the main table.
   isSabotage: 0
-  allowedStages: 02000000
+  allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 11400000, guid: ee08116b09b672d43ba65cc8e1808948, type: 2}
-  steps:
+  stepTemplates:
   - rid: 5911507330253979755
   - rid: 5911507330253979757
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507330253979755
       type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: "\u2060DepositedVase"
     - rid: 5911507330253979757
       type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         requiredItemName: "\u2060DepositedVase"
         targetStationID: "\u2060HighTable\u2060"

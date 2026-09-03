@@ -312,13 +312,14 @@ public class UIManager : MonoBehaviour
         if (currentDataPlayer != null && currentDataTask != null)
         {
             string playerInput = dataInputField.text;
-            
-            // --- NEW: FETCH CODE DIRECTLY FROM THE TASK STEP ---
+
+            // Compare against THIS player's code, held on the runtime state - never on the asset.
             TaskStep activeStep = currentDataTask.GetCurrentStep();
-            
-            if (activeStep is DataRetrievalStep dataStep)
+            TaskStepRuntime runtime = currentDataTask.CurrentStepRuntime;
+
+            if (activeStep is DataRetrievalStep && runtime != null)
             {
-                if (playerInput == dataStep.generatedCode)
+                if (playerInput == runtime.GeneratedCode)
                 {
                     Debug.Log("Code Accepted! Data Retrieval Complete.");
 

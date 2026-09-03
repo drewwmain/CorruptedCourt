@@ -20,30 +20,26 @@ MonoBehaviour:
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 0}
-  steps:
+  stepTemplates:
   - rid: 5911507330253979747
   - rid: 5911507330253979748
   - rid: 5911507330253979749
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507330253979747
       type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: Bow
     - rid: 5911507330253979748
       type: {class: ProcessItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         targetStationOrItemName: Bow
     - rid: 5911507330253979749
       type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: Bow
         targetStationID: BowRack

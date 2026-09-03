@@ -21,30 +21,26 @@ MonoBehaviour:
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 0}
-  steps:
+  stepTemplates:
   - rid: 5911507241021997137
   - rid: 5911507241021997138
   - rid: 5911507241021997139
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507241021997137
       type: {class: ProcessItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: 81edbe2c70654ab47a68678b1c282c36, type: 3}
         targetStationOrItemName: Cake
     - rid: 5911507241021997138
       type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: CakePiece
     - rid: 5911507241021997139
       type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: CakePiece
         targetStationID: Plate

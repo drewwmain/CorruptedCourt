@@ -21,22 +21,19 @@ MonoBehaviour:
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 11400000, guid: 25c031b21533bef48955ddf248603626, type: 2}
-  steps:
+  stepTemplates:
   - rid: 5911507330253979764
   - rid: 5911507330253979765
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507330253979764
       type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: Instrument
     - rid: 5911507330253979765
       type: {class: PlayerInteractStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         requiredHeldItemName: Instrument

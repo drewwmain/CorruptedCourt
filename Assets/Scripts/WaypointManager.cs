@@ -118,8 +118,9 @@ public class WaypointManager : MonoBehaviour
             // 5. Data Retrieval Step
             else if (activeStep is DataRetrievalStep dataStep)
             {
-                // Dynamically point to the source OR the input based on the step's internal boolean
-                string targetID = dataStep.hasCode ? dataStep.inputStationID : dataStep.sourceStationID;
+                // Point to the source station until THIS player has the code, then to the input station.
+                bool hasCode = task.CurrentStepRuntime != null && task.CurrentStepRuntime.HasCode;
+                string targetID = hasCode ? dataStep.inputStationID : dataStep.sourceStationID;
                 Transform t = FindLocationByID(targetID);
                 if (t != null) targetsForThisTask.Add(t);
             }

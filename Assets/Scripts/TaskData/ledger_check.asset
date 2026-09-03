@@ -21,18 +21,14 @@ MonoBehaviour:
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 0}
-  steps:
+  stepTemplates:
   - rid: 5911507330253979744
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507330253979744
       type: {class: DataRetrievalStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         sourceStationID: "\u2060Ledger\u2060"
         inputStationID: "\u2060ConfirmationBox\u2060"
-        hasCode: 0
-        generatedCode: 

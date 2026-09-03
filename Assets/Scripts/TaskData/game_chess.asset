@@ -21,16 +21,14 @@ MonoBehaviour:
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 0}
-  steps:
+  stepTemplates:
   - rid: 5911507332722851847
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507332722851847
       type: {class: StationInteractStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         targetStationID: ChessBoard
         requiredSimultaneousPlayers: 2

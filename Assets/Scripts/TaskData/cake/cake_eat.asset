@@ -16,26 +16,23 @@ MonoBehaviour:
   taskName: Sample the Dessert
   taskDescription: Grab a plate of cake and eat it.
   isSabotage: 0
-  allowedStages: 02000000
+  allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 11400000, guid: a9267073a6f70eb47bd34214d14fb649, type: 2}
-  steps:
+  stepTemplates:
   - rid: 5911507330253979758
   - rid: 5911507330253979759
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507330253979758
       type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
-        requiredItemName: CakePlate
+        requiredItemName: DepositedCakePlate
     - rid: 5911507330253979759
       type: {class: ConsumeItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 4843060717586299352, guid: 5a37ab99966fbb640b0a5c43dd2142fa, type: 3}
-        requiredItemName: CakePlate
+        requiredItemName: DepositedCakePlate

@@ -20,22 +20,19 @@ MonoBehaviour:
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 11400000, guid: e333db0b17ebc4742a202f43f703d51c, type: 2}
-  steps:
+  stepTemplates:
   - rid: 5911507330253979769
   - rid: 5911507330253979770
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507330253979769
       type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: "\u2060Formalwear\u2060"
     - rid: 5911507330253979770
       type: {class: EquipClothingStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         clothingName: "\u2060Formalwear\u2060"

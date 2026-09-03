@@ -2,20 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Per-player, runtime-only copy of a task's progress.
+/// Per-player, runtime-only state for one assigned task.
 ///
 /// <para>
-/// <see cref="TaskData"/> is a <see cref="ScriptableObject"/> — a single shared asset. Today it
-/// mutates <c>currentStepIndex</c> at runtime and its <see cref="TaskStep"/> entries mutate
-/// <c>isCompleted</c>, <c>hasCode</c>, and <c>generatedCode</c>. Two players handed the same
-/// <see cref="TaskData"/> therefore share one progress counter — a correctness bug.
-/// </para>
-///
-/// <para>
-/// A <see cref="TaskInstance"/> owns its own deep-copied list of steps and its own step index, so
-/// each player advances independently. This class is additive: nothing constructs it yet. The
-/// <see cref="TaskData"/> type name is kept (as <see cref="Definition"/>) so no <c>.asset</c> files
-/// break; its runtime state fields are stripped in a later pass.
+/// <see cref="TaskData"/> is a <see cref="ScriptableObject"/> - a single shared asset - so its
+/// <see cref="TaskData.stepTemplates"/> are immutable authoring data. A <see cref="TaskInstance"/>
+/// owns its own step index plus one <see cref="TaskStepRuntime"/> per step, so each player advances
+/// (and, for steps like <see cref="DataRetrievalStep"/>, accumulates per-attempt state)
+/// independently. Two players handed the same <see cref="TaskData"/> no longer share a progress
+/// counter.
 /// </para>
 /// </summary>
 public class TaskInstance
@@ -23,51 +18,46 @@ public class TaskInstance
     /// <summary>The authoring asset this instance was created from. Read-only template data.</summary>
     public TaskData Definition { get; }
 
-    private readonly List<TaskStep> steps = new List<TaskStep>();
+    // One runtime wrapper per authoring step, in order. Built once in the constructor.
+    private readonly List<TaskStepRuntime> stepRuntimes = new List<TaskStepRuntime>();
 
-    /// <summary>Index of the active step. Advances as steps complete; equals <c>steps.Count</c> when done.</summary>
+    /// <summary>Index of the active step. Advances as steps complete; equals the step count when done.</summary>
     public int CurrentStepIndex { get; private set; }
 
-    /// <summary>All steps for this instance, in order. These are per-instance copies, safe to mutate.</summary>
-    public IReadOnlyList<TaskStep> Steps => steps;
-
     /// <summary>True once every step has been completed.</summary>
-    public bool IsComplete => CurrentStepIndex >= steps.Count;
+    public bool IsComplete => CurrentStepIndex >= stepRuntimes.Count;
 
     public TaskInstance(TaskData definition)
     {
         Definition = definition;
 
-        if (definition != null && definition.steps != null)
+        if (definition != null && definition.stepTemplates != null)
         {
-            foreach (TaskStep source in definition.steps)
+            foreach (TaskStep template in definition.stepTemplates)
             {
-                if (source == null) continue; // Inspector list can contain empty entries.
-
-                TaskStep copy = source.Clone();
-                copy.isCompleted = false; // Start fresh regardless of stale state on the shared asset.
-                steps.Add(copy);
+                if (template == null) continue; // Inspector list can contain empty entries.
+                stepRuntimes.Add(new TaskStepRuntime(template));
             }
         }
 
         CurrentStepIndex = 0;
     }
 
-    /// <summary>
-    /// Gets the current active step, or null if the entire task is complete.
-    /// </summary>
+    /// <summary>The active step's authoring template, or null if the task is complete.</summary>
     public TaskStep GetCurrentStep()
-    {
-        if (CurrentStepIndex < steps.Count)
-        {
-            return steps[CurrentStepIndex];
-        }
-        return null;
-    }
+        => CurrentStepIndex >= 0 && CurrentStepIndex < stepRuntimes.Count
+            ? stepRuntimes[CurrentStepIndex].Template
+            : null;
+
+    /// <summary>The active step's per-player runtime state, or null if the task is complete.</summary>
+    public TaskStepRuntime CurrentStepRuntime
+        => CurrentStepIndex >= 0 && CurrentStepIndex < stepRuntimes.Count
+            ? stepRuntimes[CurrentStepIndex]
+            : null;
 
     /// <summary>
     /// Evaluates the active step against the player's action. Advances <see cref="CurrentStepIndex"/>
-    /// if successful. Ported from <c>TaskData.EvaluateCurrentStep</c>, including minigame interception.
+    /// if successful, including minigame interception.
     /// </summary>
     /// <returns>True if the overall task is now complete.</returns>
     public bool EvaluateCurrentStep(PlayerController player, GameObject targetInteractable = null, bool skipMinigame = false)
@@ -75,7 +65,7 @@ public class TaskInstance
         if (IsComplete) return true;
 
         TaskStep activeStep = GetCurrentStep();
-        if (activeStep != null && activeStep.CheckCompletion(player, targetInteractable))
+        if (activeStep != null && activeStep.CheckCompletion(player, targetInteractable, CurrentStepRuntime))
         {
             // --- MINIGAME INTERCEPTION ---
             // Skipped when the caller already ran the minigame (e.g. a held item's own minigame).
@@ -96,44 +86,39 @@ public class TaskInstance
 
     /// <summary>
     /// Marks the active step complete and advances. Called instantly by normal steps, or later by a
-    /// Minigame upon success. Ported from <c>TaskData.CompleteActiveStep</c>.
+    /// Minigame upon success.
     /// </summary>
     public void CompleteActiveStep()
     {
-        TaskStep activeStep = GetCurrentStep();
-        if (activeStep != null)
-        {
-            activeStep.isCompleted = true;
-            CurrentStepIndex++;
-            Debug.Log($"[Task System] Advanced '{(Definition != null ? Definition.taskName : "<null>")}' to step {CurrentStepIndex}/{steps.Count}");
-        }
+        if (IsComplete) return;
+
+        CurrentStepIndex++;
+        Debug.Log($"[Task System] Advanced '{(Definition != null ? Definition.taskName : "<null>")}' to step {CurrentStepIndex}/{stepRuntimes.Count}");
     }
 
-    /// <summary>
-    /// Fetches current objective text for the UI. Ported from <c>TaskData.GetCurrentObjectiveText</c>.
-    /// </summary>
+    /// <summary>Fetches current objective text for the UI.</summary>
     public string GetCurrentObjectiveText()
     {
         TaskStep activeStep = GetCurrentStep();
         if (activeStep != null)
         {
-            return activeStep.GetObjectiveText();
+            return activeStep.GetObjectiveText(CurrentStepRuntime);
         }
         return "Completed";
     }
 
     /// <summary>
     /// Checks if any previously completed steps (like acquiring an item) are broken, and reverts
-    /// progress if necessary. Ported from <c>TaskData.CheckForTaskRegression</c>.
+    /// progress if necessary.
     /// </summary>
     public void CheckForTaskRegression(PlayerController player)
     {
-        if (steps.Count == 0) return;
+        if (stepRuntimes.Count == 0) return;
 
         // Loop through all steps that have already been completed
-        for (int i = 0; i < CurrentStepIndex; i++)
+        for (int i = 0; i < CurrentStepIndex && i < stepRuntimes.Count; i++)
         {
-            TaskStep step = steps[i];
+            TaskStep step = stepRuntimes[i].Template;
 
             // Specifically check if an AcquireItemStep has been invalidated because we dropped/threw the item
             if (step is AcquireItemStep acquireStep)
@@ -144,7 +129,6 @@ public class TaskInstance
                 if (!stillHolding)
                 {
                     // Regression triggered! Roll back to this step's index
-                    acquireStep.ResetStep();
                     CurrentStepIndex = i;
 
                     Debug.Log($"[Task System] Task '{(Definition != null ? Definition.taskName : "<null>")}' regressed to step {CurrentStepIndex} because required item '{acquireStep.requiredItemName}' was dropped/thrown.");

@@ -137,36 +137,43 @@ public class DataRetrievalStep : TaskStep
     public string sourceStationID;
     public string inputStationID;
 
-    // We now store the generated code directly inside the step itself!
-    [HideInInspector] public bool hasCode = false;
-    [HideInInspector] public string generatedCode = "";
+    // hasCode / generatedCode used to live here and were serialized onto the shared asset - a
+    // per-player, per-attempt value stored on one shared object. They now live on TaskStepRuntime,
+    // passed into the runtime-aware overloads below.
 
-    public override string GetObjectiveText()
+    public override string GetObjectiveText() => GetObjectiveText(null);
+
+    public override string GetObjectiveText(TaskStepRuntime runtime)
     {
+        bool hasCode = runtime != null && runtime.HasCode;
         if (!hasCode)
             return $"Retrieve the code from the <color=#F4D03F>{sourceStationID}</color>";
-        else
-            return $"Input code <color=#E74C3C>'{generatedCode}'</color> at the <color=#F4D03F>{inputStationID}</color>";
+
+        return $"Input code <color=#E74C3C>'{runtime.GeneratedCode}'</color> at the <color=#F4D03F>{inputStationID}</color>";
     }
 
-    public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
-    {
-        if (targetInteractable == null) return false;
+    // Two-phase flow with per-player state, so it always runs through the runtime-aware overload;
+    // the stateless predicate can never complete it on its own.
+    public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null) => false;
 
-        if (!hasCode)
+    public override bool CheckCompletion(PlayerController player, GameObject targetInteractable, TaskStepRuntime runtime)
+    {
+        if (targetInteractable == null || runtime == null) return false;
+
+        if (!runtime.HasCode)
         {
             // Part 1: Getting the code
             if (targetInteractable.name.Contains(sourceStationID))
             {
-                hasCode = true;
-                generatedCode = Random.Range(100, 999).ToString(); // Generate the code
+                runtime.HasCode = true;
+                runtime.GeneratedCode = Random.Range(100, 999).ToString(); // Generate the code
 
-                Debug.Log($"[Task System] Code {generatedCode} acquired from {sourceStationID}!");
+                Debug.Log($"[Task System] Code {runtime.GeneratedCode} acquired from {sourceStationID}!");
 
                 // Trigger the UI Popup
                 if (UIManager.Instance != null)
                 {
-                    UIManager.Instance.ShowDataCodePopup(generatedCode);
+                    UIManager.Instance.ShowDataCodePopup(runtime.GeneratedCode);
                 }
 
                 // Force the waypoints to update to the new destination
@@ -183,14 +190,6 @@ public class DataRetrievalStep : TaskStep
                 // Unlock the mouse so they can click the keypad UI
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
-
-                // Trigger the Keypad UI
-                if (UIManager.Instance != null)
-                {
-                    // Note: You may need to update your OpenDataInputPanel method to accept
-                    // this specific step or code string instead of the old TaskData object!
-                    // UIManager.Instance.OpenDataInputPanel(player, generatedCode);
-                }
 
                 return true; // Step fully completed!
             }

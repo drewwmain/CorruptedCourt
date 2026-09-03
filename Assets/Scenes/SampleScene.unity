@@ -2749,10 +2749,16 @@ MonoBehaviour:
   currentCourtProgress: 0
   maxCourtProgress: 100
   pointsPerTask: 5
-  tasksPerStage: 5
+  tasksPerStage: 12
   allPossibleTasks:
   - {fileID: 11400000, guid: b9518685377b41a4188b8c2b225b77c3, type: 2}
   - {fileID: 11400000, guid: b9c6ef044706aa2488cb2406a9178478, type: 2}
+  - {fileID: 11400000, guid: a9267073a6f70eb47bd34214d14fb649, type: 2}
+  - {fileID: 11400000, guid: b818d0384115a854081f7bc957a4024b, type: 2}
+  - {fileID: 11400000, guid: 1c78cb3d102cd354b8272825ad074ecb, type: 2}
+  - {fileID: 11400000, guid: f5b567c42f6c3d547aa51dc1218c0cd2, type: 2}
+  - {fileID: 11400000, guid: ee08116b09b672d43ba65cc8e1808948, type: 2}
+  - {fileID: 11400000, guid: 7c153ac1113279044b1ad5656e4f507b, type: 2}
   completedTasksHistory: []
 --- !u!1 &702280349
 GameObject:

@@ -20,30 +20,26 @@ MonoBehaviour:
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 0}
-  steps:
+  stepTemplates:
   - rid: 5911507330253979736
   - rid: 5911507330253979737
   - rid: 5911507330253979738
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507330253979736
       type: {class: ProcessItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         targetStationOrItemName: Turkey
     - rid: 5911507330253979737
       type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: TurkeyLeg
     - rid: 5911507330253979738
       type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: TurkeyLeg
         targetStationID: Platter

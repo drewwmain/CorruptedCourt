@@ -23,30 +23,26 @@ MonoBehaviour:
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 0}
-  steps:
+  stepTemplates:
   - rid: 5911507283734429781
   - rid: 5911507283734429780
   - rid: 5911507283734429782
-  currentStepIndex: 0
   references:
     version: 2
     RefIds:
     - rid: 5911507283734429780
       type: {class: ProcessItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         targetStationOrItemName: Sword
     - rid: 5911507283734429781
       type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: Sword
     - rid: 5911507283734429782
       type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
       data:
-        isCompleted: 0
         minigamePrefab: {fileID: 0}
         requiredItemName: ProcessedSword
         targetStationID: Armory
