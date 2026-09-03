@@ -28,4 +28,15 @@ public abstract class TaskStep
     {
         isCompleted = false;
     }
+
+    /// <summary>
+    /// Returns an independent copy of this step for a single player's <see cref="TaskInstance"/>.
+    /// The default is a shallow <see cref="object.MemberwiseClone"/>, which is correct only while
+    /// every field is a value type or a string (both copy by value) plus the shared
+    /// <see cref="minigamePrefab"/> reference (which SHOULD stay shared — it points at an asset).
+    /// Any subclass that adds a mutable reference-type field (a <c>List</c>, array, or class it
+    /// writes to at runtime) MUST override this to deep-copy that field, or two players will alias
+    /// the same object and corrupt each other's progress.
+    /// </summary>
+    public virtual TaskStep Clone() => (TaskStep)MemberwiseClone();
 }
