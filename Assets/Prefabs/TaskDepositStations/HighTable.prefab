@@ -159,6 +159,7 @@ MonoBehaviour:
   depositLocalPosition: {x: 0, y: 0, z: 0}
   depositLocalEuler: {x: 0, y: 0, z: 0}
   preserveDepositedItemScale: 1
+  depositMinigamePrefab: {fileID: 0}
   isSabotaged: 0
 --- !u!114 &1319048006198401073
 MonoBehaviour:
@@ -173,4 +174,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   locationID: HighTable
+  acceptedItem: {fileID: 11400000, guid: 69afb08c8427c87488822d1f51c0f44a, type: 2}
   acceptedItemName: DepositedVase

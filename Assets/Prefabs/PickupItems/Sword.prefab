@@ -140,6 +140,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: baeddb19b8a38ec4eb39e2764850bb4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  definition: {fileID: 11400000, guid: be1b9bbd508b2c746801437da260cc15, type: 2}
+  state: 0
   itemName: Sword
   requiresPartner: 0
   taskLocationID: Armory
@@ -148,6 +150,14 @@ MonoBehaviour:
   isDepositedContainer: 0
   isSpent: 0
   isHeavy: 0
+  haulWithBothHands: 0
+  haulForward: 0.55
+  haulHeightBelowEye: -0.9
+  haulLocalEuler: {x: 0, y: 0, z: 0}
+  leftGripPoint: {fileID: 0}
+  rightGripPoint: {fileID: 0}
+  haulElbowOut: 0.45
+  haulElbowDrop: 0.25
   heldPositionOffset: {x: 0, y: 0, z: 0}
   heldRotationOffset: {x: 0, y: 0, z: 0}
   itemWeight: 1

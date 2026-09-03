@@ -172,11 +172,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1383b628d6e04e64581fadf537c695c5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  definition: {fileID: 11400000, guid: 778624e1982cd3445aa20161bb05f786, type: 2}
+  state: 0
   itemName: Longsword
   requiresPartner: 0
+  taskLocationID: 
   isInfiniteSource: 0
   isProcessed: 0
+  isDepositedContainer: 0
+  isSpent: 0
   isHeavy: 0
+  haulWithBothHands: 0
+  haulForward: 0.55
+  haulHeightBelowEye: -0.9
+  haulLocalEuler: {x: 0, y: 0, z: 0}
+  leftGripPoint: {fileID: 0}
+  rightGripPoint: {fileID: 0}
+  haulElbowOut: 0.45
+  haulElbowDrop: 0.25
   heldPositionOffset: {x: 0, y: 0, z: 0}
   heldRotationOffset: {x: 0, y: 0, z: 0}
   itemWeight: 1

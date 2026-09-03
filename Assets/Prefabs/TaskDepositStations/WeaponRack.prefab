@@ -245,6 +245,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   locationID: WeaponRack
+  acceptedItem: {fileID: 11400000, guid: be1b9bbd508b2c746801437da260cc15, type: 2}
   acceptedItemName: ProcessedSword
 --- !u!114 &8623841145838889634
 MonoBehaviour:
@@ -271,4 +272,5 @@ MonoBehaviour:
   depositLocalPosition: {x: 0, y: 0, z: 0}
   depositLocalEuler: {x: 0, y: 0, z: 0}
   preserveDepositedItemScale: 1
+  depositMinigamePrefab: {fileID: 0}
   isSabotaged: 0

@@ -331,6 +331,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   locationID: DowryChest
+  acceptedItem: {fileID: 11400000, guid: 3cce9f2335d2bf44688ca3c06d2a8997, type: 2}
   acceptedItemName: Jewels
 --- !u!65 &7332421647319016908
 BoxCollider:

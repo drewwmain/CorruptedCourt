@@ -50,6 +50,10 @@ MonoBehaviour:
   pickupItemObject: {fileID: 2181184745465135353}
   pickupFromStage: 2
   testMode: 1
+  prefixNameWhenDeposited: 1
+  snapDepositsToRestPoint: 1
+  depositRestLocalPosition: {x: 0, y: 0, z: 0}
+  depositRestPerItemOffset: {x: 0, y: 0.05, z: 0}
 --- !u!1001 &2273851425883746675
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -166,13 +170,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: baeddb19b8a38ec4eb39e2764850bb4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  definition: {fileID: 11400000, guid: 69afb08c8427c87488822d1f51c0f44a, type: 2}
+  state: 0
   itemName: Vase
   requiresPartner: 0
   taskLocationID: HighTable
   isInfiniteSource: 0
   isProcessed: 0
   isDepositedContainer: 0
+  isSpent: 0
   isHeavy: 0
+  haulWithBothHands: 0
+  haulForward: 0.55
+  haulHeightBelowEye: -0.9
+  haulLocalEuler: {x: 0, y: 0, z: 0}
+  leftGripPoint: {fileID: 0}
+  rightGripPoint: {fileID: 0}
+  haulElbowOut: 0.45
+  haulElbowDrop: 0.25
   heldPositionOffset: {x: 0, y: 0, z: 0}
   heldRotationOffset: {x: 0, y: 0, z: 0}
   itemWeight: 1
@@ -317,6 +332,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   locationID: Vase
+  acceptedItem: {fileID: 11400000, guid: 3d5248a4469b2664593d999a57bcaeef, type: 2}
   acceptedItemName: Flowers
 --- !u!114 &2789680347807167857
 MonoBehaviour:
@@ -332,8 +348,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   depositedItemSlots:
   - {fileID: 0}
+  customDropSlots: []
   slotHeight: 0.5
   slotSpacing: 0.33
+  retrievableFromStage: 999
+  retrieveTestMode: 0
+  depositLocalPosition: {x: 0, y: 0, z: 0}
+  depositLocalEuler: {x: 0, y: 0, z: 0}
+  preserveDepositedItemScale: 1
+  depositMinigamePrefab: {fileID: 0}
   isSabotaged: 0
 --- !u!4 &4287128183735945129 stripped
 Transform:

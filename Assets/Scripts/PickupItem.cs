@@ -6,9 +6,26 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class PickupItem : MonoBehaviour, IInteractable
 {
+    [Header("Identity")]
+    [Tooltip("The typed identity of this item. Matching moves to this reference; assigned by the " +
+             "'Corrupted Court/Migrate Item Definitions' tool.")]
+    public ItemDefinition definition;
+
+    [Tooltip("Runtime state flags (processed / deposited-container / spent). Replaces the old " +
+             "\"Processed\" / \"Deposited\" itemName prefixes.")]
+    public ItemState state;
+
+    // [Obsolete] identity is moving to 'definition'. Kept (and still name-prefixed by ProcessItem /
+    // MarkAsDepositedContainer) until matching logic is migrated off strings.
     public string itemName = "Task Tool";
     // A static master list of all items in the map so the UI can find them
     public static List<PickupItem> AllItems = new List<PickupItem>();
+
+    /// <summary>True when this item is <paramref name="def"/> and carries every flag in <paramref name="required"/>.</summary>
+    public bool Matches(ItemDefinition def, ItemState required) => definition == def && (state & required) == required;
+
+    /// <summary>True when <paramref name="flag"/> (which may be several ORed flags) is fully set.</summary>
+    public bool Has(ItemState flag) => (state & flag) == flag;
     
     [Header("Task Settings")]
     public bool requiresPartner = false;
@@ -20,14 +37,18 @@ public class PickupItem : MonoBehaviour, IInteractable
     [Tooltip("If true, picking this up gives the player a clone and leaves the original on the table.")]
     public bool isInfiniteSource = true;
 
-    // NEW: Tracks if the item has been interacted with by the player while in their hands
+    // [Obsolete] superseded by ItemState.Processed on 'state'. Still written by ProcessItem() until
+    // matching logic is migrated.
     [Tooltip("Used for ItemProcessAndDeposit tasks to track if the player has modified the item.")]
     public bool isProcessed = false;
 
+    // [Obsolete] superseded by ItemState.DepositedContainer on 'state'. Still written by
+    // MarkAsDepositedContainer() until matching logic is migrated.
     [Tooltip("Set when a deposit station that received an item is converted into this pickup - " +
              "prefixes the itemName with \"Deposited\".")]
     public bool isDepositedContainer = false;
 
+    // [Obsolete] superseded by ItemState.Spent on 'state'.
     [Tooltip("Set once a minigame has used this item up (e.g. an emptied plate). Pressing [E] on it " +
              "then does nothing - the player just carries or drops it.")]
     public bool isSpent = false;
@@ -306,6 +327,9 @@ public class PickupItem : MonoBehaviour, IInteractable
     {
         if (isProcessed) return; // already processed - don't stack the prefix
 
+        // New: typed flag. Legacy: keep prefixing the name so string matching still works.
+        state |= ItemState.Processed;
+
         isProcessed = true;
         itemName = "Processed" + itemName; // no space: "Flowers" -> "ProcessedFlowers"
         gameObject.name = itemName;
@@ -317,6 +341,9 @@ public class PickupItem : MonoBehaviour, IInteractable
     public void MarkAsDepositedContainer()
     {
         if (isDepositedContainer) return; // don't stack the prefix
+
+        // New: typed flag. Legacy: keep prefixing the name so string matching still works.
+        state |= ItemState.DepositedContainer;
 
         isDepositedContainer = true;
         itemName = "Deposited" + itemName; // no space: "Vase" -> "DepositedVase"
