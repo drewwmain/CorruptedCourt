@@ -18,7 +18,9 @@ public class CakeCuttingMinigame : MinigameBase
     [Tooltip("PickupItem prefab dropped into the world when the minigame is won.")]
     public PickupItem cakePiecePrefab;
 
-    [Tooltip("Name forced onto the spawned piece so it matches the AcquireItemStep. Leave blank to keep the prefab's own name.")]
+    // [Obsolete] matching is by ItemDefinition now - the spawned piece inherits cakePiecePrefab's
+    // 'definition'. Kept only as an authoring label; assign an ItemDefinition on cakePiecePrefab.
+    [Tooltip("[DEPRECATED] Informational only - the produced piece's identity comes from cakePiecePrefab.definition.")]
     public string producedItemName = "CakePiece";
 
     [Tooltip("Destroy whatever cake the player is holding when the piece is produced.")]
@@ -69,13 +71,7 @@ public class CakeCuttingMinigame : MinigameBase
             {
                 Vector3 spawnPos = ResolveSpawnPosition();
                 PickupItem piece = Instantiate(cakePiecePrefab, spawnPos, Quaternion.identity);
-
-                if (!string.IsNullOrEmpty(producedItemName))
-                {
-                    piece.itemName = producedItemName;
-                    piece.gameObject.name = producedItemName;
-                }
-                piece.isInfiniteSource = false; // it's a one-off, not a spawner
+                piece.isInfiniteSource = false; // it's a one-off, not a spawner (identity from cakePiecePrefab.definition)
                 // left free-standing in the world - the player must walk over and pick it up
             }
             else

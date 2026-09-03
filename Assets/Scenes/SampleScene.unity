@@ -885,13 +885,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: baeddb19b8a38ec4eb39e2764850bb4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemName: DowryChest
+  definition: {fileID: 11400000, guid: ce9596791f5553e4fb2c607c73719a98, type: 2}
+  state: 0
   requiresPartner: 0
   taskLocationID: RoyalTable
   isInfiniteSource: 0
-  isProcessed: 0
-  isDepositedContainer: 0
-  isSpent: 0
   isHeavy: 1
   haulWithBothHands: 1
   haulForward: 0.55
@@ -3227,13 +3225,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: baeddb19b8a38ec4eb39e2764850bb4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  itemName: Jewels
+  definition: {fileID: 11400000, guid: 3cce9f2335d2bf44688ca3c06d2a8997, type: 2}
+  state: 0
   requiresPartner: 0
   taskLocationID: DowryChest
   isInfiniteSource: 1
-  isProcessed: 0
-  isDepositedContainer: 0
-  isSpent: 0
   isHeavy: 0
   haulWithBothHands: 0
   haulForward: 0.55
@@ -4152,8 +4148,16 @@ PrefabInstance:
       value: RoyalTable
       objectReference: {fileID: 0}
     - target: {fileID: 1170156735530952286, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
+      propertyPath: acceptedItem
+      value: 
+      objectReference: {fileID: 11400000, guid: ce9596791f5553e4fb2c607c73719a98, type: 2}
+    - target: {fileID: 1170156735530952286, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
       propertyPath: acceptedItemName
       value: DepositedDowryChest
+      objectReference: {fileID: 0}
+    - target: {fileID: 1268807335812546028, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
+      propertyPath: requiredState
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1268807335812546028, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
       propertyPath: retrieveTestMode
@@ -4946,7 +4950,7 @@ MonoBehaviour:
   pickupItemObject: {fileID: 225250997}
   pickupFromStage: 2
   testMode: 1
-  prefixNameWhenDeposited: 1
+  flagAsDepositedContainer: 1
   snapDepositsToRestPoint: 1
   depositRestLocalPosition: {x: 0, y: 0, z: 0}
   depositRestPerItemOffset: {x: 0, y: 0.05, z: 0}
@@ -4980,8 +4984,16 @@ PrefabInstance:
       value: Armory
       objectReference: {fileID: 0}
     - target: {fileID: 1170156735530952286, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
+      propertyPath: acceptedItem
+      value: 
+      objectReference: {fileID: 11400000, guid: be1b9bbd508b2c746801437da260cc15, type: 2}
+    - target: {fileID: 1170156735530952286, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
       propertyPath: acceptedItemName
       value: ProcessedSword
+      objectReference: {fileID: 0}
+    - target: {fileID: 1268807335812546028, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
+      propertyPath: requiredState
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1268807335812546028, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
       propertyPath: retrieveTestMode
@@ -7359,6 +7371,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2932024095070400754, guid: 5c5e5376acd7e704d8d7fa04a307ea95, type: 3}
+      propertyPath: requiredState
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7030145293569555554, guid: 5c5e5376acd7e704d8d7fa04a307ea95, type: 3}
       propertyPath: m_LocalPosition.x
       value: 7.898

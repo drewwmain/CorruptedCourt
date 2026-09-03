@@ -15,7 +15,9 @@ public class SpawnAndCarryObjective
     [Tooltip("PickupItem prefab dropped into the world when the producing action completes.")]
     public PickupItem producedPrefab;
 
-    [Tooltip("Name forced onto the spawned item so it matches the follow-up AcquireItemStep. Blank = keep the prefab's name.")]
+    // [Obsolete] matching is by ItemDefinition now - the spawned item inherits producedPrefab's
+    // 'definition'. Kept only as an authoring label.
+    [Tooltip("[DEPRECATED] Informational only - the produced item's identity comes from producedPrefab.definition.")]
     public string producedItemName = "";
 
     [Tooltip("locationID of where the player should carry it next (e.g. the Plate deposit station).")]
@@ -40,12 +42,7 @@ public class SpawnAndCarryObjective
             : player.transform.position + player.transform.forward * 0.8f + Vector3.up * 1.0f;
 
         PickupItem piece = Object.Instantiate(producedPrefab, pos, Quaternion.identity);
-        if (!string.IsNullOrEmpty(producedItemName))
-        {
-            piece.itemName = producedItemName;
-            piece.gameObject.name = producedItemName;
-        }
-        piece.isInfiniteSource = false;
+        piece.isInfiniteSource = false; // identity rides on producedPrefab.definition, which Instantiate copies
         return piece;
     }
 

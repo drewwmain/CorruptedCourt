@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// Swaps an object between a "deposit station" role and a "pickup item" role depending on the match
@@ -37,9 +38,10 @@ public class RoundRoleSwitch : MonoBehaviour
              "deposited, then switch. PickupNow = be a pickup from the start.")]
     public TestMode testMode = TestMode.Off;
 
-    [Tooltip("When the station received a deposit, prefix the pickup item's name with \"Deposited\" " +
-             "(e.g. Vase -> DepositedVase) so only stations expecting that version accept it.")]
-    public bool prefixNameWhenDeposited = true;
+    [Tooltip("When the station received a deposit, set the DepositedContainer state flag on the pickup " +
+             "item so only stations that demand it (TaskDepositStation.requiredState) accept it.")]
+    [FormerlySerializedAs("prefixNameWhenDeposited")]
+    public bool flagAsDepositedContainer = true;
 
     [Header("Deposited Item Placement")]
     [Tooltip("Snap transferred items to a fixed local spot on the pickup object (so a deposited " +
@@ -87,10 +89,10 @@ public class RoundRoleSwitch : MonoBehaviour
             SetActiveIfNeeded(pickupItemObject, true);
             TransferDepositedItems();
 
-            if (receivedDeposit && prefixNameWhenDeposited && pickupItemObject != null)
+            if (receivedDeposit && flagAsDepositedContainer && pickupItemObject != null)
             {
                 PickupItem pickup = pickupItemObject.GetComponent<PickupItem>();
-                if (pickup != null) pickup.MarkAsDepositedContainer(); // "Vase" -> "DepositedVase"
+                if (pickup != null) pickup.MarkAsDepositedContainer(); // sets ItemState.DepositedContainer
             }
 
             SetActiveIfNeeded(depositStationObject, false);

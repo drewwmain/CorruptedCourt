@@ -68,7 +68,7 @@ public abstract class ConsumeMinigame : HandMinigame
             {
                 foreach (PickupItem child in item.GetComponentsInChildren<PickupItem>())
                     if (child != item) Destroy(child.gameObject);
-                item.isSpent = true;
+                item.state |= ItemState.Spent;
             }
         }
         OnConsumed();

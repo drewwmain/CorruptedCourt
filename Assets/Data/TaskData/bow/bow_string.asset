@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
+  m_Name: bow_string
+  m_EditorClassIdentifier: 
+  taskID: bow_string
+  taskName: String the Longbow
+  taskDescription: Check the tension and string the practice longbow.
+  isSabotage: 0
+  allowedStages: 01000000
+  autoSpawnItemPrefab: {fileID: 0}
+  autoSpawnLocationID: 
+  prerequisiteTask: {fileID: 0}
+  stepTemplates:
+  - rid: 5911507330253979747
+  - rid: 5911507330253979748
+  - rid: 5911507330253979749
+  references:
+    version: 2
+    RefIds:
+    - rid: 5911507330253979747
+      type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        minigamePrefab: {fileID: 0}
+        requiredItem: {fileID: 0}
+        requiredState: 0
+        legacyRequiredItemName: Bow
+    - rid: 5911507330253979748
+      type: {class: ProcessItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
+        targetStationID: Bow
+        targetItem: {fileID: 0}
+        targetItemState: 0
+        legacyTargetStationOrItemName: 
+    - rid: 5911507330253979749
+      type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        minigamePrefab: {fileID: 0}
+        requiredItem: {fileID: 0}
+        requiredState: 0
+        targetStationID: BowRack
+        requireOwnDeposit: 0
+        legacyRequiredItemName: Bow

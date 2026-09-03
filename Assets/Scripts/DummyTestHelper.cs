@@ -14,16 +14,14 @@ public class DummyTestHelper : MonoBehaviour
         {
             PlayerController player = GetComponent<PlayerController>();
             
-            // 1. Create a fresh physical copy of the item in the world
+            // 1. Create a fresh physical copy of the item in the world (identity rides on 'definition',
+            //    which Instantiate copies - no name fix-up needed for matching).
             PickupItem clone = Instantiate(itemToEquip);
-            
-            // 2. Strip the "(Clone)" tag so it perfectly matches the requiredItemName string
-            clone.itemName = itemToEquip.itemName; 
-            
-            // 3. Force the dummy player to equip it using your existing public method
+
+            // 2. Force the dummy player to equip it using your existing public method
             player.EquipItem(clone);
-            
-            Debug.Log($"[Test Harness] Forced {gameObject.name} to equip {clone.itemName}");
+
+            Debug.Log($"[Test Harness] Forced {gameObject.name} to equip {clone.DisplayName}");
         }
     }
 }

@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
+  m_Name: cake_cut
+  m_EditorClassIdentifier: 
+  taskID: cake_cut
+  taskName: Portion the Cake
+  taskDescription: The royal cake is far too rich for commoners. Cut a modest slice
+    for the lower tables.
+  isSabotage: 0
+  allowedStages: 01000000
+  autoSpawnItemPrefab: {fileID: 0}
+  autoSpawnLocationID: 
+  prerequisiteTask: {fileID: 0}
+  stepTemplates:
+  - rid: 5911507241021997137
+  - rid: 5911507241021997138
+  - rid: 5911507241021997139
+  references:
+    version: 2
+    RefIds:
+    - rid: 5911507241021997137
+      type: {class: ProcessItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        minigamePrefab: {fileID: 2714110265442006716, guid: 81edbe2c70654ab47a68678b1c282c36, type: 3}
+        targetStationID: Cake
+        targetItem: {fileID: 0}
+        targetItemState: 0
+        legacyTargetStationOrItemName: 
+    - rid: 5911507241021997138
+      type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        minigamePrefab: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: 17208e9f1565b9a40a8f63a7dd5baab0, type: 2}
+        requiredState: 0
+        legacyRequiredItemName: 
+    - rid: 5911507241021997139
+      type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
+      data:
+        minigamePrefab: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: 17208e9f1565b9a40a8f63a7dd5baab0, type: 2}
+        requiredState: 0
+        targetStationID: Plate
+        requireOwnDeposit: 0
+        legacyRequiredItemName: 

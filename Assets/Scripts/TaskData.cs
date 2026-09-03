@@ -48,7 +48,16 @@ public class TaskData : ScriptableObject
             for (int i = 0; i < stepTemplates.Count; i++)
             {
                 if (stepTemplates[i] == null)
+                {
                     Debug.LogWarning($"[TaskData] '{name}' stepTemplates[{i}] is empty (no step type selected).", this);
+                    continue;
+                }
+
+                // Per-step sanity check - catches un-migrated identity strings (a legacy item name is
+                // set but the ItemDefinition that replaced it is not). See TaskStep.GetConfigurationWarning.
+                string warning = stepTemplates[i].GetConfigurationWarning();
+                if (!string.IsNullOrEmpty(warning))
+                    Debug.LogWarning($"[TaskData] '{name}' stepTemplates[{i}] ({stepTemplates[i].GetType().Name}): {warning}", this);
             }
         }
     }

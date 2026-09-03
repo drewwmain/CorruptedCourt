@@ -39,4 +39,25 @@ public abstract class TaskStep
     /// </summary>
     public virtual bool CheckCompletion(PlayerController player, GameObject targetInteractable, TaskStepRuntime runtime)
         => CheckCompletion(player, targetInteractable);
+
+    /// <summary>
+    /// Editor-only sanity check, run for every step by <see cref="TaskData.OnValidate"/>. Return a
+    /// message to flag mis-authored data (e.g. a legacy identity string is filled in but the typed
+    /// <see cref="ItemDefinition"/> reference that replaced it is not); return null when the step is
+    /// configured correctly.
+    /// </summary>
+    public virtual string GetConfigurationWarning() => null;
+
+    /// <summary>
+    /// The <see cref="TaskLocation"/> for an interacted object: on the object itself, else its
+    /// nearest ancestor (some stations put the collider on a child). Null when neither carries one.
+    /// Replaces the old <c>gameObject.name.Contains(id)</c> station matching.
+    /// </summary>
+    protected static TaskLocation ResolveLocation(GameObject go)
+    {
+        if (go == null) return null;
+        TaskLocation loc = go.GetComponent<TaskLocation>();
+        if (loc == null) loc = go.GetComponentInParent<TaskLocation>();
+        return loc;
+    }
 }

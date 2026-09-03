@@ -612,7 +612,7 @@ public class PlayerController : MonoBehaviour
         if (toDrop == currentlyHeldItem) currentlyHeldItem = null;
         else leftHeldItem = null;
 
-        Debug.Log($"Dropped {toDrop.itemName}.");
+        Debug.Log($"Dropped {toDrop.DisplayName}.");
         foreach (TaskInstance task in activeTasks) task.CheckForTaskRegression(this);
         RefreshLocalWaypoints();
     }
@@ -642,7 +642,7 @@ public class PlayerController : MonoBehaviour
         if (currentlyHeldItem != null) currentlyHeldItem.AttachToHand(rightHandSocket);
         if (leftHeldItem != null) leftHeldItem.AttachToHand(leftHandSocket);
 
-        Debug.Log($"Swapped hands. Active: {(currentlyHeldItem != null ? currentlyHeldItem.itemName : "empty")} | Off-hand: {(leftHeldItem != null ? leftHeldItem.itemName : "empty")}");
+        Debug.Log($"Swapped hands. Active: {(currentlyHeldItem != null ? currentlyHeldItem.DisplayName : "empty")} | Off-hand: {(leftHeldItem != null ? leftHeldItem.DisplayName : "empty")}");
 
         RefreshLocalWaypoints();
     }
@@ -1269,7 +1269,7 @@ public class PlayerController : MonoBehaviour
             rb.AddTorque(UnityEngine.Random.insideUnitSphere * (finalForce * 0.5f), ForceMode.Impulse);
         }
 
-        Debug.Log($"Threw {itemToThrow.itemName} with force {finalForce}. (Charge: {chargePercentage * 100}%, Weight: {itemToThrow.itemWeight})");
+        Debug.Log($"Threw {itemToThrow.DisplayName} with force {finalForce}. (Charge: {chargePercentage * 100}%, Weight: {itemToThrow.itemWeight})");
 
         // --- NEW: PROJECTILE IMPACT SETUP ---
         // Dynamically add the impact script to the item in the air
@@ -1700,7 +1700,7 @@ public class PlayerController : MonoBehaviour
             yield break;
         }
 
-        Debug.Log($"<color=#3498DB>{gameObject.name} raises the {weapon.itemName} to block!</color>");
+        Debug.Log($"<color=#3498DB>{gameObject.name} raises the {weapon.DisplayName} to block!</color>");
         isBlocking = true;
         
         // Wait for the duration of the block
@@ -2314,7 +2314,7 @@ public class PlayerController : MonoBehaviour
                         // 1. MULTIPLAYER TASK (Available to Court, Corrupted, King, & Kingsguard)
                         if (currentlyHeldItem != null && currentlyHeldItem.requiresPartner)
                         {
-                            prompts.Add($"Press <color=#F4D03F>[E]</color> to use <color=#5DADE2>{currentlyHeldItem.itemName}</color> with <color=#58D68D>{otherPlayer.gameObject.name}</color>");
+                            prompts.Add($"Press <color=#F4D03F>[E]</color> to use <color=#5DADE2>{currentlyHeldItem.DisplayName}</color> with <color=#58D68D>{otherPlayer.gameObject.name}</color>");
                         }
                         else
                         {
@@ -2371,12 +2371,12 @@ public class PlayerController : MonoBehaviour
                     if (currentlyHeldItem != null)
                     {
                         // UPDATED: E is now explicitly for using, Q is for dropping
-                        heldPrompts.Add($"Press <color=#F4D03F>[E]</color> to use or <color=#F4D03F>[Q]</color> to drop <color=#5DADE2>{currentlyHeldItem.itemName}</color>");
+                        heldPrompts.Add($"Press <color=#F4D03F>[E]</color> to use or <color=#F4D03F>[Q]</color> to drop <color=#5DADE2>{currentlyHeldItem.DisplayName}</color>");
                     }
 
                     if (leftHeldItem != null)
                     {
-                        heldPrompts.Add($"Press <color=#F4D03F>[R]</color> to swap in <color=#5DADE2>{leftHeldItem.itemName}</color> (off-hand)");
+                        heldPrompts.Add($"Press <color=#F4D03F>[R]</color> to swap in <color=#5DADE2>{leftHeldItem.DisplayName}</color> (off-hand)");
                     }
 
                     interactionUI.text = string.Join("\n", heldPrompts);
@@ -2504,9 +2504,9 @@ public class PlayerController : MonoBehaviour
         else if (currentlyHeldItem != null)
         {
             // A spent item (e.g. an emptied plate) does nothing on [E] - just carry or drop it.
-            if (currentlyHeldItem.isSpent)
+            if (currentlyHeldItem.Has(ItemState.Spent))
             {
-                Debug.Log($"Nothing left to do with the {currentlyHeldItem.itemName}.");
+                Debug.Log($"Nothing left to do with the {currentlyHeldItem.DisplayName}.");
                 return;
             }
 
@@ -2543,7 +2543,7 @@ public class PlayerController : MonoBehaviour
             // ARE meant to be worked on with [E] carry a Process Minigame Prefab, which was launched
             // above.
             if (!taskCompleted)
-                Debug.Log($"Nothing to do with the {currentlyHeldItem.itemName} here - carry it where it needs to go.");
+                Debug.Log($"Nothing to do with the {currentlyHeldItem.DisplayName} here - carry it where it needs to go.");
         }
         else
         {
@@ -2563,10 +2563,9 @@ public class PlayerController : MonoBehaviour
 
         foreach (TaskLocation loc in TaskLocation.AllLocations)
         {
-            if (loc == null || string.IsNullOrEmpty(loc.acceptedItemName)
-                || loc.acceptedItemName != currentlyHeldItem.itemName) continue;
+            if (loc == null) continue;
             TaskDepositStation st = loc.GetComponent<TaskDepositStation>();
-            if (st == null || !st.HasFreeSlot()) continue;
+            if (st == null || !st.HasFreeSlot() || !st.AcceptsItem(currentlyHeldItem)) continue;
 
             float d = Vector3.Distance(transform.position, loc.transform.position);
             if (d <= bestDist) { bestDist = d; best = st; }
@@ -2609,7 +2608,7 @@ public class PlayerController : MonoBehaviour
             if (leftHeldItem != null) { leftHeldItem.DetachFromHand(); leftHeldItem = null; }
             currentlyHeldItem = newItem;
             AttachHaulItem(newItem);
-            Debug.Log($"Hauling {newItem.itemName}");
+            Debug.Log($"Hauling {newItem.DisplayName}");
             return;
         }
 
@@ -2623,7 +2622,7 @@ public class PlayerController : MonoBehaviour
             // Active hand is full but the off-hand is free: carry the new item there.
             leftHeldItem = newItem;
             leftHeldItem.AttachToHand(leftHandSocket);
-            Debug.Log($"Equipped {leftHeldItem.itemName} in the off-hand");
+            Debug.Log($"Equipped {leftHeldItem.DisplayName} in the off-hand");
             return;
         }
 
@@ -2637,7 +2636,7 @@ public class PlayerController : MonoBehaviour
         currentlyHeldItem = newItem;
         currentlyHeldItem.AttachToHand(rightHandSocket);
 
-        Debug.Log($"Equipped {currentlyHeldItem.itemName}");
+        Debug.Log($"Equipped {currentlyHeldItem.DisplayName}");
     }
 
     // Attaches a haul item; PoseHaulItem() then keeps it in front of the torso each frame and
@@ -2649,7 +2648,7 @@ public class PlayerController : MonoBehaviour
         haulActive = true;
         PoseHaulItem();
 
-        Debug.Log($"[Haul] Carrying {item.itemName}. leftGrip={(item.leftGripPoint != null)} " +
+        Debug.Log($"[Haul] Carrying {item.DisplayName}. leftGrip={(item.leftGripPoint != null)} " +
                   $"rightGrip={(item.rightGripPoint != null)} ikBlendSpeed={ikBlendSpeed} " +
                   $"animatorHuman={(animator != null && animator.isHuman)}");
     }
@@ -2686,12 +2685,12 @@ public class PlayerController : MonoBehaviour
 
     public void ClearLeftHeldItem() { leftHeldItem = null; }
 
-    // True if an item with this name is held in EITHER hand.
-    public bool IsHoldingItemNamed(string itemName)
+    // True if an item of this identity - carrying every flag in requiredState - is held in EITHER hand.
+    public bool IsHoldingItem(ItemDefinition definition, ItemState requiredState = ItemState.None)
     {
-        if (string.IsNullOrEmpty(itemName)) return false;
-        if (currentlyHeldItem != null && currentlyHeldItem.itemName == itemName) return true;
-        if (leftHeldItem != null && leftHeldItem.itemName == itemName) return true;
+        if (definition == null) return false;
+        if (currentlyHeldItem != null && currentlyHeldItem.Matches(definition, requiredState)) return true;
+        if (leftHeldItem != null && leftHeldItem.Matches(definition, requiredState)) return true;
         return false;
     }
 
@@ -2973,7 +2972,7 @@ public class PlayerController : MonoBehaviour
         // 2. Perform the physical action regardless of tasks! (Allows faking)
         if (currentlyHeldItem != null && currentlyHeldItem.requiresPartner)
         {
-            Debug.Log($"Used {currentlyHeldItem.itemName} with {target.gameObject.name}!" + (taskCompleted ? " (Task Completed)" : " (Faked Task)"));
+            Debug.Log($"Used {currentlyHeldItem.DisplayName} with {target.gameObject.name}!" + (taskCompleted ? " (Task Completed)" : " (Faked Task)"));
             GameObject initiatorItemObj = currentlyHeldItem.gameObject;
             this.ClearHeldItem(); 
             Destroy(initiatorItemObj);
@@ -3042,7 +3041,7 @@ public class PlayerController : MonoBehaviour
                     // The minigame borrows the left hand. If the off-hand holds something else, drop it.
                     if (leftHeldItem != null)
                     {
-                        Debug.Log($"Dropped off-hand {leftHeldItem.itemName} to free the left hand for the minigame.");
+                        Debug.Log($"Dropped off-hand {leftHeldItem.DisplayName} to free the left hand for the minigame.");
                         leftHeldItem.DetachFromHand();
                         leftHeldItem = null;
                         foreach (TaskInstance regressionTask in activeTasks)
@@ -3184,7 +3183,7 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        if (currentlyHeldItem != null && !currentlyHeldItem.isProcessed)
+        if (currentlyHeldItem != null && !currentlyHeldItem.Has(ItemState.Processed))
         {
             currentlyHeldItem.ProcessItem();
         }

@@ -59,7 +59,7 @@ public class ConsumeItemMinigame : MinigameBase
                     }
 
                     // The container is now empty - pressing [E] on it should do nothing more.
-                    held.isSpent = true;
+                    held.state |= ItemState.Spent;
                 }
             }
         }

@@ -123,15 +123,18 @@ public class TaskInstance
             // Specifically check if an AcquireItemStep has been invalidated because we dropped/threw the item
             if (step is AcquireItemStep acquireStep)
             {
+                // Skip un-migrated steps (no typed identity) - they can neither complete nor regress.
+                if (acquireStep.requiredItem == null) continue;
+
                 // The required item counts whether it's in the active hand or the off-hand.
-                bool stillHolding = player.IsHoldingItemNamed(acquireStep.requiredItemName);
+                bool stillHolding = player.IsHoldingItem(acquireStep.requiredItem, acquireStep.requiredState);
 
                 if (!stillHolding)
                 {
                     // Regression triggered! Roll back to this step's index
                     CurrentStepIndex = i;
 
-                    Debug.Log($"[Task System] Task '{(Definition != null ? Definition.taskName : "<null>")}' regressed to step {CurrentStepIndex} because required item '{acquireStep.requiredItemName}' was dropped/thrown.");
+                    Debug.Log($"[Task System] Task '{(Definition != null ? Definition.taskName : "<null>")}' regressed to step {CurrentStepIndex} because required item '{acquireStep.requiredItem.displayName}' was dropped/thrown.");
 
                     // Refresh UI waypoints immediately
                     player.RefreshLocalWaypoints();

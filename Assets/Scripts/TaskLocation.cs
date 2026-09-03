@@ -7,15 +7,9 @@ public class TaskLocation : MonoBehaviour
     public string locationID;
 
     [Tooltip("For deposit stations: the typed identity this location accepts. Assigned by the " +
-             "'Corrupted Court/Migrate Item Definitions' tool.")]
+             "'Corrupted Court/Migrate Item Definitions' tool. Pair it with TaskDepositStation." +
+             "requiredState when the station demands a processed / deposited-container item.")]
     public ItemDefinition acceptedItem;
-
-    // [Obsolete] superseded by 'acceptedItem'. Kept until deposit matching is migrated off strings.
-    // Note: any "Processed" / "Deposited" prefix that used to be baked into this string (e.g.
-    // "ProcessedSword", "DepositedVase") is NOT represented on 'acceptedItem' yet - a required-state
-    // field comes with the matching migration.
-    [Tooltip("For deposit stations: the itemName this location accepts. Only PickupItems with this exact name may be deposited here.")]
-    public string acceptedItemName = "";
 
     // A static master list of all locations in the map, so the WaypointManager can instantly find them
     public static List<TaskLocation> AllLocations = new List<TaskLocation>();

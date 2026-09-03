@@ -215,7 +215,7 @@ public class SwordHangMinigame : ItemDepositMinigame
 
         resolving = true;
         ConfigureGuidedDrop(false);
-        rack.DepositIntoSlot(item, slot); // parents + poses it in the notch
+        rack.DepositIntoSlot(item, slot, player); // parents + poses it in the notch
         if (debugLanding)
             Debug.Log($"[SwordHang] hung on slot {slot} via {via} (dist {best:F2} <= {catchRadius}).");
         item = null;

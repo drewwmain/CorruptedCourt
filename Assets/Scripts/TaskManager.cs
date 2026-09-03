@@ -32,7 +32,7 @@ public class TaskManager : MonoBehaviour
         Debug.Log("--- TASK MANAGER: Distributing new tasks for the Action Stage ---");
         
         // Track what we auto-spawn this stage to prevent giving out 5 swords if 5 people get the Duel task
-        HashSet<string> spawnedItemsThisStage = new HashSet<string>();
+        HashSet<ItemDefinition> spawnedItemsThisStage = new HashSet<ItemDefinition>();
 
         foreach (PlayerController player in RoleManager.Instance.allPlayers)
         {
@@ -56,10 +56,11 @@ public class TaskManager : MonoBehaviour
                 // If this task required a past event, and the Court FAILED to do it...
                 if (def.prerequisiteTask != null && !completedTasksHistory.Contains(def.prerequisiteTask))
                 {
-                    if (def.autoSpawnItemPrefab != null && !string.IsNullOrEmpty(def.autoSpawnLocationID))
+                    if (def.autoSpawnItemPrefab != null && def.autoSpawnItemPrefab.definition != null
+                        && !string.IsNullOrEmpty(def.autoSpawnLocationID))
                     {
                         // Check if we already spawned this item for another player's task this round
-                        if (spawnedItemsThisStage.Contains(def.autoSpawnItemPrefab.itemName)) continue;
+                        if (spawnedItemsThisStage.Contains(def.autoSpawnItemPrefab.definition)) continue;
 
                         // Find the required Task Deposit Station in the world
                         foreach (TaskLocation location in TaskLocation.AllLocations)
@@ -74,24 +75,21 @@ public class TaskManager : MonoBehaviour
                                     {
                                         if (station.depositedItemSlots[i] == null)
                                         {
-                                            // Instantiate the required item
+                                            // Instantiate the required item (identity rides on 'definition', which Instantiate copies)
                                             PickupItem spawnedItem = Instantiate(def.autoSpawnItemPrefab);
 
-                                            // Clean "(Clone)" string so it matches task requirements
-                                            spawnedItem.itemName = def.autoSpawnItemPrefab.itemName;
-                                            
                                             // Flag this as a normal item, not an infinite spawner, so the UI prioritizes it!
                                             spawnedItem.isInfiniteSource = false;
-                                            
+
                                             // Grab the exact drop slot Transform and tell the item to deposit
                                             Transform exactGridSlot = station.GetDropSlot(i);
                                             spawnedItem.PlaceInStation(exactGridSlot, station);
 
                                             // Register it in the station's memory
                                             station.depositedItemSlots[i] = spawnedItem;
-                                            spawnedItemsThisStage.Add(spawnedItem.itemName);
-                                            
-                                            Debug.Log($"[TaskManager] Auto-spawned {spawnedItem.itemName} at {location.locationID} because prerequisite was failed.");
+                                            spawnedItemsThisStage.Add(spawnedItem.definition);
+
+                                            Debug.Log($"[TaskManager] Auto-spawned {spawnedItem.DisplayName} at {location.locationID} because prerequisite was failed.");
                                             break; // Successfully spawned, move to next task
                                         }
                                     }

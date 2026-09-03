@@ -85,7 +85,7 @@ public class WaypointManager : MonoBehaviour
             // 1. Acquire Item Step
             if (activeStep is AcquireItemStep acquireStep)
             {
-                Transform t = FindItemByName(acquireStep.requiredItemName);
+                Transform t = FindItemByDefinition(acquireStep.requiredItem, acquireStep.requiredState);
                 if (t != null) targetsForThisTask.Add(t);
             }
             // 2. Navigate Step
@@ -104,10 +104,10 @@ public class WaypointManager : MonoBehaviour
             else if (activeStep is PlayerInteractStep playerStep)
             {
                 // If they need an item and don't have it (in either hand), point to the item on the floor first
-                if (!string.IsNullOrEmpty(playerStep.requiredHeldItemName) &&
-                    !localPlayer.IsHoldingItemNamed(playerStep.requiredHeldItemName))
+                if (playerStep.requiredItem != null &&
+                    !localPlayer.IsHoldingItem(playerStep.requiredItem, playerStep.requiredState))
                 {
-                    Transform t = FindItemByName(playerStep.requiredHeldItemName);
+                    Transform t = FindItemByDefinition(playerStep.requiredItem, playerStep.requiredState);
                     if (t != null) targetsForThisTask.Add(t);
                 }
                 else // They have the item (or don't need one), so point to matching players
@@ -136,11 +136,11 @@ public class WaypointManager : MonoBehaviour
             // --- NEW: PROCESS ITEM STEP ---
             else if (activeStep is ProcessItemStep processStep)
             {
-                // For processing, we first check if they need to go to a station.
-                // If it's not a station, we check if it's an item on the floor.
-                Transform t = FindLocationByID(processStep.targetStationOrItemName);
-                if (t == null) t = FindItemByName(processStep.targetStationOrItemName);
-                
+                // Point to the processing station if one is set, otherwise to the target item in the world.
+                Transform t = FindLocationByID(processStep.targetStationID);
+                if (t == null && processStep.targetItem != null)
+                    t = FindItemByDefinition(processStep.targetItem, processStep.targetItemState);
+
                 // (If the item is already in their hand, this naturally returns null and hides the waypoint, which is correct!)
                 if (t != null) targetsForThisTask.Add(t);
             }
@@ -168,24 +168,26 @@ public class WaypointManager : MonoBehaviour
         }
     }
     
-    // Helper method to locate the item in the 3D world
-    private Transform FindItemByName(string nameToFind)
+    // Helper method to locate the item in the 3D world by its typed identity + required state.
+    private Transform FindItemByDefinition(ItemDefinition def, ItemState requiredState)
     {
-        if (string.IsNullOrEmpty(nameToFind)) return null;
+        if (def == null) return null;
 
         Transform fallbackSpawner = null;
 
         foreach (PickupItem item in PickupItem.AllItems)
         {
+            if (item == null) continue;
+
             // Only point to the item if it's actually sitting in the world (not held by someone else)
-            if (item.itemName == nameToFind && item.transform.parent == null) 
+            if (item.Matches(def, requiredState) && item.transform.parent == null)
             {
                 // PRIORITY: If we find a dropped clone (not an infinite spawner), point to this immediately!
                 if (!item.isInfiniteSource)
                 {
                     return item.transform;
                 }
-                
+
                 // Otherwise, remember this spawner in case we don't find any dropped clones
                 if (fallbackSpawner == null)
                 {
@@ -193,7 +195,7 @@ public class WaypointManager : MonoBehaviour
                 }
             }
         }
-        
+
         // If no dropped clones were found on the ground, point to the infinite spawner
         return fallbackSpawner;
     }

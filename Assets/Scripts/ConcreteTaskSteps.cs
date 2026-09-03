@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
+using UnityEngine.Serialization;
 
 // ---------------------------------------------------
 // 1. ACQUIRE ITEM (Standard or Heavy)
@@ -7,19 +8,34 @@ using UnityEngine.Scripting.APIUpdating;
 [System.Serializable]
 public class AcquireItemStep : TaskStep
 {
-    [Tooltip("The exact itemName to look for.")]
-    public string requiredItemName;
+    [Tooltip("The item to find and pick up.")]
+    public ItemDefinition requiredItem;
+
+    [Tooltip("State flags the item must carry (e.g. Processed for a polished sword). None = any state.")]
+    public ItemState requiredState = ItemState.None;
+
+    // [Obsolete] identity moved to requiredItem + requiredState. Kept so un-migrated assets load and
+    // OnValidate can flag them; the migration tool clears it.
+    [FormerlySerializedAs("requiredItemName")]
+    [Tooltip("[DEPRECATED] Old string identity. Assign 'Required Item' instead.")]
+    public string legacyRequiredItemName;
 
     public override string GetObjectiveText()
     {
-        return $"Find and pick up: <color=#5DADE2>{requiredItemName}</color>";
+        string what = requiredItem != null ? requiredItem.displayName : legacyRequiredItemName;
+        return $"Find and pick up: <color=#5DADE2>{what}</color>";
     }
 
     public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
     {
         // Counts the item whether it's in the active hand or the off-hand.
-        return player.IsHoldingItemNamed(requiredItemName);
+        return requiredItem != null && player.IsHoldingItem(requiredItem, requiredState);
     }
+
+    public override string GetConfigurationWarning()
+        => requiredItem == null && !string.IsNullOrEmpty(legacyRequiredItemName)
+            ? $"legacyRequiredItemName '{legacyRequiredItemName}' is set but Required Item is not - assign the ItemDefinition."
+            : null;
 }
 
 // ---------------------------------------------------
@@ -48,11 +64,15 @@ public class NavigateStep : TaskStep
 [System.Serializable]
 public class StationInteractStep : TaskStep
 {
-    [Tooltip("The ID or Name of the station to interact with.")]
+    [Tooltip("The locationID of the station to interact with (exact match against TaskLocation.locationID).")]
     public string targetStationID;
 
     [Tooltip("Set to > 1 if multiple players must interact simultaneously.")]
     public int requiredSimultaneousPlayers = 1;
+
+    // Shared scratch buffer for the group-proximity check. CheckCompletion runs on the main thread
+    // and consumes the hits immediately, so one static buffer is safe.
+    private static readonly Collider[] proximityBuffer = new Collider[16];
 
     public override string GetObjectiveText()
     {
@@ -66,26 +86,27 @@ public class StationInteractStep : TaskStep
     {
         if (targetInteractable == null) return false;
 
-        // Check if the object we interacted with matches the target station
-        if (targetInteractable.name.Contains(targetStationID))
+        // The object we interacted with must BE (or sit under) the target station.
+        TaskLocation loc = ResolveLocation(targetInteractable);
+        if (loc == null || loc.locationID != targetStationID) return false;
+
+        // If it's a group task, check proximity of other players.
+        if (requiredSimultaneousPlayers > 1)
         {
-            // If it's a group task, check proximity of other players
-            if (requiredSimultaneousPlayers > 1)
+            int playersNearby = 0;
+            int hitCount = Physics.OverlapSphereNonAlloc(
+                targetInteractable.transform.position, player.InteractionRange, proximityBuffer, player.CharacterLayer);
+
+            for (int i = 0; i < hitCount; i++)
             {
-                int playersNearby = 0;
-                Collider[] hits = Physics.OverlapSphere(targetInteractable.transform.position, player.InteractionRange, player.CharacterLayer);
-
-                foreach (var hit in hits)
-                {
-                    if (hit.GetComponent<PlayerController>() != null) playersNearby++;
-                }
-
-                return playersNearby >= requiredSimultaneousPlayers;
+                if (proximityBuffer[i] != null && proximityBuffer[i].GetComponent<PlayerController>() != null)
+                    playersNearby++;
             }
 
-            return true; // Standard single-player interaction successful
+            return playersNearby >= requiredSimultaneousPlayers;
         }
-        return false;
+
+        return true; // Standard single-player interaction successful
     }
 }
 
@@ -95,15 +116,23 @@ public class StationInteractStep : TaskStep
 [System.Serializable]
 public class PlayerInteractStep : TaskStep
 {
-    [Tooltip("Leave blank if you must approach empty-handed.")]
-    public string requiredHeldItemName;
+    [Tooltip("Leave empty to approach empty-handed. Otherwise the item that must be held.")]
+    public ItemDefinition requiredItem;
+
+    [Tooltip("State flags the held item must carry. None = any state.")]
+    public ItemState requiredState = ItemState.None;
+
+    // [Obsolete] identity moved to requiredItem + requiredState.
+    [FormerlySerializedAs("requiredHeldItemName")]
+    [Tooltip("[DEPRECATED] Old string identity. Assign 'Required Item' instead.")]
+    public string legacyRequiredHeldItemName;
 
     public override string GetObjectiveText()
     {
-        if (string.IsNullOrEmpty(requiredHeldItemName))
+        if (requiredItem == null)
             return "Interact with another court member";
 
-        return $"Use <color=#5DADE2>{requiredHeldItemName}</color> on another player";
+        return $"Use <color=#5DADE2>{requiredItem.displayName}</color> on another player";
     }
 
     public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
@@ -115,17 +144,20 @@ public class PlayerInteractStep : TaskStep
         if (targetPlayer == null) return false;
 
         // Empty-handed check
-        if (string.IsNullOrEmpty(requiredHeldItemName))
+        if (requiredItem == null)
         {
             return player.GetHeldItem() == null;
         }
-        // Specific item check
-        else
-        {
-            var heldItem = player.GetHeldItem();
-            return heldItem != null && heldItem.itemName == requiredHeldItemName;
-        }
+
+        // Specific item check (active hand, mirroring the old behaviour)
+        PickupItem heldItem = player.GetHeldItem();
+        return heldItem != null && heldItem.Matches(requiredItem, requiredState);
     }
+
+    public override string GetConfigurationWarning()
+        => requiredItem == null && !string.IsNullOrEmpty(legacyRequiredHeldItemName)
+            ? $"legacyRequiredHeldItemName '{legacyRequiredHeldItemName}' is set but Required Item is not - assign the ItemDefinition."
+            : null;
 }
 
 // ---------------------------------------------------
@@ -134,7 +166,9 @@ public class PlayerInteractStep : TaskStep
 [System.Serializable]
 public class DataRetrievalStep : TaskStep
 {
+    [Tooltip("locationID of the station the code is retrieved from.")]
     public string sourceStationID;
+    [Tooltip("locationID of the station the code is entered at.")]
     public string inputStationID;
 
     // hasCode / generatedCode used to live here and were serialized onto the shared asset - a
@@ -160,10 +194,13 @@ public class DataRetrievalStep : TaskStep
     {
         if (targetInteractable == null || runtime == null) return false;
 
+        TaskLocation loc = ResolveLocation(targetInteractable);
+        if (loc == null) return false;
+
         if (!runtime.HasCode)
         {
             // Part 1: Getting the code
-            if (targetInteractable.name.Contains(sourceStationID))
+            if (loc.locationID == sourceStationID)
             {
                 runtime.HasCode = true;
                 runtime.GeneratedCode = Random.Range(100, 999).ToString(); // Generate the code
@@ -185,7 +222,7 @@ public class DataRetrievalStep : TaskStep
         else
         {
             // Part 2: Inputting the code
-            if (targetInteractable.name.Contains(inputStationID))
+            if (loc.locationID == inputStationID)
             {
                 // Unlock the mouse so they can click the keypad UI
                 Cursor.lockState = CursorLockMode.None;
@@ -205,40 +242,62 @@ public class DataRetrievalStep : TaskStep
 [System.Serializable]
 public class DepositItemStep : TaskStep
 {
-    [Tooltip("The exact itemName required to be deposited.")]
-    public string requiredItemName;
-    [Tooltip("The locationID of the TaskDepositStation.")]
+    [Tooltip("The item that must be deposited.")]
+    public ItemDefinition requiredItem;
+
+    [Tooltip("State flags the deposited item must carry (e.g. Processed, DepositedContainer). None = any state.")]
+    public ItemState requiredState = ItemState.None;
+
+    [Tooltip("The locationID of the TaskDepositStation (exact match against TaskLocation.locationID).")]
     public string targetStationID;
+
+    [SerializeField]
+    [Tooltip("When true, the step only advances for the player who actually made the deposit. " +
+             "Default false preserves the old 'any matching item in the slot' behaviour.")]
+    private bool requireOwnDeposit = false;
+
+    // [Obsolete] identity moved to requiredItem + requiredState.
+    [FormerlySerializedAs("requiredItemName")]
+    [Tooltip("[DEPRECATED] Old string identity. Assign 'Required Item' instead.")]
+    public string legacyRequiredItemName;
 
     public override string GetObjectiveText()
     {
-        return $"Deposit the <color=#5DADE2>{requiredItemName}</color> at the <color=#F4D03F>{targetStationID}</color>";
+        string what = requiredItem != null ? requiredItem.displayName : legacyRequiredItemName;
+        return $"Deposit the <color=#5DADE2>{what}</color> at the <color=#F4D03F>{targetStationID}</color>";
     }
 
     public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
     {
-        // The step is complete once the target station holds an item whose NAME matches - no matter
-        // who deposited it. If the station wants a processed item, only the renamed (processed) item
-        // will match. Checks the station's acceptedItemName and (legacy) this step's requiredItemName.
+        if (requiredItem == null) return false; // un-migrated step: nothing to match against
+
+        // The step is complete once the target station holds an item that matches requiredItem +
+        // requiredState. If requireOwnDeposit is set, only THIS player's deposit counts.
         foreach (TaskLocation location in TaskLocation.AllLocations)
         {
             if (location == null || location.locationID != targetStationID) continue;
 
             TaskDepositStation station = location.GetComponent<TaskDepositStation>();
-            if (station == null) continue;
+            if (station == null) station = location.GetComponentInParent<TaskDepositStation>();
+            if (station == null || station.depositedItemSlots == null) continue;
 
-            foreach (PickupItem item in station.depositedItemSlots)
+            for (int i = 0; i < station.depositedItemSlots.Length; i++)
             {
+                PickupItem item = station.depositedItemSlots[i];
                 if (item == null) continue;
 
-                if (!string.IsNullOrEmpty(location.acceptedItemName) && item.itemName == location.acceptedItemName)
-                    return true;
-                if (!string.IsNullOrEmpty(requiredItemName) && item.itemName == requiredItemName)
-                    return true;
+                if (requireOwnDeposit && station.GetSlotDepositor(i) != player) continue;
+
+                if (item.Matches(requiredItem, requiredState)) return true;
             }
         }
         return false;
     }
+
+    public override string GetConfigurationWarning()
+        => requiredItem == null && !string.IsNullOrEmpty(legacyRequiredItemName)
+            ? $"legacyRequiredItemName '{legacyRequiredItemName}' is set but Required Item is not - assign the ItemDefinition."
+            : null;
 }
 
 // ---------------------------------------------------
@@ -248,17 +307,27 @@ public class DepositItemStep : TaskStep
 [System.Serializable]
 public class ConsumeItemStep : TaskStep
 {
-    public string requiredItemName;
+    [Tooltip("The item that must be consumed / drunk.")]
+    public ItemDefinition requiredItem;
+
+    [Tooltip("State flags the held item must carry. None = any state.")]
+    public ItemState requiredState = ItemState.None;
+
+    // [Obsolete] identity moved to requiredItem + requiredState.
+    [FormerlySerializedAs("requiredItemName")]
+    [Tooltip("[DEPRECATED] Old string identity. Assign 'Required Item' instead.")]
+    public string legacyRequiredItemName;
 
     public override string GetObjectiveText()
     {
-        return $"Consume or drink: <color=#5DADE2>{requiredItemName}</color>";
+        string what = requiredItem != null ? requiredItem.displayName : legacyRequiredItemName;
+        return $"Consume or drink: <color=#5DADE2>{what}</color>";
     }
 
     public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
     {
         var heldItem = player.GetHeldItem();
-        if (heldItem == null || heldItem.itemName != requiredItemName) return false;
+        if (heldItem == null || requiredItem == null || !heldItem.Matches(requiredItem, requiredState)) return false;
 
         // If a minigame is attached it plays out the eating/drinking and consumes the item itself
         // (see ConsumeItemMinigame). Here we only confirm the player is holding the right thing.
@@ -270,6 +339,11 @@ public class ConsumeItemStep : TaskStep
         Object.Destroy(objToDestroy);
         return true;
     }
+
+    public override string GetConfigurationWarning()
+        => requiredItem == null && !string.IsNullOrEmpty(legacyRequiredItemName)
+            ? $"legacyRequiredItemName '{legacyRequiredItemName}' is set but Required Item is not - assign the ItemDefinition."
+            : null;
 }
 
 // ---------------------------------------------------
@@ -279,18 +353,55 @@ public class ConsumeItemStep : TaskStep
 [System.Serializable]
 public class ProcessItemStep : TaskStep
 {
-    public string targetStationOrItemName;
+    [Tooltip("locationID of the station where the item is processed (exact match). Use this OR Target Item.")]
+    public string targetStationID;
+
+    [Tooltip("The held / world PickupItem that must be processed (matched by ItemDefinition, not name). Use this OR Target Station ID.")]
+    public ItemDefinition targetItem;
+
+    [Tooltip("State flags the target item must carry to satisfy the step. None = any state.")]
+    public ItemState targetItemState = ItemState.None;
+
+    // [Obsolete] this used to be one string that meant EITHER a station name OR an item name, matched
+    // by substring. Split into targetStationID (a locationID) and targetItem (an ItemDefinition).
+    [FormerlySerializedAs("targetStationOrItemName")]
+    [Tooltip("[DEPRECATED] Old station-or-item string. Assign Target Station ID or Target Item instead.")]
+    public string legacyTargetStationOrItemName;
 
     public override string GetObjectiveText()
     {
-        return $"Process or interact with: <color=#F4D03F>{targetStationOrItemName}</color>";
+        string what = targetItem != null ? targetItem.displayName
+            : !string.IsNullOrEmpty(targetStationID) ? targetStationID
+            : legacyTargetStationOrItemName;
+        return $"Process or interact with: <color=#F4D03F>{what}</color>";
     }
 
     public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
     {
         if (targetInteractable == null) return false;
-        return targetInteractable.name.Contains(targetStationOrItemName);
+
+        // Station match: the interacted object is (or sits under) the target TaskLocation.
+        if (!string.IsNullOrEmpty(targetStationID))
+        {
+            TaskLocation loc = ResolveLocation(targetInteractable);
+            if (loc != null && loc.locationID == targetStationID) return true;
+        }
+
+        // Item match: the interacted object is (or sits under) a PickupItem of the target identity.
+        if (targetItem != null)
+        {
+            PickupItem pi = targetInteractable.GetComponent<PickupItem>();
+            if (pi == null) pi = targetInteractable.GetComponentInParent<PickupItem>();
+            if (pi != null && pi.Matches(targetItem, targetItemState)) return true;
+        }
+
+        return false;
     }
+
+    public override string GetConfigurationWarning()
+        => targetItem == null && string.IsNullOrEmpty(targetStationID) && !string.IsNullOrEmpty(legacyTargetStationOrItemName)
+            ? $"legacyTargetStationOrItemName '{legacyTargetStationOrItemName}' is set but neither Target Station ID nor Target Item is - assign one."
+            : null;
 }
 
 // ---------------------------------------------------
@@ -300,6 +411,8 @@ public class ProcessItemStep : TaskStep
 [System.Serializable]
 public class EquipClothingStep : TaskStep
 {
+    // NOTE: clothing has no ItemDefinition today, so this is the one step still matching on a
+    // GameObject name. Migrate it when clothing gets typed identities (out of scope for phase 3b).
     public string clothingName;
 
     public override string GetObjectiveText()
@@ -321,14 +434,27 @@ public class EquipClothingStep : TaskStep
 public class MutualPlayerInteractStep : TaskStep
 {
     [Tooltip("What the player initiating the interaction must be holding.")]
-    public string myRequiredItemName;
+    public ItemDefinition requiredItem;
+    [Tooltip("State flags the initiator's item must carry. None = any state.")]
+    public ItemState requiredState = ItemState.None;
 
     [Tooltip("What the TARGET player must be holding to allow the interaction.")]
-    public string targetRequiredItemName;
+    public ItemDefinition targetRequiredItem;
+    [Tooltip("State flags the target's item must carry. None = any state.")]
+    public ItemState targetRequiredState = ItemState.None;
+
+    // [Obsolete] identity moved to the typed fields above.
+    [FormerlySerializedAs("myRequiredItemName")]
+    [Tooltip("[DEPRECATED] Old string identity. Assign 'Required Item' instead.")]
+    public string legacyMyRequiredItemName;
+    [FormerlySerializedAs("targetRequiredItemName")]
+    [Tooltip("[DEPRECATED] Old string identity. Assign 'Target Required Item' instead.")]
+    public string legacyTargetRequiredItemName;
 
     public override string GetObjectiveText()
     {
-        return $"Cross <color=#5DADE2>{myRequiredItemName}</color>s with another armed court member!";
+        string what = requiredItem != null ? requiredItem.displayName : legacyMyRequiredItemName;
+        return $"Cross <color=#5DADE2>{what}</color>s with another armed court member!";
     }
 
     public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
@@ -338,15 +464,26 @@ public class MutualPlayerInteractStep : TaskStep
         PlayerController targetPlayer = targetInteractable.GetComponent<PlayerController>();
         if (targetPlayer == null) return false;
 
+        if (requiredItem == null || targetRequiredItem == null) return false;
+
         // 1. Check my hands
         var myItem = player.GetHeldItem();
-        if (myItem == null || myItem.itemName != myRequiredItemName) return false;
+        if (myItem == null || !myItem.Matches(requiredItem, requiredState)) return false;
 
         // 2. Check their hands
         var theirItem = targetPlayer.GetHeldItem();
-        if (theirItem == null || theirItem.itemName != targetRequiredItemName) return false;
+        if (theirItem == null || !theirItem.Matches(targetRequiredItem, targetRequiredState)) return false;
 
         return true;
+    }
+
+    public override string GetConfigurationWarning()
+    {
+        if (requiredItem == null && !string.IsNullOrEmpty(legacyMyRequiredItemName))
+            return $"legacyMyRequiredItemName '{legacyMyRequiredItemName}' is set but Required Item is not - assign the ItemDefinition.";
+        if (targetRequiredItem == null && !string.IsNullOrEmpty(legacyTargetRequiredItemName))
+            return $"legacyTargetRequiredItemName '{legacyTargetRequiredItemName}' is set but Target Required Item is not - assign the ItemDefinition.";
+        return null;
     }
 }
 

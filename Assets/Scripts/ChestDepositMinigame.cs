@@ -395,7 +395,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
 
         resolving = true;
         ConfigureGuidedDrop(false);
-        chest.DepositIntoSlot(item, slot);
+        chest.DepositIntoSlot(item, slot, player);
         if (debugMinigame) Debug.Log($"[ChestDeposit] seated in slot {slot} via {via} (dist {best:F2}). WIN");
 
         // Auto-close the lid, then finish. (item is kept referenced so Update keeps ticking; it's

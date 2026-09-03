@@ -20,6 +20,12 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
 
     public enum RetrieveTestMode { Off, AfterDeposit, Now }
 
+    [Header("Deposit Rule")]
+    [Tooltip("Extra state flags a held item must carry to be accepted here, on top of matching the " +
+             "TaskLocation's Accepted Item. e.g. set Processed so this station only takes a polished " +
+             "sword; set DepositedContainer for a station that takes a filled vase / plate.")]
+    [SerializeField] private ItemState requiredState = ItemState.None;
+
     [Header("Stage-Gated Retrieval")]
     [Tooltip("From this match stage onward, anyone may take deposited items back out (no matching task needed). 999 = never.")]
     public int retrievableFromStage = 999;
@@ -44,6 +50,11 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
     private Transform[] dropSlots;
     private TaskLocation taskLocation;
 
+    // Runtime only, parallel to depositedItemSlots: which player dropped the item currently in each
+    // slot. Null = unknown / empty / placed by the system (prerequisite auto-spawn, role switch).
+    // Used by DepositItemStep.requireOwnDeposit. Not serialized - rebuilt as items are deposited.
+    [System.NonSerialized] private PlayerController[] slotDepositors;
+
     void Awake()
     {
         taskLocation = GetComponent<TaskLocation>();
@@ -59,6 +70,7 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
             dropSlots = customDropSlots;
             if (depositedItemSlots == null || depositedItemSlots.Length != dropSlots.Length)
                 depositedItemSlots = new PickupItem[dropSlots.Length];
+            EnsureDepositorArray();
             return;
         }
 
@@ -74,6 +86,7 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
         {
             // Single slot: dead centre of the station.
             dropSlots[0] = MakeSlot(0, new Vector3(0f, slotHeight, 0f));
+            EnsureDepositorArray();
             return;
         }
 
@@ -89,6 +102,8 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
             float z = (row - (rows - 1) * 0.5f) * slotSpacing;
             dropSlots[i] = MakeSlot(i, new Vector3(x, slotHeight, z));
         }
+
+        EnsureDepositorArray();
     }
 
     private Transform MakeSlot(int index, Vector3 localPos)
@@ -108,11 +123,51 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
         return slot.transform;
     }
 
+    // Keeps slotDepositors the same length as depositedItemSlots, preserving any recorded entries.
+    private void EnsureDepositorArray()
+    {
+        int n = depositedItemSlots != null ? depositedItemSlots.Length : 0;
+        if (slotDepositors != null && slotDepositors.Length == n) return;
+
+        var resized = new PlayerController[n];
+        if (slotDepositors != null)
+            System.Array.Copy(slotDepositors, resized, Mathf.Min(slotDepositors.Length, n));
+        slotDepositors = resized;
+    }
+
+    /// <summary>
+    /// The player who deposited the item currently in <paramref name="slotIndex"/>, or null when
+    /// unknown / empty / placed by the system. Consumed by <see cref="DepositItemStep"/> when its
+    /// requireOwnDeposit flag is set.
+    /// </summary>
+    public PlayerController GetSlotDepositor(int slotIndex)
+    {
+        EnsureDepositorArray();
+        return slotIndex >= 0 && slotIndex < slotDepositors.Length ? slotDepositors[slotIndex] : null;
+    }
+
+    private void RecordDepositor(int slotIndex, PlayerController depositor)
+    {
+        EnsureDepositorArray();
+        if (slotIndex >= 0 && slotIndex < slotDepositors.Length) slotDepositors[slotIndex] = depositor;
+    }
+
     // Public so other systems (e.g. TaskManager auto-spawn) can position an item into a slot.
     public Transform GetDropSlot(int index)
     {
         if (dropSlots != null && index >= 0 && index < dropSlots.Length) return dropSlots[index];
         return transform;
+    }
+
+    /// <summary>
+    /// True when <paramref name="item"/> may be deposited here: its identity matches this location's
+    /// Accepted Item and it carries every flag in <see cref="requiredState"/>. Replaces the old
+    /// <c>heldItem.itemName == acceptedItemName</c> check.
+    /// </summary>
+    public bool AcceptsItem(PickupItem item)
+    {
+        if (item == null || taskLocation == null || taskLocation.acceptedItem == null) return false;
+        return item.Matches(taskLocation.acceptedItem, requiredState);
     }
 
     // Whether deposited items can currently be taken back out freely.
@@ -128,8 +183,8 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
         }
     }
 
-    // True once at least one item has been deposited here (deposits are name-gated, so any filled
-    // slot is the accepted item).
+    // True once at least one item has been deposited here (deposits are identity-gated, so any
+    // filled slot holds the accepted item).
     public bool HasReceivedItem()
     {
         if (depositedItemSlots == null) return false;
@@ -168,24 +223,24 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
             Debug.LogWarning("[TaskDepositStation] depositMinigamePrefab has no ItemDepositMinigame - depositing instantly instead.");
             Destroy(mgObj);
             int slot = GetFirstAvailableSlotIndex();
-            if (slot != -1) DepositIntoSlot(heldItem, slot);
+            if (slot != -1) DepositIntoSlot(heldItem, slot, player);
             player.ClearHeldItem();
             return;
         }
 
-        mg.SetupMinigame(player, FindMatchingDepositTask(player, heldItem.itemName));
+        mg.SetupMinigame(player, FindMatchingDepositTask(player, heldItem));
         mg.BeginDeposit(heldItem, this); // the item stays with the player for the minigame
     }
 
-    private TaskInstance FindMatchingDepositTask(PlayerController player, string itemName)
+    private TaskInstance FindMatchingDepositTask(PlayerController player, PickupItem heldItem)
     {
-        if (player.activeTasks == null) return null;
+        if (player.activeTasks == null || heldItem == null) return null;
         foreach (TaskInstance t in player.activeTasks)
         {
             if (t == null) continue;
             TaskStep step = t.GetCurrentStep();
             if (step is DepositItemStep d && d.targetStationID == taskLocation.locationID
-                && (string.IsNullOrEmpty(d.requiredItemName) || d.requiredItemName == itemName))
+                && d.requiredItem != null && heldItem.Matches(d.requiredItem, d.requiredState))
                 return t;
         }
         return null;
@@ -194,11 +249,18 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
     // Places an item into a specific slot (used by the deposit minigame on success).
     public void DepositIntoSlot(PickupItem item, int slotIndex)
     {
+        DepositIntoSlot(item, slotIndex, null);
+    }
+
+    // Overload that records which player made the deposit (for DepositItemStep.requireOwnDeposit).
+    public void DepositIntoSlot(PickupItem item, int slotIndex, PlayerController depositor)
+    {
         if (item == null || dropSlots == null || slotIndex < 0 || slotIndex >= dropSlots.Length) return;
 
         item.PlaceInStation(dropSlots[slotIndex], this);
         depositedItemSlots[slotIndex] = item;
-        Debug.Log($"{item.itemName} hung on the {taskLocation.locationID} (slot {slotIndex}).");
+        RecordDepositor(slotIndex, depositor);
+        Debug.Log($"{item.DisplayName} hung on the {taskLocation.locationID} (slot {slotIndex}).");
     }
 
     public bool IsSlotFree(int slotIndex)
@@ -210,7 +272,6 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
     public int SlotCount => depositedItemSlots != null ? depositedItemSlots.Length : 0;
 
     public bool HasFreeSlot() => GetFirstAvailableSlotIndex() != -1;
-    public string AcceptedItemName => taskLocation != null ? taskLocation.acceptedItemName : "";
 
     public void OnInteract(GameObject interactor)
     {
@@ -236,12 +297,9 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
                 return;
             }
 
-            // A deposit is allowed only when the held item's name exactly matches this location's
-            // acceptedItemName - never by whether the player holds a matching task. If the station
-            // expects a processed item (e.g. "ProcessedFlowers") the item must actually have been
-            // processed, since that is what renames it.
-            bool isValidDeposit = !string.IsNullOrEmpty(taskLocation.acceptedItemName)
-                                  && heldItem.itemName == taskLocation.acceptedItemName;
+            // A deposit is allowed only when the held item matches this location's Accepted Item and
+            // carries every flag in requiredState - never by whether the player holds a matching task.
+            bool isValidDeposit = AcceptsItem(heldItem);
 
             // 2. If it's a valid match, accept the item
             if (isValidDeposit)
@@ -255,9 +313,10 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
 
                 heldItem.PlaceInStation(dropSlots[availableSlot], this);
                 depositedItemSlots[availableSlot] = heldItem;
+                RecordDepositor(availableSlot, player);
                 player.ClearHeldItem();
 
-                Debug.Log($"Item {heldItem.itemName} deposited into slot {availableSlot}.");
+                Debug.Log($"Item {heldItem.DisplayName} deposited into slot {availableSlot}.");
 
                 // Instantly refresh UI.
                 // The PlayerController's PerformInteraction loop will evaluate this immediately after and complete the task step!
@@ -265,7 +324,8 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
             }
             else
             {
-                if (!heldItem.isProcessed) Debug.Log("This item is not required here, or it needs to be processed first.");
+                bool needsProcessing = (requiredState & ItemState.Processed) != 0 && !heldItem.Has(ItemState.Processed);
+                if (needsProcessing) Debug.Log("This item needs to be processed first.");
                 else Debug.Log("This item is not required here.");
             }
         }
@@ -283,8 +343,9 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
 
                     PickupItem item = depositedItemSlots[i];
                     depositedItemSlots[i] = null;
+                    RecordDepositor(i, null);
                     player.EquipItem(item); // AttachToHand also frees the slot / clears currentStation
-                    Debug.Log($"Took {item.itemName} out of the {taskLocation.locationID}.");
+                    Debug.Log($"Took {item.DisplayName} out of the {taskLocation.locationID}.");
                     return;
                 }
             }
@@ -296,19 +357,20 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
                 TaskStep activeStep = task.GetCurrentStep();
 
                 // If their current objective is to acquire an item...
-                if (activeStep is AcquireItemStep acquireStep)
+                if (activeStep is AcquireItemStep acquireStep && acquireStep.requiredItem != null)
                 {
                     // Look through the station's slots for a match
                     for (int i = 0; i < depositedItemSlots.Length; i++)
                     {
                         PickupItem depositedItem = depositedItemSlots[i];
 
-                        if (depositedItem != null && depositedItem.itemName == acquireStep.requiredItemName)
+                        if (depositedItem != null && depositedItem.Matches(acquireStep.requiredItem, acquireStep.requiredState))
                         {
                             player.EquipItem(depositedItem);
                             depositedItemSlots[i] = null; // Clear the slot
+                            RecordDepositor(i, null);
 
-                            Debug.Log($"Retrieved {depositedItem.itemName} from slot {i}.");
+                            Debug.Log($"Retrieved {depositedItem.DisplayName} from slot {i}.");
                             itemRetrieved = true;
                             break;
                         }
@@ -340,6 +402,7 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
             if (depositedItemSlots[i] == itemToRemove)
             {
                 depositedItemSlots[i] = null;
+                RecordDepositor(i, null);
                 Debug.Log($"Item removed from slot {i}. Space is now available.");
                 break;
             }

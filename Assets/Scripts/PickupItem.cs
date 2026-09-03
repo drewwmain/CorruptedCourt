@@ -7,26 +7,32 @@ using UnityEngine;
 public class PickupItem : MonoBehaviour, IInteractable
 {
     [Header("Identity")]
-    [Tooltip("The typed identity of this item. Matching moves to this reference; assigned by the " +
-             "'Corrupted Court/Migrate Item Definitions' tool.")]
+    [Tooltip("The typed identity of this item. All matching is done against this reference; assigned " +
+             "by the 'Corrupted Court/Migrate Item Definitions' tool.")]
     public ItemDefinition definition;
 
     [Tooltip("Runtime state flags (processed / deposited-container / spent). Replaces the old " +
              "\"Processed\" / \"Deposited\" itemName prefixes.")]
     public ItemState state;
 
-    // [Obsolete] identity is moving to 'definition'. Kept (and still name-prefixed by ProcessItem /
-    // MarkAsDepositedContainer) until matching logic is migrated off strings.
-    public string itemName = "Task Tool";
     // A static master list of all items in the map so the UI can find them
     public static List<PickupItem> AllItems = new List<PickupItem>();
+
+    /// <summary>
+    /// Human-readable name for interaction prompts and debug logs. Falls back to the GameObject name
+    /// when no <see cref="ItemDefinition"/> is assigned. Never used for matching.
+    /// </summary>
+    public string DisplayName =>
+        definition != null && !string.IsNullOrEmpty(definition.displayName)
+            ? definition.displayName
+            : gameObject.name;
 
     /// <summary>True when this item is <paramref name="def"/> and carries every flag in <paramref name="required"/>.</summary>
     public bool Matches(ItemDefinition def, ItemState required) => definition == def && (state & required) == required;
 
     /// <summary>True when <paramref name="flag"/> (which may be several ORed flags) is fully set.</summary>
     public bool Has(ItemState flag) => (state & flag) == flag;
-    
+
     [Header("Task Settings")]
     public bool requiresPartner = false;
 
@@ -36,22 +42,6 @@ public class PickupItem : MonoBehaviour, IInteractable
     // NEW: Determines if the item is a world spawner or a normal physics item
     [Tooltip("If true, picking this up gives the player a clone and leaves the original on the table.")]
     public bool isInfiniteSource = true;
-
-    // [Obsolete] superseded by ItemState.Processed on 'state'. Still written by ProcessItem() until
-    // matching logic is migrated.
-    [Tooltip("Used for ItemProcessAndDeposit tasks to track if the player has modified the item.")]
-    public bool isProcessed = false;
-
-    // [Obsolete] superseded by ItemState.DepositedContainer on 'state'. Still written by
-    // MarkAsDepositedContainer() until matching logic is migrated.
-    [Tooltip("Set when a deposit station that received an item is converted into this pickup - " +
-             "prefixes the itemName with \"Deposited\".")]
-    public bool isDepositedContainer = false;
-
-    // [Obsolete] superseded by ItemState.Spent on 'state'.
-    [Tooltip("Set once a minigame has used this item up (e.g. an emptied plate). Pressing [E] on it " +
-             "then does nothing - the player just carries or drops it.")]
-    public bool isSpent = false;
 
     // NEW: Marks the item as heavy, triggering movement penalties in the PlayerController
     [Tooltip("If true, the player moves at half speed and cannot jump or sprint while holding this.")]
@@ -122,7 +112,7 @@ public class PickupItem : MonoBehaviour, IInteractable
 
     public string GetInteractionPrompt()
     {
-        return $"Press <color=#F4D03F>[E]</color> to pick up <color=#5DADE2>{itemName}</color>";
+        return $"Press <color=#F4D03F>[E]</color> to pick up <color=#5DADE2>{DisplayName}</color>";
     }
 
     public void OnInteract(GameObject interactor)
@@ -135,9 +125,9 @@ public class PickupItem : MonoBehaviour, IInteractable
         {
             // --- NEW: THE ANTI-SPAM PROTECTION ---
             // If the player is already holding this exact type of item in EITHER hand, abort!
-            if (player.IsHoldingItemNamed(this.itemName))
+            if (definition != null && player.IsHoldingItem(definition))
             {
-                Debug.Log($"You are already holding a {this.itemName}. Interaction ignored.");
+                Debug.Log($"You are already holding a {DisplayName}. Interaction ignored.");
                 return; // Exit the method completely so no cloning or dropping happens
             }
             // -------------------------------------
@@ -147,13 +137,13 @@ public class PickupItem : MonoBehaviour, IInteractable
                 // 1. Create a physical duplicate of the item in the scene
                 GameObject cloneObj = Instantiate(this.gameObject);
                 PickupItem cloneItem = cloneObj.GetComponent<PickupItem>();
-                
+
                 // 2. The clone should act as a normal item, NOT another infinite spawner!
                 // This ensures if a player drops the clone, other players can pick it up normally.
                 cloneItem.isInfiniteSource = false;
-                
-                // 3. Clean up the names so Unity doesn't break string matching with "(Clone)"
-                cloneItem.itemName = this.itemName;
+
+                // 3. Cosmetic only: strip Unity's "(Clone)" so the hierarchy stays readable. Identity
+                // rides on 'definition', which Instantiate copies - nothing matches on the name.
                 cloneObj.name = this.gameObject.name;
 
                 // 4. Force the player to equip the clone instead of the original
@@ -180,7 +170,7 @@ public class PickupItem : MonoBehaviour, IInteractable
             currentStation.ReleaseItem(this);
             currentStation = null;
         }
-        
+
         // 1. Disable physics so it doesn't fall or push the player
         rb.isKinematic = true;
         coll.enabled = false;
@@ -210,10 +200,10 @@ public class PickupItem : MonoBehaviour, IInteractable
     public void DetachFromHand()
     {
         isHeld = false;
-        
+
         // 1. Unparent it from the player
         transform.SetParent(null);
-        
+
         // 2. Re-enable physics so it falls to the ground
         rb.isKinematic = false;
         coll.enabled = true;
@@ -262,7 +252,7 @@ public class PickupItem : MonoBehaviour, IInteractable
         while (rb.linearVelocity.sqrMagnitude > 0.01f)
         {
             // Wait 1/10th of a second, then check again (saves performance)
-            yield return new WaitForSeconds(0.1f); 
+            yield return new WaitForSeconds(0.1f);
         }
 
         // Once it stops moving, lock it down so nothing else can push it!
@@ -301,12 +291,12 @@ public class PickupItem : MonoBehaviour, IInteractable
 
         // Lock physics completely so it cannot be pushed or moved
         rb.isKinematic = true;
-        
+
         // UPDATED: Disable the collider completely so NO ONE can interact with or pick up the item anymore!
-        coll.enabled = false; 
+        coll.enabled = false;
     }
 
-    
+
     // Now receives the specific target player directly from the PlayerController
     public void PerformMultiplayerTask(PlayerController otherPlayer)
     {
@@ -315,39 +305,31 @@ public class PickupItem : MonoBehaviour, IInteractable
         if (requiresPartner)
         {
             // SUCCESS!
-            Debug.Log($"--- {itemName.ToUpper()} TASK COMPLETED WITH {otherPlayer.gameObject.name}! ---");
-            
-            // FUTURE: Add RPC calls here for networking, and potentially destroy the item 
+            Debug.Log($"--- {DisplayName.ToUpper()} TASK COMPLETED WITH {otherPlayer.gameObject.name}! ---");
+
+            // FUTURE: Add RPC calls here for networking, and potentially destroy the item
             // if the task consumes it (e.g., Destroy(gameObject);).
         }
     }
 
-    // --- NEW: PROCESS ITEM LOGIC ---
+    // --- PROCESS ITEM LOGIC ---
+    // Sets the Processed state flag. No longer renames the item or its GameObject - matching reads
+    // 'definition' + 'state', so nothing needs the name to change.
     public void ProcessItem()
     {
-        if (isProcessed) return; // already processed - don't stack the prefix
+        if (Has(ItemState.Processed)) return; // already processed
 
-        // New: typed flag. Legacy: keep prefixing the name so string matching still works.
         state |= ItemState.Processed;
-
-        isProcessed = true;
-        itemName = "Processed" + itemName; // no space: "Flowers" -> "ProcessedFlowers"
-        gameObject.name = itemName;
-        Debug.Log($"The {itemName} has been successfully modified/processed!");
+        Debug.Log($"The {DisplayName} has been successfully modified/processed.");
     }
 
-    // Called when a deposit station that received an item is converted into this pickup.
-    // Prefixes the name (no space) so only stations expecting the "Deposited" version accept it.
+    // Called when a deposit station that received an item is converted into this pickup. Sets the
+    // DepositedContainer flag so only stations that demand it (requiredState) accept the item.
     public void MarkAsDepositedContainer()
     {
-        if (isDepositedContainer) return; // don't stack the prefix
+        if (Has(ItemState.DepositedContainer)) return;
 
-        // New: typed flag. Legacy: keep prefixing the name so string matching still works.
         state |= ItemState.DepositedContainer;
-
-        isDepositedContainer = true;
-        itemName = "Deposited" + itemName; // no space: "Vase" -> "DepositedVase"
-        gameObject.name = itemName;
-        Debug.Log($"{itemName} now carries a deposit.");
+        Debug.Log($"{DisplayName} now carries a deposit.");
     }
 }
