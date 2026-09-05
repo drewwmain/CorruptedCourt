@@ -264,6 +264,8 @@ namespace CorruptedCourt.UI
             {
                 foreach (PlayerController player in RoleManager.Instance.allPlayers)
                 {
+                    if (player == null) continue;
+
                     // Ignore ourselves and ghosts
                     if (player == localPlayer || player.Vitals.isGhost) continue;
 
@@ -423,12 +425,14 @@ namespace CorruptedCourt.UI
             // 1. Check physical Stations/TaskLocations first
             foreach (TaskLocation loc in TaskLocation.AllLocations)
             {
+                if (loc == null) continue;
                 if (loc.locationID == id) return loc.transform;
             }
 
             // 2. NEW: Check invisible TaskZones (Rooms)
             foreach (TaskZone zone in TaskZone.AllZones)
             {
+                if (zone == null) continue;
                 if (zone.zoneID == id) return zone.transform;
             }
 

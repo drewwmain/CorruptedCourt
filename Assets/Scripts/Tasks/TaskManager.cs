@@ -41,6 +41,8 @@ namespace CorruptedCourt.Tasks
 
             foreach (PlayerController player in RoleManager.Instance.allPlayers)
             {
+                if (player == null) continue;
+
                 // Ghosts and the King do not receive tasks
                 if (player.Vitals.isGhost || player.Vitals.currentRole == PlayerRole.King)
                 {
@@ -70,6 +72,8 @@ namespace CorruptedCourt.Tasks
                             // Find the required Task Deposit Station in the world
                             foreach (TaskLocation location in TaskLocation.AllLocations)
                             {
+                                if (location == null) continue;
+
                                 if (location.locationID == def.autoSpawnLocationID)
                                 {
                                     TaskDepositStation station = location.GetComponent<TaskDepositStation>();

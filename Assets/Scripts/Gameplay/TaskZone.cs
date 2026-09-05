@@ -32,6 +32,13 @@ namespace CorruptedCourt.Gameplay
             if (AllZones.Contains(this)) AllZones.Remove(this);
         }
 
+        // Matching unregister for a teardown that never goes through OnDisable
+        // (scene unload, Destroy on an already-inactive object). Mirrors TaskLocation.
+        private void OnDestroy()
+        {
+            AllZones.Remove(this);
+        }
+
         private void OnTriggerEnter(Collider other)
         {
             Log.Game($"PHYSICS TEST: {other.gameObject.name} entered {zoneID}");

@@ -30,6 +30,8 @@ namespace CorruptedCourt.Tasks
             {
                 foreach (PlayerController p in RoleManager.Instance.allPlayers)
                 {
+                    if (p == null) continue;
+
                     if (!p.Vitals.isGhost && p.Vitals.currentZoneID == targetZoneID)
                     {
                         playersInRoom++;

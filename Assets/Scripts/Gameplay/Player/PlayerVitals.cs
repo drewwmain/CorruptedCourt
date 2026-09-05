@@ -1226,6 +1226,8 @@ namespace CorruptedCourt.Gameplay
             {
                 foreach (PlayerController p in RoleManager.Instance.allPlayers)
                 {
+                    if (p == null) continue;
+
                     if (!p.Vitals.isGhost && p.Vitals.currentRole != PlayerRole.Corrupted && p != player)
                         innocents.Add(p);
                 }
