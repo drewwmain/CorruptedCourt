@@ -36,7 +36,7 @@ public class VotingManager : MonoBehaviour
     // Called by the UI buttons (Options: "Confirm", "Deny", "Skip")
     public void CastVote(PlayerController voter, string voteOption)
     {
-        if (voter.isGhost) return; // Ghosts cannot vote
+        if (voter.Vitals.isGhost) return; // Ghosts cannot vote
 
         if (playerVotes.ContainsKey(voter))
         {
@@ -75,12 +75,12 @@ public class VotingManager : MonoBehaviour
             if (condemnedPlayer != null)
             {
                 Debug.Log($"RESULT: The Court has confirmed the execution! {condemnedPlayer.gameObject.name} is EXECUTED!");
-                condemnedPlayer.BecomeGhost();
-                condemnedPlayer.isArrested = false; // Clear their state
+                condemnedPlayer.Vitals.BecomeGhost();
+                condemnedPlayer.Vitals.isArrested = false; // Clear their state
                 // --- NEW: THE KING'S CURSE EVALUATION ---
                 if (RoleManager.Instance != null && RoleManager.Instance.currentKing != null)
                 {
-                    if (condemnedPlayer.currentRole == PlayerRole.Corrupted)
+                    if (condemnedPlayer.Vitals.currentRole == PlayerRole.Corrupted)
                     {
                         Debug.Log("The King successfully executed a Corrupted player!");
                         RoleManager.Instance.ResetKingTimer();
@@ -99,7 +99,7 @@ public class VotingManager : MonoBehaviour
             
             if (condemnedPlayer != null)
             {
-                condemnedPlayer.isArrested = false;
+                condemnedPlayer.Vitals.isArrested = false;
                 Debug.Log($"{condemnedPlayer.gameObject.name} steps down from the gallows.");
             }
         }

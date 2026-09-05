@@ -23,7 +23,7 @@ public class PlayerIKHelper : MonoBehaviour
             // Tell PlayerController / PlayerIKRig to run their IK math.
             // Strangle IK runs last so it wins the hand goals while a strangle is active.
             ikRig?.ApplyMinigameIK(layerIndex);
-            mainController.ApplyStrangleIK(layerIndex);
+            mainController.Vitals.ApplyStrangleIK(layerIndex);
             mainController.ApplyHangReachIK(layerIndex);
             ikRig?.ApplyHaulIK(layerIndex);
         }

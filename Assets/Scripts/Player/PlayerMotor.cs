@@ -139,7 +139,7 @@ public class PlayerMotor : MonoBehaviour
     public void UpdateLeanBlend()
     {
         bool ctrlHeld = isLeaning || Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
-        bool wantLean = ctrlHeld && player != null && !player.isStrangling && !player.isArrested && !player.IsStunned;
+        bool wantLean = ctrlHeld && player != null && !player.Vitals.isStrangling && !player.Vitals.isArrested && !player.Vitals.IsStunned;
         leanBlend = Mathf.MoveTowards(leanBlend, wantLean ? 1f : 0f, Time.deltaTime * leanSpeed);
     }
 
@@ -166,12 +166,12 @@ public class PlayerMotor : MonoBehaviour
         bool isHoldingHeavy = player != null && player.IsHoldingHeavyItem();
 
         // 1. Highest Priority: Stuns, Pushbacks, and Arrests completely lock voluntary movement
-        if (player != null && (player.IsStunned || player.IsBeingPushed || player.isArrested))
+        if (player != null && (player.Vitals.IsStunned || player.Vitals.IsBeingPushed || player.Vitals.isArrested))
         {
             currentSpeed = 0f;
         }
         // 2. Second Priority: Heavy items and Dragging Prisoners halve speed and disable sprint/crouch speeds
-        else if (isHoldingHeavy || (player != null && player.isDraggingPrisoner))
+        else if (isHoldingHeavy || (player != null && player.Vitals.isDraggingPrisoner))
         {
             currentSpeed = walkSpeed * 0.5f;
         }

@@ -54,7 +54,7 @@ public class NavigateStep : TaskStep
 
     public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
     {
-        return player.currentZoneID == targetZoneID;
+        return player.Vitals.currentZoneID == targetZoneID;
     }
 }
 
@@ -95,7 +95,7 @@ public class StationInteractStep : TaskStep
         {
             int playersNearby = 0;
             int hitCount = Physics.OverlapSphereNonAlloc(
-                targetInteractable.transform.position, player.InteractionRange, proximityBuffer, player.CharacterLayer);
+                targetInteractable.transform.position, player.Interactor.InteractionRange, proximityBuffer, player.Interactor.CharacterLayer);
 
             for (int i = 0; i < hitCount; i++)
             {
@@ -209,7 +209,7 @@ public class DataRetrievalStep : TaskStep
                 Debug.Log($"[Task System] Code {runtime.GeneratedCode} acquired from {sourceStationID}!");
 
                 // Force the waypoints (and the code popup) to update to the new destination
-                player.RefreshLocalWaypoints();
+                player.TaskBook.RefreshLocalWaypoints();
 
                 return false; // Return false because the step isn't fully complete until they input it!
             }
@@ -502,7 +502,7 @@ public class GroupNavigateStep : TaskStep
 
     public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
     {
-        if (player.currentZoneID != targetZoneID) return false;
+        if (player.Vitals.currentZoneID != targetZoneID) return false;
 
         int playersInRoom = 0;
 
@@ -510,7 +510,7 @@ public class GroupNavigateStep : TaskStep
         {
             foreach (PlayerController p in RoleManager.Instance.allPlayers)
             {
-                if (!p.isGhost && p.currentZoneID == targetZoneID)
+                if (!p.Vitals.isGhost && p.Vitals.currentZoneID == targetZoneID)
                 {
                     playersInRoom++;
                 }

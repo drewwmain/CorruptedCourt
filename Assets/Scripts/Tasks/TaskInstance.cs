@@ -137,7 +137,7 @@ public class TaskInstance
                     Debug.Log($"[Task System] Task '{(Definition != null ? Definition.taskName : "<null>")}' regressed to step {CurrentStepIndex} because required item '{acquireStep.requiredItem.displayName}' was dropped/thrown.");
 
                     // Refresh UI waypoints immediately
-                    player.RefreshLocalWaypoints();
+                    player.TaskBook.RefreshLocalWaypoints();
                     break; // Only roll back to the earliest broken step
                 }
             }

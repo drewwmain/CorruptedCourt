@@ -567,6 +567,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 109319155}
   m_CullTransparentMesh: 1
+--- !u!4 &136332455 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7537152673229127564, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+  m_PrefabInstance: {fileID: 5644751303643222970}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &160109302
 GameObject:
   m_ObjectHideFlags: 0
@@ -7461,10 +7466,46 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1479900544830240754, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: showWaypoints
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2224814337228599328, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: crosshair
+      value: 
+      objectReference: {fileID: 2032090987}
+    - target: {fileID: 2224814337228599328, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: interactionUI
+      value: 
+      objectReference: {fileID: 1913720832}
+    - target: {fileID: 2224814337228599328, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: interactionCanvasGroup
+      value: 
+      objectReference: {fileID: 1913720834}
     - target: {fileID: 2979434807370161209, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 3637050314189887541, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: rightHandBone
+      value: 
+      objectReference: {fileID: 1479527478}
+    - target: {fileID: 3637050314189887541, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: rightHandThumbBone
+      value: 
+      objectReference: {fileID: 1712623765}
+    - target: {fileID: 3637050314189887541, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: rightHandFingerBones.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3637050314189887541, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: 'rightHandFingerBones.Array.data[0]'
+      value: 
+      objectReference: {fileID: 1301210881}
+    - target: {fileID: 3637050314189887541, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: 'rightHandFingerBones.Array.data[1]'
+      value: 
+      objectReference: {fileID: 1412770203}
     - target: {fileID: 6479238678288258100, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
       propertyPath: leanViewPitch
       value: 10
@@ -7521,7 +7562,12 @@ PrefabInstance:
       propertyPath: 'rightHandFingerBones.Array.data[2]'
       value: 
       objectReference: {fileID: 1712623765}
-    m_RemovedComponents: []
+    - target: {fileID: 8861515512267257831, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: powerUpHoldPoint
+      value: 
+      objectReference: {fileID: 136332455}
+    m_RemovedComponents:
+    - {fileID: 1817573232352279913, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:

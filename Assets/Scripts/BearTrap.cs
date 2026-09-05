@@ -19,9 +19,9 @@ public class BearTrap : MonoBehaviour
         if (player != null)
         {
             // Only trigger if the player is alive AND they are NOT a Corrupted!
-            if (!player.isGhost && player.currentRole != PlayerRole.Corrupted)
+            if (!player.Vitals.isGhost && player.Vitals.currentRole != PlayerRole.Corrupted)
             {
-                player.ApplyStun(stunDuration);
+                player.Vitals.ApplyStun(stunDuration);
                 
                 // Snap the trap shut, play a sound, and destroy it
                 Debug.Log($"Trap sprung on {player.gameObject.name}!");

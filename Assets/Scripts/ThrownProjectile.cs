@@ -30,7 +30,7 @@ public class ThrownProjectile : MonoBehaviour
         PlayerController victim = collision.collider.GetComponentInParent<PlayerController>();
         
         // Ensure we don't hit ourselves, our own thrower, or a ghost
-        if (victim != null && victim != thrower && !victim.isGhost)
+        if (victim != null && victim != thrower && !victim.Vitals.isGhost)
         {
             hasHitTarget = true;
 
@@ -48,7 +48,7 @@ public class ThrownProjectile : MonoBehaviour
                 Vector3 pushDirection = (victim.transform.position - transform.position).normalized;
                 pushDirection.y = 0; // Prevent upward launching
                 
-                victim.ApplyPushback(pushDirection, finalForce, 0.2f);
+                victim.Vitals.ApplyPushback(pushDirection, finalForce, 0.2f);
                 Debug.Log($"<color=#2ECC71>Successfully pushed {victim.gameObject.name} with force {finalForce}!</color>");
             }
             else

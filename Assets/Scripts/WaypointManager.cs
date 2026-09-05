@@ -64,10 +64,10 @@ public class WaypointManager : MonoBehaviour
     {
         if (player == null) return;
 
-        if (player.showWaypoints)
+        if (player.TaskBook.showWaypoints)
         {
             if (player.PlayerCamera != null) playerCamera = player.PlayerCamera.GetComponent<Camera>();
-            UpdateWaypoints(player, player.allAssignedTasks);
+            UpdateWaypoints(player, player.TaskBook.allAssignedTasks);
         }
         else
         {
@@ -99,7 +99,7 @@ public class WaypointManager : MonoBehaviour
             if (task == null || task.Definition == null) continue;
             int taskNumber = i + 1; // Start at 1 instead of 0 for the player UI
 
-            if (!localPlayer.activeTasks.Contains(task)) continue;
+            if (!localPlayer.TaskBook.activeTasks.Contains(task)) continue;
 
             // Hide this task's waypoint for the minigame's whole session - start to true end
             // (FinishMinigame/CancelMinigame clear activeMinigameTask). Deliberately NOT gated on
@@ -245,11 +245,11 @@ public class WaypointManager : MonoBehaviour
             foreach (PlayerController player in RoleManager.Instance.allPlayers)
             {
                 // Ignore ourselves and ghosts
-                if (player == localPlayer || player.isGhost) continue;
+                if (player == localPlayer || player.Vitals.isGhost) continue;
 
                 // Check if they have the exact same task (compare the shared Definition's ID,
                 // never the per-player instance reference).
-                foreach (TaskInstance task in player.activeTasks)
+                foreach (TaskInstance task in player.TaskBook.activeTasks)
                 {
                     if (task != null && task.Definition != null && task.Definition.taskID == taskIDToMatch)
                     {

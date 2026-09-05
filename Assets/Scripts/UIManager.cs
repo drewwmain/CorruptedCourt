@@ -108,12 +108,12 @@ public class UIManager : MonoBehaviour
     {
         if (player == null) return;
 
-        UpdatePlayerTaskList(player, player.allAssignedTasks, player.activeTasks, player.currentRole);
+        UpdatePlayerTaskList(player, player.TaskBook.allAssignedTasks, player.TaskBook.activeTasks, player.Vitals.currentRole);
 
         // One-shot: a DataRetrievalStep that just generated its code flags the runtime for the popup.
-        if (player.activeTasks != null)
+        if (player.TaskBook.activeTasks != null)
         {
-            foreach (TaskInstance task in player.activeTasks)
+            foreach (TaskInstance task in player.TaskBook.activeTasks)
             {
                 if (task == null) continue;
                 TaskStepRuntime rt = task.CurrentStepRuntime;
@@ -382,7 +382,7 @@ public class UIManager : MonoBehaviour
                             TaskManager.Instance.CompleteTask(currentDataPlayer, currentDataTask);
                         }
                     }
-                    currentDataPlayer.RefreshLocalWaypoints();
+                    currentDataPlayer.TaskBook.RefreshLocalWaypoints();
                 }
                 else
                 {

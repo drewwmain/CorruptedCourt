@@ -206,11 +206,11 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
     {
         // Advance any AcquireItemStep this held item already satisfies, so the following
         // DepositItemStep is the current step and the minigame can complete it.
-        if (player.activeTasks != null)
+        if (player.TaskBook.activeTasks != null)
         {
-            for (int i = player.activeTasks.Count - 1; i >= 0; i--)
+            for (int i = player.TaskBook.activeTasks.Count - 1; i >= 0; i--)
             {
-                TaskInstance t = player.activeTasks[i];
+                TaskInstance t = player.TaskBook.activeTasks[i];
                 if (t != null && t.GetCurrentStep() is AcquireItemStep)
                     t.EvaluateCurrentStep(player, heldItem.gameObject);
             }
@@ -243,8 +243,8 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
 
     private TaskInstance FindMatchingDepositTask(PlayerController player, PickupItem heldItem)
     {
-        if (player.activeTasks == null || heldItem == null) return null;
-        foreach (TaskInstance t in player.activeTasks)
+        if (player.TaskBook.activeTasks == null || heldItem == null) return null;
+        foreach (TaskInstance t in player.TaskBook.activeTasks)
         {
             if (t == null) continue;
             TaskStep step = t.GetCurrentStep();
@@ -287,10 +287,10 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
         PlayerController player = interactor.GetComponent<PlayerController>();
         if (player == null) return;
 
-        if (isSabotaged && player.currentRole != PlayerRole.Corrupted)
+        if (isSabotaged && player.Vitals.currentRole != PlayerRole.Corrupted)
         {
             Debug.Log("Station was sabotaged! You are stunned!");
-            player.ApplyStun(3f);
+            player.Vitals.ApplyStun(3f);
             isSabotaged = false;
         }
 
@@ -329,7 +329,7 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
 
                 // Instantly refresh UI.
                 // The PlayerController's PerformInteraction loop will evaluate this immediately after and complete the task step!
-                player.RefreshLocalWaypoints();
+                player.TaskBook.RefreshLocalWaypoints();
             }
             else
             {
@@ -360,7 +360,7 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
             }
 
             // Loop through active tasks to see if they need to acquire something from this table
-            foreach (TaskInstance task in player.activeTasks)
+            foreach (TaskInstance task in player.TaskBook.activeTasks)
             {
                 if (task == null) continue;
                 TaskStep activeStep = task.GetCurrentStep();

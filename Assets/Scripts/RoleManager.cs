@@ -87,7 +87,7 @@ public class RoleManager : MonoBehaviour
         // --- NEW: INSPECTOR TESTING OVERRIDE LOGIC ---
         if (localPlayer != null && forceTestRole != PlayerRole.None)
         {
-            localPlayer.AssignRole(forceTestRole);
+            localPlayer.Vitals.AssignRole(forceTestRole);
             remainingPlayers.Remove(localPlayer);
             Debug.Log($"[TESTING] Forced {localPlayer.gameObject.name} to be {forceTestRole}.");
 
@@ -110,7 +110,7 @@ public class RoleManager : MonoBehaviour
         if (!kingAssigned)
         {
             currentKing = remainingPlayers[0];
-            currentKing.AssignRole(PlayerRole.King);
+            currentKing.Vitals.AssignRole(PlayerRole.King);
             remainingPlayers.RemoveAt(0);
         }
 
@@ -120,7 +120,7 @@ public class RoleManager : MonoBehaviour
         {
             if (playerIndex < remainingPlayers.Count)
             {
-                remainingPlayers[playerIndex].AssignRole(PlayerRole.Corrupted);
+                remainingPlayers[playerIndex].Vitals.AssignRole(PlayerRole.Corrupted);
                 playerIndex++;
             }
         }
@@ -128,7 +128,7 @@ public class RoleManager : MonoBehaviour
         // 3. Assign Court (everyone leftover gets this)
         while (playerIndex < remainingPlayers.Count)
         {
-            remainingPlayers[playerIndex].AssignRole(PlayerRole.Court);
+            remainingPlayers[playerIndex].Vitals.AssignRole(PlayerRole.Court);
             playerIndex++;
         }
 
@@ -155,20 +155,20 @@ public class RoleManager : MonoBehaviour
         // 1. If someone is already the Kingsguard, demote them back to Court
         if (currentKingsguard != null && currentKingsguard != newGuard)
         {
-            currentKingsguard.AssignRole(PlayerRole.Court);
+            currentKingsguard.Vitals.AssignRole(PlayerRole.Court);
             Debug.Log($"[RoleManager] {currentKingsguard.gameObject.name} was demoted from Kingsguard.");
         }
 
         // 2. Assign the new Kingsguard
         currentKingsguard = newGuard;
-        currentKingsguard.AssignRole(PlayerRole.Kingsguard);
+        currentKingsguard.Vitals.AssignRole(PlayerRole.Kingsguard);
         
         Debug.Log($"--- THE KING HAS APPOINTED {currentKingsguard.gameObject.name} AS THE NEW KINGSGUARD ---");
     }
     void Update()
     {
         // Only run the timer if we have a living King who isn't already cursed
-        if (currentKing != null && !currentKing.isGhost && !isKingCursed)
+        if (currentKing != null && !currentKing.Vitals.isGhost && !isKingCursed)
         {
             kingCurseTimer -= Time.deltaTime;
             
@@ -188,7 +188,7 @@ public class RoleManager : MonoBehaviour
         isKingCursed = true;
         
         // Demote the King to standard Court (your AssignRole method natively strips the bonus HP when assigning Court!)
-        currentKing.AssignRole(PlayerRole.Court);
+        currentKing.Vitals.AssignRole(PlayerRole.Court);
         
         currentKing = null; 
     }

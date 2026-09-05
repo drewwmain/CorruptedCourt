@@ -87,8 +87,8 @@ public class PlayerInventory : MonoBehaviour
         else leftHeldItem = null;
 
         Debug.Log($"Dropped {toDrop.DisplayName}.");
-        foreach (TaskInstance task in player.activeTasks) task.CheckForTaskRegression(player);
-        player.RefreshLocalWaypoints();
+        player.TaskBook.CheckRegressionForAll();
+        player.TaskBook.RefreshLocalWaypoints();
     }
 
     public void ExecuteThrow()
@@ -111,10 +111,7 @@ public class PlayerInventory : MonoBehaviour
         itemToThrow.DetachFromHand();
         ClearHeldItem();
 
-        foreach (TaskInstance task in player.activeTasks)
-        {
-            task.CheckForTaskRegression(player);
-        }
+        player.TaskBook.CheckRegressionForAll();
 
         // 3. Awaken the Physics components
         Rigidbody rb = itemToThrow.GetComponent<Rigidbody>();
@@ -142,9 +139,9 @@ public class PlayerInventory : MonoBehaviour
         ThrownProjectile projectile = itemToThrow.gameObject.AddComponent<ThrownProjectile>();
 
         // Pass the player, the starting coordinates, the charge %, and the max punch force
-        projectile.Initialize(player, transform.position, chargePercentage, player.pushbackForce);
+        projectile.Initialize(player, transform.position, chargePercentage, player.Vitals.pushbackForce);
 
-        player.RefreshLocalWaypoints();
+        player.TaskBook.RefreshLocalWaypoints();
     }
 
     // --- Swap hands ---

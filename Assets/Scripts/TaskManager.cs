@@ -37,15 +37,15 @@ public class TaskManager : MonoBehaviour
         foreach (PlayerController player in RoleManager.Instance.allPlayers)
         {
             // Ghosts and the King do not receive tasks
-            if (player.isGhost || player.currentRole == PlayerRole.King)
+            if (player.Vitals.isGhost || player.Vitals.currentRole == PlayerRole.King)
             {
-                player.AssignTasks(new List<TaskInstance>()); // Empty list
+                player.TaskBook.AssignTasks(new List<TaskInstance>()); // Empty list
                 continue;
             }
 
             // Generate a random subset of fresh per-player task instances
             List<TaskInstance> playerTasks = GenerateRandomTasks(tasksPerStage);
-            player.AssignTasks(playerTasks);
+            player.TaskBook.AssignTasks(playerTasks);
 
             // --- PREREQUISITE AUTO-SPAWN LOGIC ---
             foreach (TaskInstance task in playerTasks)
@@ -104,7 +104,7 @@ public class TaskManager : MonoBehaviour
 
         // After EVERY player in the lobby has been handed their tasks, refresh the UI
         // so it can accurately scan the dummy players for matching multiplayer tasks!
-        if (PlayerController.Local != null) PlayerController.Local.RefreshLocalWaypoints();
+        if (PlayerController.Local != null) PlayerController.Local.TaskBook.RefreshLocalWaypoints();
     }
 
     private List<TaskInstance> GenerateRandomTasks(int amount)
@@ -153,15 +153,15 @@ public class TaskManager : MonoBehaviour
 
     public void CompleteTask(PlayerController player, TaskInstance task)
     {
-        if (task == null || player.isGhost || !player.activeTasks.Contains(task)) return;
+        if (task == null || player.Vitals.isGhost || !player.TaskBook.activeTasks.Contains(task)) return;
 
         TaskData definition = task.Definition;
 
         // Remove the task from the player's personal list
-        player.RemoveCompletedTask(task);
+        player.TaskBook.RemoveCompletedTask(task);
 
         // NOTE: Corrupted players can "do" tasks to blend in, but they DO NOT fill the meter!
-        if (player.currentRole == PlayerRole.Corrupted)
+        if (player.Vitals.currentRole == PlayerRole.Corrupted)
         {
             Debug.Log($"{player.gameObject.name} (Corrupted) faked task: {(definition != null ? definition.taskName : "<unknown>")}. Meter unchanged.");
             return;

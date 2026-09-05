@@ -36,7 +36,7 @@ public class TaskZone : MonoBehaviour
         if (player != null)
         {
             // Update the player's internal tracking string
-            player.currentZoneID = zoneID;
+            player.Vitals.currentZoneID = zoneID;
             Debug.Log($"{player.gameObject.name} entered zone: {zoneID}");
         }
     }
@@ -49,9 +49,9 @@ public class TaskZone : MonoBehaviour
         {
             // Only clear the zone if they are leaving THIS specific zone.
             // This prevents nasty bugs if you have two task zones placed slightly overlapping!
-            if (player.currentZoneID == zoneID)
+            if (player.Vitals.currentZoneID == zoneID)
             {
-                player.currentZoneID = "";
+                player.Vitals.currentZoneID = "";
                 // Debug.Log($"{player.gameObject.name} left zone: {zoneID}");
             }
         }

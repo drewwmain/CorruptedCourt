@@ -155,6 +155,9 @@ GameObject:
   - component: {fileID: 7573359855154504944}
   - component: {fileID: 3718710936329579562}
   - component: {fileID: 8049820688672718268}
+  - component: {fileID: 967973879891588900}
+  - component: {fileID: 3955641281975924361}
+  - component: {fileID: 5001159918652263853}
   - component: {fileID: 6668280575978724801}
   m_Layer: 7
   m_Name: DummyPlayer
@@ -249,67 +252,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isLocalPlayer: 1
   motor: {fileID: 0}
-  playerCamera: {fileID: 6875407516785058764}
   look: {fileID: 0}
   inventory: {fileID: 0}
   ikRig: {fileID: 0}
+  interactor: {fileID: 0}
+  taskBook: {fileID: 0}
+  vitals: {fileID: 0}
+  playerCamera: {fileID: 6875407516785058764}
   currentItemIndex: 0
-  interactionRange: 4
-  depositProximityRange: 2.5
-  interactableLayer:
-    serializedVersion: 2
-    m_Bits: 256
-  characterLayer:
-    serializedVersion: 2
-    m_Bits: 128
-  interactionUI: {fileID: 0}
-  interactionCanvasGroup: {fileID: 0}
-  crosshair: {fileID: 0}
-  normalCrosshairColor: {r: 1, g: 1, b: 1, a: 0.5}
-  activeCrosshairColor: {r: 0, g: 1, b: 0, a: 1}
-  uiFadeSpeed: 10
-  currentRole: 0
-  currentHealth: 1
-  maxHealth: 1
-  isBlocking: 0
-  isGhost: 0
-  currentPrisoner: {fileID: 0}
-  arrestQuota: 2
-  isDraggingPrisoner: 0
-  isArrested: 0
-  currentCaptor: {fileID: 0}
-  gallowsRange: 4
-  punchCooldown: 2
-  punchRange: 2
-  punchRadius: 0.5
-  pushbackForce: 15
-  pushbackDuration: 0.2
-  strangleCooldown: 4
-  strangleRange: 2
-  strangleHoldTime: 1.5
-  strangleGrabDistance: 0.4
-  strangleConnectDistance: 1.15
-  strangleOrbitSpeed: 55
-  strangleFollowSpeed: 2.5
-  strangleBreakSlack: 1.4
-  strangleNeckHeight: 0.85
-  strangleHandSpread: 0.08
-  strangleHandInset: 0.12
-  strangleHandHeightOffset: -0.12
-  strangleReachDistance: 0.9
-  strangleHandRotationOffset: {x: 0, y: 0, z: 0}
-  strangleHandRoll: 90
-  currentZoneID: 
-  showWaypoints: 1
-  corruptedInventory:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  powerUpHoldPoint: {fileID: 2682449844836838116}
-  activeSlotIndex: -1
-  scrollCooldown: 0.15
-  trapPrefab: {fileID: 9106271627260861250, guid: f35682178cd67fb4a8e5081648f12ab7, type: 3}
-  illusionPrefab: {fileID: 0}
   isMinigameLooking: 0
   activeMinigameTarget: {fileID: 0}
   currentMinigameTargetType: 3
@@ -408,6 +358,98 @@ MonoBehaviour:
   minigameIKDepth: 0.6
   ikBlendSpeed: 8
   rightHandRotationOffset: {x: 0, y: 0, z: -90}
+--- !u!114 &967973879891588900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2874292650299591091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83fc2f2dfbcab25459cf82b5cea80e5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  interactionRange: 3
+  depositProximityRange: 2.5
+  interactableLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  characterLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  interactionUI: {fileID: 0}
+  interactionCanvasGroup: {fileID: 0}
+  crosshair: {fileID: 0}
+  normalCrosshairColor: {r: 1, g: 1, b: 1, a: 0.5}
+  activeCrosshairColor: {r: 0, g: 1, b: 0, a: 1}
+  uiFadeSpeed: 10
+--- !u!114 &3955641281975924361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2874292650299591091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3fd664f1546e5b489f3f5a67b7f7f92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  showWaypoints: 0
+--- !u!114 &5001159918652263853
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2874292650299591091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce0f8b945c1e9994291ee9c5e53bb5e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentRole: 0
+  currentHealth: 1
+  maxHealth: 1
+  isBlocking: 0
+  isGhost: 0
+  currentPrisoner: {fileID: 0}
+  arrestQuota: 2
+  isDraggingPrisoner: 0
+  isArrested: 0
+  currentCaptor: {fileID: 0}
+  gallowsRange: 4
+  punchCooldown: 2
+  punchRange: 2
+  punchRadius: 0.5
+  pushbackForce: 15
+  pushbackDuration: 0.2
+  strangleCooldown: 4
+  strangleRange: 1
+  strangleHoldTime: 1.5
+  strangleGrabDistance: 0.4
+  strangleConnectDistance: 1.15
+  strangleOrbitSpeed: 55
+  strangleFollowSpeed: 2.5
+  strangleBreakSlack: 1.4
+  strangleNeckHeight: 0.85
+  strangleHandSpread: 0.08
+  strangleHandInset: 0.12
+  strangleHandHeightOffset: -0.12
+  strangleReachDistance: 0.9
+  strangleHandRotationOffset: {x: 0, y: 0, z: 0}
+  strangleHandRoll: 90
+  currentZoneID: 
+  corruptedInventory:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  powerUpHoldPoint: {fileID: 0}
+  activeSlotIndex: -1
+  scrollCooldown: 0.15
+  trapPrefab: {fileID: 0}
+  illusionPrefab: {fileID: 0}
 --- !u!114 &6668280575978724801
 MonoBehaviour:
   m_ObjectHideFlags: 0

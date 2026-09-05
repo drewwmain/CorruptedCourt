@@ -115,7 +115,7 @@ public class MatchManager : MonoBehaviour
                 {
                     foreach (PlayerController player in RoleManager.Instance.allPlayers)
                     {
-                        if (!player.isGhost && player.currentZoneID != meetingZoneID)
+                        if (!player.Vitals.isGhost && player.Vitals.currentZoneID != meetingZoneID)
                         {
                             finalAbsentPlayers.Add(player.gameObject.name);
                         }
@@ -161,7 +161,7 @@ public class MatchManager : MonoBehaviour
                 {
                     foreach (PlayerController player in RoleManager.Instance.allPlayers)
                     {
-                        if (!player.isGhost && player.currentZoneID != meetingZoneID)
+                        if (!player.Vitals.isGhost && player.Vitals.currentZoneID != meetingZoneID)
                         {
                             liveAbsentPlayers.Add(player.gameObject.name);
                         }
@@ -228,7 +228,7 @@ public class MatchManager : MonoBehaviour
 
         if (RoleManager.Instance != null && RoleManager.Instance.currentKing != null)
         {
-            if (RoleManager.Instance.currentKing.isGhost)
+            if (RoleManager.Instance.currentKing.Vitals.isGhost)
             {
                 TriggerGameOver("Corrupted", "The King was eliminated!");
                 return;
@@ -245,9 +245,9 @@ public class MatchManager : MonoBehaviour
             {
                 if (player == null) continue;
 
-                if (!player.isGhost)
+                if (!player.Vitals.isGhost)
                 {
-                    if (player.currentRole == PlayerRole.Corrupted)
+                    if (player.Vitals.currentRole == PlayerRole.Corrupted)
                         aliveCorrupted++;
                     else
                         aliveCourt++;
