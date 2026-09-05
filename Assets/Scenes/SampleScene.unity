@@ -4277,6 +4277,14 @@ PrefabInstance:
       propertyPath: retrievableFromStage
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 3797888323788394158, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
+      propertyPath: locationID
+      value: RoyalTable
+      objectReference: {fileID: 0}
+    - target: {fileID: 3797888323788394158, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
+      propertyPath: acceptedItem
+      value: 
+      objectReference: {fileID: 11400000, guid: ce9596791f5553e4fb2c607c73719a98, type: 2}
     - target: {fileID: 4871293211251463030, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 7.777
@@ -5137,6 +5145,14 @@ PrefabInstance:
       propertyPath: retrievableFromStage
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 3797888323788394158, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
+      propertyPath: locationID
+      value: Armory
+      objectReference: {fileID: 0}
+    - target: {fileID: 3797888323788394158, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
+      propertyPath: acceptedItem
+      value: 
+      objectReference: {fileID: 11400000, guid: be1b9bbd508b2c746801437da260cc15, type: 2}
     - target: {fileID: 4871293211251463030, guid: 862047ead8d2a3f4b85b75d64e89519b, type: 3}
       propertyPath: m_LocalPosition.x
       value: -3.84333
