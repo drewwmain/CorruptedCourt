@@ -27,7 +27,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 5911507330253979744
-      type: {class: DataRetrievalStep, ns: , asm: Assembly-CSharp}
+      type: {class: DataRetrievalStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
       data:
         minigamePrefab: {fileID: 0}
         sourceStationID: Ledger

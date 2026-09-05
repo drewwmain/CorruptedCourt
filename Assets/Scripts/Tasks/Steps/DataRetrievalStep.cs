@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 using CorruptedCourt.Gameplay;
 
 namespace CorruptedCourt.Tasks
@@ -7,7 +6,6 @@ namespace CorruptedCourt.Tasks
     // ---------------------------------------------------
     // 5. DATA RETRIEVAL (Generate & Input)
     // ---------------------------------------------------
-    [MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
     [System.Serializable]
     public class DataRetrievalStep : TaskStep
     {

@@ -27,7 +27,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 5911507332722851847
-      type: {class: StationInteractStep, ns: , asm: Assembly-CSharp}
+      type: {class: StationInteractStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         targetStationID: ChessBoard

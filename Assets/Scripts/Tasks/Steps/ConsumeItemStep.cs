@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.Serialization;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Items;
@@ -10,7 +9,6 @@ namespace CorruptedCourt.Tasks
     // ---------------------------------------------------
     // 7. CONSUME ITEM (Eat / Drink - destroys item)
     // ---------------------------------------------------
-    [MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
     [System.Serializable]
     public class ConsumeItemStep : TaskStep
     {

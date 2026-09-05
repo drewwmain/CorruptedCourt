@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.Serialization;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Items;
@@ -9,7 +8,6 @@ namespace CorruptedCourt.Tasks
     // ---------------------------------------------------
     // 8. PROCESS ITEM (Cut, Polish, Light)
     // ---------------------------------------------------
-    [MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
     [System.Serializable]
     public class ProcessItemStep : TaskStep
     {

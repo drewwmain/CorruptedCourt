@@ -28,7 +28,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 5911507330253979736
-      type: {class: ProcessItemStep, ns: , asm: Assembly-CSharp}
+      type: {class: ProcessItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         targetStationID: Turkey
@@ -36,14 +36,14 @@ MonoBehaviour:
         targetItemState: 0
         legacyTargetStationOrItemName: 
     - rid: 5911507330253979737
-      type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
+      type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
       data:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 0}
         requiredState: 0
         legacyRequiredItemName: TurkeyLeg
     - rid: 5911507330253979738
-      type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
+      type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
       data:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 0}

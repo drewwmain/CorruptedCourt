@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.Scripting.APIUpdating;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Items;
 
@@ -8,7 +7,6 @@ namespace CorruptedCourt.Tasks
     // ---------------------------------------------------
     // 9. EQUIP CLOTHING STEP
     // ---------------------------------------------------
-    [MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
     [System.Serializable]
     public class EquipClothingStep : TaskStep
     {

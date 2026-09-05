@@ -28,14 +28,14 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 5911507376665788488
-      type: {class: AcquireItemStep, ns: , asm: Assembly-CSharp}
+      type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
       data:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 11400000, guid: ce9596791f5553e4fb2c607c73719a98, type: 2}
         requiredState: 2
         legacyRequiredItemName: 
     - rid: 5911507376665788489
-      type: {class: DepositItemStep, ns: , asm: Assembly-CSharp}
+      type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
       data:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 11400000, guid: ce9596791f5553e4fb2c607c73719a98, type: 2}
