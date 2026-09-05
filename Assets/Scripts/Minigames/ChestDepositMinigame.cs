@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Items;
 using CorruptedCourt.Tasks;
@@ -108,7 +109,7 @@ namespace CorruptedCourt.Minigames
             // name at runtime. A child named "...Hinge" wins (that's the pivot to rotate); otherwise the
             // first child with "lid" in its name.
             if (lid == null) lid = FindChild(chest.transform, "hinge") ?? FindChild(chest.transform, "lid");
-            if (lid == null) { Debug.LogWarning("[ChestDeposit] No lid/hinge assigned or found under the station - cannot run."); CancelMinigame(); return; }
+            if (lid == null) { Log.Warn("[ChestDeposit] No lid/hinge assigned or found under the station - cannot run."); CancelMinigame(); return; }
             if (lidGrabPoint == null) lidGrabPoint = FindChild(chest.transform, "grab");
             lidClosedLocalRot = lid.localRotation;
 
@@ -153,7 +154,7 @@ namespace CorruptedCourt.Minigames
             }
 
             if (passable && !anySolidBlocker)
-                Debug.LogWarning("[ChestDeposit] The chest has no solid (non-trigger) MeshCollider - the " +
+                Log.Warn("[ChestDeposit] The chest has no solid (non-trigger) MeshCollider - the " +
                                  "player will clip straight through it. Uncheck 'Is Trigger' on the chest's Mesh Collider.");
 
             if (!passable) passableChestColliders = null;
@@ -236,7 +237,7 @@ namespace CorruptedCourt.Minigames
             if (MinigameInput.PrimaryDown && Vector3.Distance(Hand.HandBone.position, LidGrabWorld()) <= lidGrabDistance)
             {
                 phase = Phase.OpenLid;
-                if (debugMinigame) Debug.Log("[ChestDeposit] grabbed the lid - move the mouse UP to open");
+                if (debugMinigame) Log.Game("[ChestDeposit] grabbed the lid - move the mouse UP to open");
             }
         }
 
@@ -251,7 +252,7 @@ namespace CorruptedCourt.Minigames
 
             if (lidOpen01 >= lidOpenThreshold)
             {
-                if (debugMinigame) Debug.Log("[ChestDeposit] lid open - item back to the right hand, aim it into the chest");
+                if (debugMinigame) Log.Game("[ChestDeposit] lid open - item back to the right hand, aim it into the chest");
                 EnterAimItemPhase();
             }
         }
@@ -295,7 +296,7 @@ namespace CorruptedCourt.Minigames
             if (touchedChest && TrySeatInChest("settle")) return;
 
             if (debugMinigame)
-                Debug.Log($"[ChestDeposit] MISS - touchedChest={touchedChest}. Leaving the item loose to retry.");
+                Log.Game($"[ChestDeposit] MISS - touchedChest={touchedChest}. Leaving the item loose to retry.");
             awaitingRetry = true;
         }
 
@@ -323,7 +324,7 @@ namespace CorruptedCourt.Minigames
             dropHandle?.End();
             dropHandle = null;
             chest.DepositIntoSlot(item, slot, player);
-            if (debugMinigame) Debug.Log($"[ChestDeposit] seated in slot {slot} via {via} (dist {best:F2}). WIN");
+            if (debugMinigame) Log.Game($"[ChestDeposit] seated in slot {slot} via {via} (dist {best:F2}). WIN");
 
             // Auto-close the lid, then finish. (item is kept referenced so Update keeps ticking; it's
             // nulled at the end of UpdateClosingLid.)

@@ -27,7 +27,7 @@ namespace CorruptedCourt.Gameplay
                     player.Vitals.ApplyStun(stunDuration);
 
                     // Snap the trap shut, play a sound, and destroy it
-                    Debug.Log($"Trap sprung on {player.gameObject.name}!");
+                    Log.Game($"Trap sprung on {player.gameObject.name}!");
                     Destroy(gameObject);
                 }
             }

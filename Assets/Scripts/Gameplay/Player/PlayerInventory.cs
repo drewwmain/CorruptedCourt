@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Items;
 
 namespace CorruptedCourt.Gameplay
@@ -81,7 +82,7 @@ namespace CorruptedCourt.Gameplay
             PickupItem toDrop = currentlyHeldItem != null ? currentlyHeldItem : leftHeldItem;
             if (toDrop == null)
             {
-                Debug.Log("Nothing to drop.");
+                Log.Game("Nothing to drop.");
                 return;
             }
 
@@ -89,7 +90,7 @@ namespace CorruptedCourt.Gameplay
             if (toDrop == currentlyHeldItem) currentlyHeldItem = null;
             else leftHeldItem = null;
 
-            Debug.Log($"Dropped {toDrop.DisplayName}.");
+            Log.Game($"Dropped {toDrop.DisplayName}.");
             player.TaskBook.CheckRegressionForAll();
             player.TaskBook.RefreshLocalWaypoints();
         }
@@ -135,7 +136,7 @@ namespace CorruptedCourt.Gameplay
                 rb.AddTorque(UnityEngine.Random.insideUnitSphere * (finalForce * 0.5f), ForceMode.Impulse);
             }
 
-            Debug.Log($"Threw {itemToThrow.DisplayName} with force {finalForce}. (Charge: {chargePercentage * 100}%, Weight: {itemToThrow.itemWeight})");
+            Log.Game($"Threw {itemToThrow.DisplayName} with force {finalForce}. (Charge: {chargePercentage * 100}%, Weight: {itemToThrow.itemWeight})");
 
             // --- NEW: PROJECTILE IMPACT SETUP ---
             // Dynamically add the impact script to the item in the air
@@ -162,7 +163,7 @@ namespace CorruptedCourt.Gameplay
             if (currentlyHeldItem != null) currentlyHeldItem.AttachToHand(rightHandSocket);
             if (leftHeldItem != null) leftHeldItem.AttachToHand(leftHandSocket);
 
-            Debug.Log($"Swapped hands. Active: {(currentlyHeldItem != null ? currentlyHeldItem.DisplayName : "empty")} | Off-hand: {(leftHeldItem != null ? leftHeldItem.DisplayName : "empty")}");
+            Log.Game($"Swapped hands. Active: {(currentlyHeldItem != null ? currentlyHeldItem.DisplayName : "empty")} | Off-hand: {(leftHeldItem != null ? leftHeldItem.DisplayName : "empty")}");
         }
 
         // --- Equip / haul ---
@@ -178,7 +179,7 @@ namespace CorruptedCourt.Gameplay
                 if (leftHeldItem != null) { leftHeldItem.DetachFromHand(); leftHeldItem = null; }
                 currentlyHeldItem = newItem;
                 AttachHaulItem(newItem);
-                Debug.Log($"Hauling {newItem.DisplayName}");
+                Log.Game($"Hauling {newItem.DisplayName}");
                 return;
             }
 
@@ -192,7 +193,7 @@ namespace CorruptedCourt.Gameplay
                 // Active hand is full but the off-hand is free: carry the new item there.
                 leftHeldItem = newItem;
                 leftHeldItem.AttachToHand(leftHandSocket);
-                Debug.Log($"Equipped {leftHeldItem.DisplayName} in the off-hand");
+                Log.Game($"Equipped {leftHeldItem.DisplayName} in the off-hand");
                 return;
             }
 
@@ -206,7 +207,7 @@ namespace CorruptedCourt.Gameplay
             currentlyHeldItem = newItem;
             currentlyHeldItem.AttachToHand(rightHandSocket);
 
-            Debug.Log($"Equipped {currentlyHeldItem.DisplayName}");
+            Log.Game($"Equipped {currentlyHeldItem.DisplayName}");
         }
 
         // Attaches a haul item; PoseHaulItem() then keeps it in front of the torso each frame and
@@ -218,7 +219,7 @@ namespace CorruptedCourt.Gameplay
             player.haulActive = true;
             PoseHaulItem();
 
-            Debug.Log($"[Haul] Carrying {item.DisplayName}. leftGrip={(item.leftGripPoint != null)} " +
+            Log.Game($"[Haul] Carrying {item.DisplayName}. leftGrip={(item.leftGripPoint != null)} " +
                       $"rightGrip={(item.rightGripPoint != null)} ikBlendSpeed={player.ikBlendSpeed} " +
                       $"animatorHuman={(player.PlayerAnimator != null && player.PlayerAnimator.isHuman)}");
         }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Items;
 
 namespace CorruptedCourt.Gameplay
@@ -24,7 +25,7 @@ namespace CorruptedCourt.Gameplay
                 // 2. Force the dummy player to equip it using your existing public method
                 player.EquipItem(clone);
 
-                Debug.Log($"[Test Harness] Forced {gameObject.name} to equip {clone.DisplayName}");
+                Log.Game($"[Test Harness] Forced {gameObject.name} to equip {clone.DisplayName}");
             }
         }
     }

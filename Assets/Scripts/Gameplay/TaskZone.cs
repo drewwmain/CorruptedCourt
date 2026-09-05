@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Tasks;
 
 namespace CorruptedCourt.Gameplay
@@ -33,14 +34,18 @@ namespace CorruptedCourt.Gameplay
 
         private void OnTriggerEnter(Collider other)
         {
-            Debug.Log($"PHYSICS TEST: {other.gameObject.name} entered {zoneID}");
+            Log.Game($"PHYSICS TEST: {other.gameObject.name} entered {zoneID}");
             // When something enters the zone, check if it's a player
             PlayerController player = other.GetComponent<PlayerController>();
             if (player != null)
             {
                 // Update the player's internal tracking string
                 player.Vitals.currentZoneID = zoneID;
-                Debug.Log($"{player.gameObject.name} entered zone: {zoneID}");
+                Log.Game($"{player.gameObject.name} entered zone: {zoneID}");
+
+                // Managers that care about room occupancy (MatchManager's absent-players list) react to
+                // this instead of scanning every player every frame.
+                GameEvents.RaisePlayerZoneChanged(player);
             }
         }
 
@@ -55,7 +60,8 @@ namespace CorruptedCourt.Gameplay
                 if (player.Vitals.currentZoneID == zoneID)
                 {
                     player.Vitals.currentZoneID = "";
-                    // Debug.Log($"{player.gameObject.name} left zone: {zoneID}");
+                    // Log.Game($"{player.gameObject.name} left zone: {zoneID}");
+                    GameEvents.RaisePlayerZoneChanged(player);
                 }
             }
         }

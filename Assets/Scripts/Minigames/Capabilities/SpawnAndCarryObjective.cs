@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Items;
 using CorruptedCourt.Tasks;
@@ -36,7 +37,7 @@ namespace CorruptedCourt.Minigames
         {
             if (producedPrefab == null)
             {
-                Debug.LogWarning("[SpawnAndCarryObjective] No producedPrefab assigned - nothing produced.");
+                Log.Warn("[SpawnAndCarryObjective] No producedPrefab assigned - nothing produced.");
                 return null;
             }
 

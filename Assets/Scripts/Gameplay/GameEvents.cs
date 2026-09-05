@@ -46,6 +46,23 @@ namespace CorruptedCourt.Gameplay
             AbsentPlayersChanged?.Invoke(absentNames);
         }
 
+        /// <summary>A player entered or left a <see cref="TaskZone"/> (their currentZoneID just changed).
+        /// Carries that player. Lets managers track room occupancy off events instead of polling every frame.</summary>
+        public static event Action<PlayerController> PlayerZoneChanged;
+        public static void RaisePlayerZoneChanged(PlayerController player) => PlayerZoneChanged?.Invoke(player);
+
+        /// <summary>A player was killed / turned into a ghost. Carries that player. Raised once, from
+        /// <c>PlayerVitals.BecomeGhost</c>.</summary>
+        public static event Action<PlayerController> PlayerGhosted;
+        public static void RaisePlayerGhosted(PlayerController player) => PlayerGhosted?.Invoke(player);
+
+        /// <summary>A player just deposited an item into a <see cref="TaskDepositStation"/> - an instant
+        /// drop or a completed deposit minigame. Carries that station. System placements (prerequisite
+        /// auto-spawn) do NOT raise this. <c>RoundRoleSwitch</c> uses it to flip a filled station into
+        /// its pickup role without polling every frame.</summary>
+        public static event Action<TaskDepositStation> StationReceivedDeposit;
+        public static void RaiseStationReceivedDeposit(TaskDepositStation station) => StationReceivedDeposit?.Invoke(station);
+
         /// <summary>The Corrupted power-up inventory changed. Carries the 3-slot array.</summary>
         public static event Action<PowerUpData[]> CorruptedInventoryChanged;
         public static void RaiseCorruptedInventoryChanged(PowerUpData[] inventory) => CorruptedInventoryChanged?.Invoke(inventory);
@@ -106,6 +123,9 @@ namespace CorruptedCourt.Gameplay
             CourtProgressChanged = null;
             MatchStateChanged = null;
             AbsentPlayersChanged = null;
+            PlayerZoneChanged = null;
+            PlayerGhosted = null;
+            StationReceivedDeposit = null;
             CorruptedInventoryChanged = null;
             CorruptedSlotHighlighted = null;
             TransitionTimerTicked = null;

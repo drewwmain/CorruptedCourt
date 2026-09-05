@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Items;
 using CorruptedCourt.Tasks;
@@ -154,7 +155,7 @@ namespace CorruptedCourt.Minigames
             dropHandle = null;
             rack.DepositIntoSlot(item, slot, player); // parents + poses it in the notch
             if (debugLanding)
-                Debug.Log($"[SwordHang] hung on slot {slot} via {via} (dist {best:F2} <= {catchRadius}).");
+                Log.Game($"[SwordHang] hung on slot {slot} via {via} (dist {best:F2} <= {catchRadius}).");
             item = null;
             CompleteMinigame();               // advances the DepositItemStep
             return true;
@@ -235,7 +236,7 @@ namespace CorruptedCourt.Minigames
             if (touchedRack && TryHangOnSlot("settle")) return;
 
             if (debugLanding)
-                Debug.Log($"[SwordHang] MISS - touchedRack={touchedRack}. Leaving the sword loose to retry.");
+                Log.Game($"[SwordHang] MISS - touchedRack={touchedRack}. Leaving the sword loose to retry.");
             awaitingRetry = true;
         }
 

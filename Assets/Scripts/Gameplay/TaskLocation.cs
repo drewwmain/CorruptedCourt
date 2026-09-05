@@ -18,6 +18,14 @@ namespace CorruptedCourt.Gameplay
         // A static master list of all locations in the map, so the WaypointManager can instantly find them
         public static List<TaskLocation> AllLocations = new List<TaskLocation>();
 
+        // Authoring-time guard. Uses Debug.LogWarning (not Log.Warn) on purpose: a misconfiguration must
+        // surface in the Editor regardless of the CC_LOGGING symbol.
+        private void OnValidate()
+        {
+            if (string.IsNullOrWhiteSpace(locationID))
+                Debug.LogWarning($"[TaskLocation] {name}: locationID is empty - tasks, deposits and waypoints all match on it.", this);
+        }
+
         // Registered while the object is active so a deactivated station (e.g. a role-switched Vase)
         // stops being treated as a live deposit location.
         void OnEnable()

@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using UnityEngine.SceneManagement;
 
 namespace CorruptedCourt.UI
@@ -26,7 +27,7 @@ namespace CorruptedCourt.UI
 
         public void PlayGame()
         {
-            Debug.Log("Loading the Game...");
+            Log.Game("Loading the Game...");
             SceneManager.LoadScene(gameSceneName);
         }
 
@@ -54,7 +55,7 @@ namespace CorruptedCourt.UI
 
         public void QuitGame()
         {
-            Debug.Log("Quitting the Game...");
+            Log.Game("Quitting the Game...");
             Application.Quit();
         }
     }

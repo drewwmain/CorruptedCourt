@@ -331,7 +331,7 @@ namespace CorruptedCourt.UI
 
         public void RestartMatch()
         {
-            Debug.Log("--- RESTARTING MATCH ---");
+            Log.Game("--- RESTARTING MATCH ---");
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
@@ -389,7 +389,7 @@ namespace CorruptedCourt.UI
                 {
                     if (playerInput == runtime.GeneratedCode)
                     {
-                        Debug.Log("Code Accepted! Data Retrieval Complete.");
+                        Log.Game("Code Accepted! Data Retrieval Complete.");
 
                         // We must manually complete the step here because clicking a UI button
                         // doesn't trigger the PlayerController's physical interaction raycast!
@@ -407,7 +407,7 @@ namespace CorruptedCourt.UI
                     }
                     else
                     {
-                        Debug.Log("INCORRECT CODE. Connection failed.");
+                        Log.Game("INCORRECT CODE. Connection failed.");
                     }
                 }
             }
@@ -504,7 +504,7 @@ namespace CorruptedCourt.UI
 
         public void ReturnToMainMenu()
         {
-            Debug.Log("Returning to Main Menu...");
+            Log.Game("Returning to Main Menu...");
             SceneManager.LoadScene(mainMenuSceneName);
         }
     }

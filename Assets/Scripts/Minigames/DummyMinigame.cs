@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 
 namespace CorruptedCourt.Minigames
 {
@@ -7,7 +8,7 @@ namespace CorruptedCourt.Minigames
         // We will link this to a UI Button in the Inspector
         public void OnClickWinButton()
         {
-            Debug.Log("Minigame Won! Sending signal back to Player...");
+            Log.Game("Minigame Won! Sending signal back to Player...");
             CompleteMinigame(); // This calls the base method we wrote in Phase 2
         }
     }

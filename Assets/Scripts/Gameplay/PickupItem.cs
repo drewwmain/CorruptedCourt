@@ -97,6 +97,14 @@ namespace CorruptedCourt.Gameplay
             coll = GetComponent<Collider>();
         }
 
+        // Authoring-time guard. Uses Debug.LogWarning (not Log.Warn) on purpose: a misconfiguration must
+        // surface in the Editor regardless of the CC_LOGGING symbol.
+        private void OnValidate()
+        {
+            if (definition == null)
+                Debug.LogWarning($"[PickupItem] {name}: no ItemDefinition assigned - every item match is done against it.", this);
+        }
+
         // Registered only while active, so a deactivated item (e.g. a role-switched Vase in round 1)
         // isn't treated as a pickup that exists in the world.
         void OnEnable()
@@ -131,7 +139,7 @@ namespace CorruptedCourt.Gameplay
                 // If the player is already holding this exact type of item in EITHER hand, abort!
                 if (definition != null && player.IsHoldingItem(definition))
                 {
-                    Debug.Log($"You are already holding a {DisplayName}. Interaction ignored.");
+                    Log.Game($"You are already holding a {DisplayName}. Interaction ignored.");
                     return; // Exit the method completely so no cloning or dropping happens
                 }
                 // -------------------------------------
@@ -309,7 +317,7 @@ namespace CorruptedCourt.Gameplay
             if (requiresPartner)
             {
                 // SUCCESS!
-                Debug.Log($"--- {DisplayName.ToUpper()} TASK COMPLETED WITH {otherPlayer.gameObject.name}! ---");
+                Log.Game($"--- {DisplayName.ToUpper()} TASK COMPLETED WITH {otherPlayer.gameObject.name}! ---");
 
                 // FUTURE: Add RPC calls here for networking, and potentially destroy the item
                 // if the task consumes it (e.g., Destroy(gameObject);).
@@ -324,7 +332,7 @@ namespace CorruptedCourt.Gameplay
             if (Has(ItemState.Processed)) return; // already processed
 
             state |= ItemState.Processed;
-            Debug.Log($"The {DisplayName} has been successfully modified/processed.");
+            Log.Game($"The {DisplayName} has been successfully modified/processed.");
         }
 
         // Called when a deposit station that received an item is converted into this pickup. Sets the
@@ -334,7 +342,7 @@ namespace CorruptedCourt.Gameplay
             if (Has(ItemState.DepositedContainer)) return;
 
             state |= ItemState.DepositedContainer;
-            Debug.Log($"{DisplayName} now carries a deposit.");
+            Log.Game($"{DisplayName} now carries a deposit.");
         }
     }
 }

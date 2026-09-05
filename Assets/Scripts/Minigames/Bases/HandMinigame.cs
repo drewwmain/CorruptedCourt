@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 
 namespace CorruptedCourt.Minigames
 {
@@ -47,6 +48,10 @@ namespace CorruptedCourt.Minigames
         protected Camera cam;
         protected MinigameHandRig Hand { get; private set; }
 
+        // This family drives its own leashed WASD shuffle (HandleFootwork) - keep PlayerController's
+        // normal movement path off so the player isn't Move()d twice per frame.
+        public override bool AllowsPlayerMovement => false;
+
         private Vector3 walkAnchor;
         private float rmbDownTime;
         private bool rmbDragged;
@@ -62,7 +67,7 @@ namespace CorruptedCourt.Minigames
 
             if (player == null || cam == null)
             {
-                Debug.LogWarning($"[{GetType().Name}] missing player or camera - cancelling.");
+                Log.Warn($"[{GetType().Name}] missing player or camera - cancelling.");
                 CancelMinigame();
                 return;
             }

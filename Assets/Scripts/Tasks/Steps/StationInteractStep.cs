@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
 
 namespace CorruptedCourt.Tasks
@@ -16,8 +17,9 @@ namespace CorruptedCourt.Tasks
         public int requiredSimultaneousPlayers = 1;
 
         // Shared scratch buffer for the group-proximity check. CheckCompletion runs on the main thread
-        // and consumes the hits immediately, so one static buffer is safe.
-        private static readonly Collider[] proximityBuffer = new Collider[16];
+        // and consumes the hits immediately, so one static buffer is safe. 32 is comfortably above any
+        // realistic count of colliders on the character layer inside one interaction radius.
+        private static readonly Collider[] proximityBuffer = new Collider[32];
 
         public override string GetObjectiveText()
         {
@@ -41,6 +43,13 @@ namespace CorruptedCourt.Tasks
                 int playersNearby = 0;
                 int hitCount = Physics.OverlapSphereNonAlloc(
                     targetInteractable.transform.position, player.Interactor.InteractionRange, proximityBuffer, player.Interactor.CharacterLayer);
+
+                // Buffer full: OverlapSphereNonAlloc silently drops the rest, so the count below could be
+                // low. It can only ever UNDER-count, so a full buffer that already meets the requirement
+                // is still a valid pass; only warn when it might have cost us the completion.
+                if (hitCount == proximityBuffer.Length)
+                    Log.Warn($"[StationInteractStep] proximity buffer full ({proximityBuffer.Length}) at " +
+                             $"'{targetStationID}' - nearby-player count may be truncated.");
 
                 for (int i = 0; i < hitCount; i++)
                 {

@@ -34,7 +34,7 @@ namespace CorruptedCourt.Tasks
         public void AssignTasksForNewStage()
         {
             if (RoleManager.Instance == null) return;
-            Debug.Log("--- TASK MANAGER: Distributing new tasks for the Action Stage ---");
+            Log.Game("--- TASK MANAGER: Distributing new tasks for the Action Stage ---");
 
             // Track what we auto-spawn this stage to prevent giving out 5 swords if 5 people get the Duel task
             HashSet<ItemDefinition> spawnedItemsThisStage = new HashSet<ItemDefinition>();
@@ -94,7 +94,7 @@ namespace CorruptedCourt.Tasks
                                                 station.depositedItemSlots[i] = spawnedItem;
                                                 spawnedItemsThisStage.Add(spawnedItem.definition);
 
-                                                Debug.Log($"[TaskManager] Auto-spawned {spawnedItem.DisplayName} at {location.locationID} because prerequisite was failed.");
+                                                Log.Game($"[TaskManager] Auto-spawned {spawnedItem.DisplayName} at {location.locationID} because prerequisite was failed.");
                                                 break; // Successfully spawned, move to next task
                                             }
                                         }
@@ -168,7 +168,7 @@ namespace CorruptedCourt.Tasks
             // NOTE: Corrupted players can "do" tasks to blend in, but they DO NOT fill the meter!
             if (player.Vitals.currentRole == PlayerRole.Corrupted)
             {
-                Debug.Log($"{player.gameObject.name} (Corrupted) faked task: {(definition != null ? definition.taskName : "<unknown>")}. Meter unchanged.");
+                Log.Game($"{player.gameObject.name} (Corrupted) faked task: {(definition != null ? definition.taskName : "<unknown>")}. Meter unchanged.");
                 return;
             }
 
@@ -188,7 +188,7 @@ namespace CorruptedCourt.Tasks
             // Announce the new progress - the court meter is a view that subscribes to this.
             GameEvents.RaiseCourtProgressChanged(currentCourtProgress, maxCourtProgress);
 
-            Debug.Log($"Court Task Completed: {(definition != null ? definition.taskName : "<unknown>")}! Global Meter: {currentCourtProgress}% / {maxCourtProgress}%");
+            Log.Game($"Court Task Completed: {(definition != null ? definition.taskName : "<unknown>")}! Global Meter: {currentCourtProgress}% / {maxCourtProgress}%");
         }
     }
 }

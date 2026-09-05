@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using UnityEngine.InputSystem;
 
 namespace CorruptedCourt.Gameplay
@@ -98,7 +99,7 @@ namespace CorruptedCourt.Gameplay
             // Block jumping entirely if holding a heavy item (either hand).
             if (player != null && player.IsHoldingHeavyItem())
             {
-                if (value.isPressed) Debug.Log("Cannot jump while carrying a heavy item!");
+                if (value.isPressed) Log.Game("Cannot jump while carrying a heavy item!");
                 return;
             }
             if (value.isPressed && isGrounded && !isCrouching)
@@ -112,13 +113,13 @@ namespace CorruptedCourt.Gameplay
             // value.isPressed is true when you press and hold the key down
             // value.isPressed becomes false the exact moment you let go of the key
             isSprinting = value.isPressed;
-            if (value.isPressed) Debug.Log("Sprinting");
-            else Debug.Log("Walking");
+            if (value.isPressed) Log.Game("Sprinting");
+            else Log.Game("Walking");
         }
 
         public void OnCrouch(InputValue value)
         {
-            Debug.Log("Crouched");
+            Log.Game("Crouched");
             if (!value.isPressed) return;
 
             isCrouching = !isCrouching;

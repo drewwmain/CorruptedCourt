@@ -1,6 +1,8 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using UnityEngine.Serialization;
 using CorruptedCourt.Items;
+using CorruptedCourt.Minigames;
 
 namespace CorruptedCourt.Gameplay
 {
@@ -58,11 +60,34 @@ namespace CorruptedCourt.Gameplay
         public Vector3 depositRestPerItemOffset = new Vector3(0f, 0.05f, 0f);
 
         private bool switchedToPickup;
+        private bool applyScheduled; // a deferred (post-deposit) Apply() is queued
+
+        private void OnValidate()
+        {
+            if (depositStationObject == gameObject || pickupItemObject == gameObject)
+                Debug.LogWarning($"[RoundRoleSwitch] {name}: this component must sit on a PARENT object, " +
+                                 "not on a role object it toggles.", this);
+
+            if (pickupFromStage < 1)
+                Debug.LogWarning($"[RoundRoleSwitch] {name}: Pickup From Stage should be >= 1.", this);
+        }
 
         private void Awake()
         {
             if (depositStationObject == gameObject || pickupItemObject == gameObject)
-                Debug.LogWarning($"[RoundRoleSwitch] {name}: this component should live on a parent, not on a role object it toggles.");
+                Log.Warn($"[RoundRoleSwitch] {name}: this component should live on a parent, not on a role object it toggles.");
+        }
+
+        private void OnEnable()
+        {
+            GameEvents.MatchStateChanged += OnMatchStateChanged;
+            GameEvents.StationReceivedDeposit += OnStationReceivedDeposit;
+        }
+
+        private void OnDisable()
+        {
+            GameEvents.MatchStateChanged -= OnMatchStateChanged;
+            GameEvents.StationReceivedDeposit -= OnStationReceivedDeposit;
         }
 
         private void Start()
@@ -71,8 +96,32 @@ namespace CorruptedCourt.Gameplay
             Apply();
         }
 
-        private void Update()
+        // The station -> pickup switch is one-way and keys off the match stage (Test Mode = Off) or a
+        // deposit into our own station (PickupAfterDeposit). The real stage only advances on a phase
+        // transition, so MatchStateChanged covers that path; OnStationReceivedDeposit covers the
+        // deposit path. Together they replace the old every-frame Apply() poll.
+        private void OnMatchStateChanged(MatchManager.MatchState _)
         {
+            Apply();
+        }
+
+        // Fired when any TaskDepositStation receives an item. If it's ours and we haven't switched yet,
+        // re-run Apply - but on a later frame, so the deposit's own task-step completion and any deposit
+        // minigame finish while our station is still active and registered in TaskLocation.AllLocations.
+        private void OnStationReceivedDeposit(TaskDepositStation station)
+        {
+            if (switchedToPickup || applyScheduled || depositStationObject == null || station == null) return;
+            if (!station.transform.IsChildOf(depositStationObject.transform)) return;
+
+            applyScheduled = true;
+            StartCoroutine(ApplyAfterDeposit());
+        }
+
+        private System.Collections.IEnumerator ApplyAfterDeposit()
+        {
+            yield return null;                                  // let this frame's task-step evaluation run
+            while (MinigameBase.IsAnyActive) yield return null; // and let a deposit minigame wind down
+            applyScheduled = false;
             Apply();
         }
 

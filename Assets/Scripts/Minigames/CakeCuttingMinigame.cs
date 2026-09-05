@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Items;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Tasks;
@@ -81,7 +82,7 @@ namespace CorruptedCourt.Minigames
                 }
                 else
                 {
-                    Debug.LogWarning("[CakeCuttingMinigame] No cakePiecePrefab assigned - nothing produced.");
+                    Log.Warn("[CakeCuttingMinigame] No cakePiecePrefab assigned - nothing produced.");
                 }
             }
 

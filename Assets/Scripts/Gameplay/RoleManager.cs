@@ -68,7 +68,7 @@ namespace CorruptedCourt.Gameplay
             kingCurseTimer = 300f;
             if (allPlayers.Count == 0)
             {
-                Debug.LogWarning("No players found in the RoleManager list!");
+                Log.Warn("No players found in the RoleManager list!");
                 return;
             }
 
@@ -92,7 +92,7 @@ namespace CorruptedCourt.Gameplay
             {
                 localPlayer.Vitals.AssignRole(forceTestRole);
                 remainingPlayers.Remove(localPlayer);
-                Debug.Log($"[TESTING] Forced {localPlayer.gameObject.name} to be {forceTestRole}.");
+                Log.Game($"[TESTING] Forced {localPlayer.gameObject.name} to be {forceTestRole}.");
 
                 // Adjust the remaining pools so we don't accidentally double-assign unique roles
                 if (forceTestRole == PlayerRole.King)
@@ -137,7 +137,7 @@ namespace CorruptedCourt.Gameplay
 
             currentKingsguard = null;
 
-            Debug.Log($"--- ROLE SETUP COMPLETE: 1 King, {actualCorruptedCount} Corrupted, {allPlayers.Count - actualCorruptedCount - 1} Court ---");
+            Log.Game($"--- ROLE SETUP COMPLETE: 1 King, {actualCorruptedCount} Corrupted, {allPlayers.Count - actualCorruptedCount - 1} Court ---");
         }
 
         // A standard Fisher-Yates shuffle algorithm to randomize the list
@@ -159,14 +159,14 @@ namespace CorruptedCourt.Gameplay
             if (currentKingsguard != null && currentKingsguard != newGuard)
             {
                 currentKingsguard.Vitals.AssignRole(PlayerRole.Court);
-                Debug.Log($"[RoleManager] {currentKingsguard.gameObject.name} was demoted from Kingsguard.");
+                Log.Game($"[RoleManager] {currentKingsguard.gameObject.name} was demoted from Kingsguard.");
             }
 
             // 2. Assign the new Kingsguard
             currentKingsguard = newGuard;
             currentKingsguard.Vitals.AssignRole(PlayerRole.Kingsguard);
 
-            Debug.Log($"--- THE KING HAS APPOINTED {currentKingsguard.gameObject.name} AS THE NEW KINGSGUARD ---");
+            Log.Game($"--- THE KING HAS APPOINTED {currentKingsguard.gameObject.name} AS THE NEW KINGSGUARD ---");
         }
         void Update()
         {
@@ -177,7 +177,7 @@ namespace CorruptedCourt.Gameplay
 
                 if (kingCurseTimer <= 0f)
                 {
-                    Debug.Log("<color=#8E44AD>The King failed to act in time!</color>");
+                    Log.Game("<color=#8E44AD>The King failed to act in time!</color>");
                     CurseTheKing();
                 }
             }
@@ -187,7 +187,7 @@ namespace CorruptedCourt.Gameplay
         {
             if (currentKing == null || isKingCursed) return;
 
-            Debug.Log($"<color=#8E44AD>THE KING'S CURSE HAS STRUCK! {currentKing.gameObject.name} has been stripped of their crown!</color>");
+            Log.Game($"<color=#8E44AD>THE KING'S CURSE HAS STRUCK! {currentKing.gameObject.name} has been stripped of their crown!</color>");
             isKingCursed = true;
 
             // Demote the King to standard Court (your AssignRole method natively strips the bonus HP when assigning Court!)
@@ -199,7 +199,7 @@ namespace CorruptedCourt.Gameplay
         public void ResetKingTimer()
         {
             kingCurseTimer = 300f; // Reset back to 5 minutes
-            Debug.Log("<color=#F1C40F>The King's Curse timer has been reset!</color>");
+            Log.Game("<color=#F1C40F>The King's Curse timer has been reset!</color>");
         }
     }
 }

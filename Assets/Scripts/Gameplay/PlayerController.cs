@@ -125,7 +125,7 @@ namespace CorruptedCourt.Gameplay
             if (isLocalPlayer)
             {
                 if (Local != null && Local != this)
-                    Debug.LogWarning($"[PlayerController] Two local players detected ('{Local.name}' and '{name}'). " +
+                    Log.Warn($"[PlayerController] Two local players detected ('{Local.name}' and '{name}'). " +
                                      "Uncheck 'Is Local Player' on dummy players and network clones.");
                 Local = this;
             }
@@ -185,6 +185,17 @@ namespace CorruptedCourt.Gameplay
                     {
                         look.HandleRotation(lookInput);
                     }
+
+                    // Button / UI minigames (cut cake, eat, dummy, emote wheel) don't take over the
+                    // body - the player keeps normal WASD locomotion. A HandMinigame runs its OWN
+                    // leashed footwork and opts out via AllowsPlayerMovement, so we don't move twice.
+                    if (isPlayingMinigame && !vitals.isStrangling
+                        && (MinigameBase.Current == null || MinigameBase.Current.AllowsPlayerMovement))
+                    {
+                        motor.HandleMovement(moveInput);
+                        motor.HandleCrouchTransition();
+                    }
+
                     // Force the target UI crosshair/prompts to fade away while the minigame or strangle is active
                     interactor.HideUIImmediately();
                 }
@@ -255,7 +266,7 @@ namespace CorruptedCourt.Gameplay
             if (currentItemIndex > 2) currentItemIndex = 0;
             if (currentItemIndex < 0) currentItemIndex = 2;
 
-            Debug.Log($"Switched to item slot: {currentItemIndex}");
+            Log.Game($"Switched to item slot: {currentItemIndex}");
         }
 
         // Triggered by your 'F' key. King-only: appoints whoever the crosshair is on as Kingsguard.
@@ -284,7 +295,7 @@ namespace CorruptedCourt.Gameplay
                 if (isPlayingMinigame) return;
                 if (GetHeldItem() == null && GetLeftHeldItem() == null)
                 {
-                    Debug.Log("Nothing to drop.");
+                    Log.Game("Nothing to drop.");
                     return;
                 }
 
@@ -318,7 +329,7 @@ namespace CorruptedCourt.Gameplay
 
             if (GetHeldItem() == null && GetLeftHeldItem() == null)
             {
-                Debug.Log("Nothing to swap between hands.");
+                Log.Game("Nothing to swap between hands.");
                 return;
             }
 
@@ -405,7 +416,7 @@ namespace CorruptedCourt.Gameplay
                 if (!warnedNoSpineBone)
                 {
                     warnedNoSpineBone = true;
-                    Debug.LogWarning("[Lean] No spine bone - assign 'Lean Spine Bone' (e.g. Spine_01) on the Player so the model folds.");
+                    Log.Warn("[Lean] No spine bone - assign 'Lean Spine Bone' (e.g. Spine_01) on the Player so the model folds.");
                 }
                 return;
             }
@@ -513,7 +524,7 @@ namespace CorruptedCourt.Gameplay
                         // The minigame borrows the left hand. If the off-hand holds something else, drop it.
                         if (GetLeftHeldItem() != null)
                         {
-                            Debug.Log($"Dropped off-hand {GetLeftHeldItem().DisplayName} to free the left hand for the minigame.");
+                            Log.Game($"Dropped off-hand {GetLeftHeldItem().DisplayName} to free the left hand for the minigame.");
                             GetLeftHeldItem().DetachFromHand();
                             ClearLeftHeldItem();
                             taskBook.CheckRegressionForAll();
@@ -675,7 +686,7 @@ namespace CorruptedCourt.Gameplay
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-            Debug.Log("Minigame Cancelled.");
+            Log.Game("Minigame Cancelled.");
 
             // Bring the task's waypoint back now that the minigame was abandoned.
             taskBook.RefreshLocalWaypoints();

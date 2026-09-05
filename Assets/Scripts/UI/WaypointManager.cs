@@ -48,6 +48,14 @@ namespace CorruptedCourt.UI
         // Shared empty list so the "clear all markers" path allocates nothing.
         private static readonly List<TaskInstance> noTasks = new List<TaskInstance>();
 
+        // Reused by Update() every frame so the per-frame marker pass allocates nothing. Both are
+        // cleared, refilled, and fully consumed within a single Update() call.
+        private readonly List<MarkerDrawData> drawList = new List<MarkerDrawData>();
+        private readonly Dictionary<Transform, int> targetStackCounts = new Dictionary<Transform, int>();
+        // Cached so Sort() doesn't allocate a Comparison delegate each frame.
+        private static readonly System.Comparison<MarkerDrawData> byDistanceDescending =
+            (a, b) => b.distance.CompareTo(a.distance);
+
         void Awake()
         {
             if (Instance == null) Instance = this;
@@ -286,7 +294,7 @@ namespace CorruptedCourt.UI
             // Only run this loop if the player actually has active tasks to point to
             if (activeWaypoints.Count > 0)
             {
-                List<MarkerDrawData> drawList = new List<MarkerDrawData>();
+                drawList.Clear();
 
                 // 1. Gather all active markers and calculate their distance
                 foreach (var kvp in activeWaypoints)
@@ -305,10 +313,10 @@ namespace CorruptedCourt.UI
                 }
 
                 // 2. Sort the list from Furthest to Closest (Descending order)
-                drawList.Sort((a, b) => b.distance.CompareTo(a.distance));
+                drawList.Sort(byDistanceDescending);
 
                 // We track how many markers are pointing at the exact same Transform this frame
-                Dictionary<Transform, int> targetStackCounts = new Dictionary<Transform, int>();
+                targetStackCounts.Clear();
 
                 // 3. Draw the sorted markers
                 foreach (var data in drawList)

@@ -137,7 +137,7 @@ namespace CorruptedCourt.Gameplay
                 currentHealth = 1;
             }
 
-            Debug.Log($"[Role Assignment] {gameObject.name} is now: {currentRole} with {currentHealth} HP");
+            Log.Game($"[Role Assignment] {gameObject.name} is now: {currentRole} with {currentHealth} HP");
         }
 
         // --- NEW: COMBAT DAMAGE SYSTEM ---
@@ -146,11 +146,11 @@ namespace CorruptedCourt.Gameplay
             if (isGhost) return; // Ghosts cannot take damage
 
             currentHealth -= amount;
-            Debug.Log($"<color=#E74C3C>{gameObject.name} took {amount} damage! Current HP: {currentHealth}</color>");
+            Log.Game($"<color=#E74C3C>{gameObject.name} took {amount} damage! Current HP: {currentHealth}</color>");
 
             if (currentHealth <= 0)
             {
-                Debug.Log($"<color=#922B21>{gameObject.name} HAS BEEN KILLED!</color>");
+                Log.Game($"<color=#922B21>{gameObject.name} HAS BEEN KILLED!</color>");
                 BecomeGhost();
             }
         }
@@ -159,7 +159,7 @@ namespace CorruptedCourt.Gameplay
         {
             if (isGhost) return; // Already a ghost
 
-            Debug.Log($"--- {gameObject.name} HAS BECOME A GHOST ---");
+            Log.Game($"--- {gameObject.name} HAS BECOME A GHOST ---");
             isGhost = true;
 
             // 1. Force drop any item they are currently holding (both hands)
@@ -198,6 +198,10 @@ namespace CorruptedCourt.Gameplay
 
             // 4. (Optional) You can increase their movement speed here so ghosts can float around faster
             motor.ScaleWalkSpeed(1.5f);
+
+            // Let managers re-evaluate off this one event (MatchManager checks win conditions and drops
+            // the player from the pre-meeting absent list) instead of polling isGhost every frame.
+            GameEvents.RaisePlayerGhosted(player);
         }
 
         // --- NEW: STATUS EFFECTS & COROUTINES ---
@@ -210,12 +214,12 @@ namespace CorruptedCourt.Gameplay
         private System.Collections.IEnumerator StunRoutine(float duration)
         {
             isStunned = true;
-            Debug.Log($"<color=#E74C3C>{gameObject.name} is STUNNED for {duration} seconds!</color>");
+            Log.Game($"<color=#E74C3C>{gameObject.name} is STUNNED for {duration} seconds!</color>");
 
             yield return new WaitForSeconds(duration);
 
             isStunned = false;
-            Debug.Log($"{gameObject.name} is no longer stunned.");
+            Log.Game($"{gameObject.name} is no longer stunned.");
         }
 
         // --- NEW: PUSHBACK PHYSICS ---
@@ -264,7 +268,7 @@ namespace CorruptedCourt.Gameplay
             // Check Cooldown
             if (Time.time < lastPunchTime + punchCooldown)
             {
-                Debug.Log("Punch is on cooldown!");
+                Log.Game("Punch is on cooldown!");
                 return;
             }
 
@@ -273,7 +277,7 @@ namespace CorruptedCourt.Gameplay
 
         private void ExecutePunch()
         {
-            Debug.Log($"{gameObject.name} throws a punch!");
+            Log.Game($"{gameObject.name} throws a punch!");
 
             // Cast a thick sphere forward. We omit the layer mask so it can hit players OR physics items
             if (Physics.SphereCast(player.PlayerCamera.position, punchRadius, player.PlayerCamera.forward, out RaycastHit hit, punchRange))
@@ -282,7 +286,7 @@ namespace CorruptedCourt.Gameplay
                 PlayerController victim = hit.collider.GetComponent<PlayerController>();
                 if (victim != null && victim != player && !victim.Vitals.isGhost)
                 {
-                    Debug.Log($"Punched {victim.gameObject.name}!");
+                    Log.Game($"Punched {victim.gameObject.name}!");
 
                     // Calculate push direction (from puncher to victim)
                     Vector3 pushDirection = (victim.transform.position - transform.position).normalized;
@@ -296,7 +300,7 @@ namespace CorruptedCourt.Gameplay
                 Rigidbody rb = hit.collider.GetComponent<Rigidbody>();
                 if (rb != null && !rb.isKinematic)
                 {
-                    Debug.Log($"Punched an item!");
+                    Log.Game($"Punched an item!");
                     // Shove the item exactly the direction the camera is looking
                     rb.AddForce(player.PlayerCamera.forward * (pushbackForce / 2f), ForceMode.Impulse);
                 }
@@ -310,18 +314,18 @@ namespace CorruptedCourt.Gameplay
 
             if (isDraggingPrisoner)
             {
-                Debug.Log("You cannot block while your hands are full dragging a prisoner!");
+                Log.Game("You cannot block while your hands are full dragging a prisoner!");
                 yield break;
             }
 
-            Debug.Log($"<color=#3498DB>{gameObject.name} raises the {weapon.DisplayName} to block!</color>");
+            Log.Game($"<color=#3498DB>{gameObject.name} raises the {weapon.DisplayName} to block!</color>");
             isBlocking = true;
 
             // Wait for the duration of the block
             yield return new WaitForSeconds(weapon.blockDuration);
 
             isBlocking = false;
-            Debug.Log($"{gameObject.name} lowers their guard.</color>");
+            Log.Game($"{gameObject.name} lowers their guard.</color>");
         }
 
         // --- Royal Pardon: routed from PlayerController.OnDropItem's press branch. Returns true if a
@@ -341,7 +345,7 @@ namespace CorruptedCourt.Gameplay
             }
 
             isDraggingPrisoner = false;
-            Debug.Log($"You pardoned and freed {currentPrisoner.gameObject.name}!");
+            Log.Game($"You pardoned and freed {currentPrisoner.gameObject.name}!");
             currentPrisoner = null;
             return true;
         }
@@ -362,12 +366,12 @@ namespace CorruptedCourt.Gameplay
                 {
                     if (heldItem != null || leftHeldItem != null || activePowerUpVisual != null)
                     {
-                        Debug.Log("You cannot strangle someone while holding an item or power-up!");
+                        Log.Game("You cannot strangle someone while holding an item or power-up!");
                         return;
                     }
                     if (Time.time < lastStrangleTime + strangleCooldown)
                     {
-                        Debug.Log("Strangulation is on cooldown!");
+                        Log.Game("Strangulation is on cooldown!");
                         return;
                     }
                     strangleButtonHeld = true;
@@ -428,7 +432,7 @@ namespace CorruptedCourt.Gameplay
 
         private System.Collections.IEnumerator StrangleRoutine()
         {
-            Debug.Log($"{gameObject.name} reaches out to strangle...");
+            Log.Game($"{gameObject.name} reaches out to strangle...");
 
             // --- PHASE 1: REACH & HUNT ---
             // Arms extend forward (IK) while the player moves and aims normally. Each frame we look for a
@@ -457,7 +461,7 @@ namespace CorruptedCourt.Gameplay
                 yield break;
             }
 
-            Debug.Log($"Grabbed {targetVictim.gameObject.name}! Hold the button for {strangleHoldTime}s...");
+            Log.Game($"Grabbed {targetVictim.gameObject.name}! Hold the button for {strangleHoldTime}s...");
 
             // --- PHASE 2: LOCKED STRUGGLE ---
             BeginStrangleLock(targetVictim);
@@ -470,7 +474,7 @@ namespace CorruptedCourt.Gameplay
 
                 if (strangleVictim == null || strangleVictim.Vitals.isGhost)
                 {
-                    Debug.Log("Target is already dead!");
+                    Log.Game("Target is already dead!");
                     break;
                 }
 
@@ -480,7 +484,7 @@ namespace CorruptedCourt.Gameplay
                 // Cancel if the victim opens up more distance than the grip allows (e.g. sprints off)
                 if (Vector3.Distance(transform.position, strangleVictim.transform.position) > strangleGrabDistance + strangleBreakSlack)
                 {
-                    Debug.Log($"{strangleVictim.gameObject.name} broke free from your grasp!");
+                    Log.Game($"{strangleVictim.gameObject.name} broke free from your grasp!");
                     break;
                 }
 
@@ -494,18 +498,18 @@ namespace CorruptedCourt.Gameplay
                 // Court members can grab and hold someone, but their strangle never kills.
                 if (currentRole == PlayerRole.Court)
                 {
-                    Debug.Log($"{gameObject.name} strangled {strangleVictim.gameObject.name} - but Court members deal no damage.");
+                    Log.Game($"{gameObject.name} strangled {strangleVictim.gameObject.name} - but Court members deal no damage.");
                 }
                 else
                 {
-                    Debug.Log($"Successfully strangled {strangleVictim.gameObject.name}!");
+                    Log.Game($"Successfully strangled {strangleVictim.gameObject.name}!");
                     strangleVictim.Vitals.TakeDamage(1);
                 }
                 lastStrangleTime = Time.time; // Apply the full cooldown
             }
             else if (!strangleButtonHeld)
             {
-                Debug.Log("Strangulation cancelled! You let go too early.");
+                Log.Game("Strangulation cancelled! You let go too early.");
             }
 
             // Release the lock and hand control back to normal movement
@@ -714,21 +718,21 @@ namespace CorruptedCourt.Gameplay
                         isDraggingPrisoner = true;
                         currentPrisoner = victim;
                         victim.Vitals.BecomeArrested(player);
-                        Debug.Log($"Grabbed {victim.gameObject.name}'s leash!");
+                        Log.Game($"Grabbed {victim.gameObject.name}'s leash!");
                         return;
                     }
 
                     // Otherwise, brand new arrest
                     if (arrestQuota <= 0)
                     {
-                        Debug.Log("You are out of shackles!");
+                        Log.Game("You are out of shackles!");
                         return;
                     }
 
                     arrestQuota--;
                     isDraggingPrisoner = true;
                     currentPrisoner = victim;
-                    Debug.Log($"<color=#3498DB>Arrested {victim.gameObject.name}! {arrestQuota} shackles left.</color>");
+                    Log.Game($"<color=#3498DB>Arrested {victim.gameObject.name}! {arrestQuota} shackles left.</color>");
                     victim.Vitals.BecomeArrested(player);
                 }
             }
@@ -736,7 +740,7 @@ namespace CorruptedCourt.Gameplay
 
         private void TransferPrisoner(PlayerController targetRoyal)
         {
-            Debug.Log($"Handed off {currentPrisoner.gameObject.name} to {targetRoyal.gameObject.name}!");
+            Log.Game($"Handed off {currentPrisoner.gameObject.name} to {targetRoyal.gameObject.name}!");
 
             // Transfer the custody variables
             targetRoyal.Vitals.isDraggingPrisoner = true;
@@ -756,7 +760,7 @@ namespace CorruptedCourt.Gameplay
             if (currentPrisoner != null)
             {
                 currentPrisoner.Vitals.currentCaptor = null; // Setting this to null instantly breaks their follow loop
-                Debug.Log($"Dropped {currentPrisoner.gameObject.name}'s leash. They are still frozen!");
+                Log.Game($"Dropped {currentPrisoner.gameObject.name}'s leash. They are still frozen!");
                 currentPrisoner = null;
             }
         }
@@ -779,7 +783,7 @@ namespace CorruptedCourt.Gameplay
                 currentPrisoner.Vitals.currentCaptor = null;
                 isDraggingPrisoner = false;
 
-                Debug.Log($"<color=#9B59B6>{currentPrisoner.gameObject.name} has been locked to the Gallows!</color>");
+                Log.Game($"<color=#9B59B6>{currentPrisoner.gameObject.name} has been locked to the Gallows!</color>");
                 // --- NEW: TRIGGER GALLOWS MEETING & PASS CONDEMNED PLAYER ---
                 if (VotingManager.Instance != null)
                 {
@@ -799,17 +803,17 @@ namespace CorruptedCourt.Gameplay
 
             isArrested = true;
             currentCaptor = captor;
-            Debug.Log($"<color=#E74C3C>You are under arrest by {captor.gameObject.name}!</color>");
+            Log.Game($"<color=#E74C3C>You are under arrest by {captor.gameObject.name}!</color>");
 
             // 1. Force drop whatever is in their hands (both hands)
             if (player.GetHeldItem() != null)
             {
-                Debug.Log("You dropped your task item!");
+                Log.Game("You dropped your task item!");
                 player.ClearHeldItem();
             }
             if (player.GetLeftHeldItem() != null)
             {
-                Debug.Log("You dropped your off-hand item!");
+                Log.Game("You dropped your off-hand item!");
                 player.ClearLeftHeldItem();
             }
 
@@ -858,12 +862,12 @@ namespace CorruptedCourt.Gameplay
             // If they are still arrested after 30 seconds, execute the breakout!
             if (isArrested)
             {
-                Debug.Log("<color=#E74C3C>The prisoner broke free from their restraints!</color>");
+                Log.Game("<color=#E74C3C>The prisoner broke free from their restraints!</color>");
                 isArrested = false;
 
                 if (currentCaptor != null)
                 {
-                    Debug.Log($"<color=#F39C12>{currentCaptor.gameObject.name} was stunned by the escaping prisoner!</color>");
+                    Log.Game($"<color=#F39C12>{currentCaptor.gameObject.name} was stunned by the escaping prisoner!</color>");
 
                     // Clear the Royal's hands
                     currentCaptor.Vitals.isDraggingPrisoner = false;
@@ -904,7 +908,7 @@ namespace CorruptedCourt.Gameplay
             }
             else
             {
-                Debug.Log("You don't have a power-up equipped to use!");
+                Log.Game("You don't have a power-up equipped to use!");
             }
         }
 
@@ -985,19 +989,19 @@ namespace CorruptedCourt.Gameplay
             if (data == null)
             {
                 GameEvents.RaiseCorruptedSlotHighlighted(activeSlotIndex);
-                Debug.Log($"Equipped empty slot {index + 1}");
+                Log.Game($"Equipped empty slot {index + 1}");
                 return; // Stop here!
             }
 
             // 5. We are equipping a VALID power-up!
             if (player.GetHeldItem() != null)
             {
-                Debug.Log("Dropped standard item to pull out power-up!");
+                Log.Game("Dropped standard item to pull out power-up!");
                 player.ClearHeldItem();
             }
             if (player.GetLeftHeldItem() != null)
             {
-                Debug.Log("Dropped off-hand item to pull out power-up!");
+                Log.Game("Dropped off-hand item to pull out power-up!");
                 player.ClearLeftHeldItem();
             }
 
@@ -1009,12 +1013,12 @@ namespace CorruptedCourt.Gameplay
 
             // Update the UI
             GameEvents.RaiseCorruptedSlotHighlighted(activeSlotIndex);
-            Debug.Log($"Equipped {data.powerUpName} in slot {index + 1}");
+            Log.Game($"Equipped {data.powerUpName} in slot {index + 1}");
         }
 
         private bool ExecutePowerUp(PowerUpData powerUp)
         {
-            Debug.Log($"--- EXECUTING POWER-UP: {powerUp.powerUpName} ---");
+            Log.Game($"--- EXECUTING POWER-UP: {powerUp.powerUpName} ---");
 
             switch (powerUp.powerUpType)
             {
@@ -1040,29 +1044,29 @@ namespace CorruptedCourt.Gameplay
                             if (trapPrefab != null)
                             {
                                 Instantiate(trapPrefab, hitTrap.point, Quaternion.identity);
-                                Debug.Log("Trap deployed!");
+                                Log.Game("Trap deployed!");
                             }
                             return true; // SUCCESS
                         }
                         else
                         {
-                            Debug.Log("Surface is too steep to place a trap.");
+                            Log.Game("Surface is too steep to place a trap.");
                             return false; // FAIL
                         }
                     }
-                    Debug.Log("You must look at the ground to place a trap.");
+                    Log.Game("You must look at the ground to place a trap.");
                     return false; // FAIL
 
                 case PowerUpType.TargetedSabotage:
                     if (player.Interactor.CurrentTarget != null && player.Interactor.CurrentTarget is TaskDepositStation station)
                     {
                         station.isSabotaged = true;
-                        Debug.Log($"Sabotaged the {station.gameObject.name}! The next Innocent will be stunned.");
+                        Log.Game($"Sabotaged the {station.gameObject.name}! The next Innocent will be stunned.");
                         return true;
                     }
                     else
                     {
-                        Debug.Log("You must be looking at a Task Deposit Station to sabotage it!");
+                        Log.Game("You must be looking at a Task Deposit Station to sabotage it!");
                         return false;
                     }
 
@@ -1080,10 +1084,10 @@ namespace CorruptedCourt.Gameplay
                     if (vipTargets.Count > 0)
                     {
                         GameEvents.RaiseSpymasterWaypointsShown(vipTargets, 10f);
-                        Debug.Log("Spymaster's Ledger used! High-value targets revealed for 10 seconds.");
+                        Log.Game("Spymaster's Ledger used! High-value targets revealed for 10 seconds.");
                         return true;
                     }
-                    Debug.Log("Spymaster's Ledger failed. High-value targets are dead or unavailable.");
+                    Log.Game("Spymaster's Ledger failed. High-value targets are dead or unavailable.");
                     return false;
 
                 case PowerUpType.StolenHeraldry:
@@ -1103,14 +1107,14 @@ namespace CorruptedCourt.Gameplay
                             blindedCount++;
                         }
                     }
-                    Debug.Log($"Blinding Ash shattered! Blinded {blindedCount} innocent players.");
+                    Log.Game($"Blinding Ash shattered! Blinded {blindedCount} innocent players.");
                     return true;
 
                 case PowerUpType.FoolsIllusion:
                     if (illusionPrefab != null)
                     {
                         Instantiate(illusionPrefab, transform.position, transform.rotation);
-                        Debug.Log("Fool's Illusion deployed! It will vanish in 10 seconds.");
+                        Log.Game("Fool's Illusion deployed! It will vanish in 10 seconds.");
                     }
                     return true;
             }
@@ -1121,12 +1125,12 @@ namespace CorruptedCourt.Gameplay
         // --- NEW: DAGGER DELAY & COUNTER-PLAY ---
         private System.Collections.IEnumerator DaggerStrikeRoutine(PowerUpData daggerData)
         {
-            Debug.Log($"<color=#E74C3C>{gameObject.name} readies a dagger...</color>");
+            Log.Game($"<color=#E74C3C>{gameObject.name} readies a dagger...</color>");
 
             // 1.5 second wind-up delay (Player movement is NOT restricted here!)
             yield return new WaitForSeconds(1.5f);
 
-            Debug.Log($"<color=#C0392B>{gameObject.name} strikes!</color>");
+            Log.Game($"<color=#C0392B>{gameObject.name} strikes!</color>");
 
             // 1. Fire the lethal raycast
             RaycastHit[] hits = Physics.SphereCastAll(player.PlayerCamera.position, 0.5f, player.PlayerCamera.forward, 2.5f, player.Interactor.CharacterLayer);
@@ -1142,13 +1146,13 @@ namespace CorruptedCourt.Gameplay
                     // 3. CHECK FOR THE ROYAL BLOCK
                     if ((victim.Vitals.currentRole == PlayerRole.King || victim.Vitals.currentRole == PlayerRole.Kingsguard) && victim.Vitals.isBlocking)
                     {
-                        Debug.Log($"<color=#F1C40F>Blocked! {victim.gameObject.name} deflected the assassination attempt!</color>");
+                        Log.Game($"<color=#F1C40F>Blocked! {victim.gameObject.name} deflected the assassination attempt!</color>");
                         hitConnected = true;
                         break; // Attack is blocked, item is fully consumed
                     }
                     else
                     {
-                        Debug.Log($"Stabbed {victim.gameObject.name} with a dagger!");
+                        Log.Game($"Stabbed {victim.gameObject.name} with a dagger!");
                         victim.Vitals.TakeDamage(1);
                         hitConnected = true;
                         break; // Attack succeeds, item is fully consumed
@@ -1158,13 +1162,13 @@ namespace CorruptedCourt.Gameplay
 
             if (!hitConnected)
             {
-                Debug.Log("The dagger swing missed entirely! (Item consumed)");
+                Log.Game("The dagger swing missed entirely! (Item consumed)");
             }
         }
 
         private System.Collections.IEnumerator HandleInvisibility(float duration)
         {
-            Debug.Log("Invisibility Activated!");
+            Log.Game("Invisibility Activated!");
 
             // Turn off all meshes on the player
             foreach (Renderer r in playerRenderers)
@@ -1179,7 +1183,7 @@ namespace CorruptedCourt.Gameplay
             {
                 if (r != null) r.enabled = true;
             }
-            Debug.Log("Invisibility Faded.");
+            Log.Game("Invisibility Faded.");
         }
 
         public void ApplyBlindness(float duration)
@@ -1190,7 +1194,7 @@ namespace CorruptedCourt.Gameplay
 
         private System.Collections.IEnumerator BlindnessRoutine(float duration)
         {
-            Debug.Log($"<color=#8E44AD>{gameObject.name} was hit by Blinding Ash!</color>");
+            Log.Game($"<color=#8E44AD>{gameObject.name} was hit by Blinding Ash!</color>");
 
             Camera cam = player.PlayerCamera.GetComponent<Camera>();
             if (cam != null)
@@ -1211,7 +1215,7 @@ namespace CorruptedCourt.Gameplay
                 yield return new WaitForSeconds(duration);
             }
 
-            Debug.Log($"{gameObject.name}'s vision has cleared.");
+            Log.Game($"{gameObject.name}'s vision has cleared.");
         }
 
         private System.Collections.IEnumerator StolenHeraldryRoutine(float duration)
@@ -1229,7 +1233,7 @@ namespace CorruptedCourt.Gameplay
 
             if (innocents.Count == 0)
             {
-                Debug.Log("No living innocents left to disguise as!");
+                Log.Game("No living innocents left to disguise as!");
                 yield break;
             }
 
@@ -1253,7 +1257,7 @@ namespace CorruptedCourt.Gameplay
                 if (targetRenderer != null) playerRenderers[0].material = targetRenderer.material;
             }
 
-            Debug.Log($"<color=#F1C40F>Stolen Heraldry active! You look exactly like {stolenIdentity.gameObject.name}.</color>");
+            Log.Game($"<color=#F1C40F>Stolen Heraldry active! You look exactly like {stolenIdentity.gameObject.name}.</color>");
 
             yield return new WaitForSeconds(duration);
 
@@ -1264,7 +1268,7 @@ namespace CorruptedCourt.Gameplay
                 playerRenderers[0].material = originalMat;
             }
 
-            Debug.Log("<color=#F1C40F>Your disguise has worn off!</color>");
+            Log.Game("<color=#F1C40F>Your disguise has worn off!</color>");
         }
     }
 }

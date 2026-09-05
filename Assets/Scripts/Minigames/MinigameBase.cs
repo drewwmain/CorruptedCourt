@@ -29,6 +29,15 @@ namespace CorruptedCourt.Minigames
             get { Prune(); foreach (MinigameBase m in active) return m; return null; }
         }
 
+        /// <summary>
+        /// Whether the player keeps normal WASD locomotion while this minigame is open. True for pure
+        /// button / UI minigames (cut cake, eat, dummy, emote wheel) - the player can walk around
+        /// freely. <see cref="HandMinigame"/> overrides this to false: it runs its OWN leashed footwork
+        /// (<c>HandleFootwork</c>), and letting the normal path also move the player would Move() them
+        /// twice per frame.
+        /// </summary>
+        public virtual bool AllowsPlayerMovement => true;
+
         // --- per-instance state ---------------------------------------------------------------------
         protected PlayerController player;
         protected TaskInstance activeTask;

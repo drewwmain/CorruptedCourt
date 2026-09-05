@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using CorruptedCourt.Core;
 using UnityEngine.Serialization;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Items;
@@ -45,7 +46,7 @@ namespace CorruptedCourt.Tasks
         private void OnValidate()
         {
             if (string.IsNullOrEmpty(taskID))
-                Debug.LogWarning($"[TaskData] '{name}' has an empty taskID - it will not match any task step or waypoint lookup.", this);
+                Log.Warn($"[TaskData] '{name}' has an empty taskID - it will not match any task step or waypoint lookup.", this);
 
             if (stepTemplates != null)
             {
@@ -53,7 +54,7 @@ namespace CorruptedCourt.Tasks
                 {
                     if (stepTemplates[i] == null)
                     {
-                        Debug.LogWarning($"[TaskData] '{name}' stepTemplates[{i}] is empty (no step type selected).", this);
+                        Log.Warn($"[TaskData] '{name}' stepTemplates[{i}] is empty (no step type selected).", this);
                         continue;
                     }
 
@@ -61,7 +62,7 @@ namespace CorruptedCourt.Tasks
                     // set but the ItemDefinition that replaced it is not). See TaskStep.GetConfigurationWarning.
                     string warning = stepTemplates[i].GetConfigurationWarning();
                     if (!string.IsNullOrEmpty(warning))
-                        Debug.LogWarning($"[TaskData] '{name}' stepTemplates[{i}] ({stepTemplates[i].GetType().Name}): {warning}", this);
+                        Log.Warn($"[TaskData] '{name}' stepTemplates[{i}] ({stepTemplates[i].GetType().Name}): {warning}", this);
                 }
             }
         }

@@ -67,6 +67,25 @@ namespace CorruptedCourt.Gameplay
             BuildDropSlots();
         }
 
+        // Authoring-time guard. Uses Debug.LogWarning (not Log.Warn) on purpose: a misconfiguration must
+        // surface in the Editor regardless of the CC_LOGGING symbol.
+        private void OnValidate()
+        {
+            if (depositedItemSlots == null || depositedItemSlots.Length < 1)
+                Debug.LogWarning($"[TaskDepositStation] {name}: needs at least one deposit slot " +
+                                 "(depositedItemSlots is empty).", this);
+
+            if (GetComponent<TaskLocation>() == null)
+                Debug.LogWarning($"[TaskDepositStation] {name}: no TaskLocation on this GameObject - " +
+                                 "deposits can't resolve a locationID.", this);
+
+            if (customDropSlots != null && customDropSlots.Length > 0
+                && depositedItemSlots != null && customDropSlots.Length != depositedItemSlots.Length)
+                Debug.LogWarning($"[TaskDepositStation] {name}: customDropSlots ({customDropSlots.Length}) " +
+                                 $"and depositedItemSlots ({depositedItemSlots.Length}) lengths differ - " +
+                                 "BuildDropSlots will resize depositedItemSlots to match at runtime.", this);
+        }
+
         // Creates a child Transform per slot, positioned from the slot count.
         private void BuildDropSlots()
         {
@@ -226,7 +245,7 @@ namespace CorruptedCourt.Gameplay
             ItemDepositMinigame mg = mgObj.GetComponent<ItemDepositMinigame>();
             if (mg == null)
             {
-                Debug.LogWarning("[TaskDepositStation] depositMinigamePrefab has no ItemDepositMinigame - depositing instantly instead.");
+                Log.Warn("[TaskDepositStation] depositMinigamePrefab has no ItemDepositMinigame - depositing instantly instead.");
                 Destroy(mgObj);
                 int slot = GetFirstAvailableSlotIndex();
                 if (slot != -1) DepositIntoSlot(heldItem, slot, player);
@@ -275,7 +294,8 @@ namespace CorruptedCourt.Gameplay
             item.PlaceInStation(dropSlots[slotIndex], this);
             depositedItemSlots[slotIndex] = item;
             RecordDepositor(slotIndex, depositor);
-            Debug.Log($"{item.DisplayName} hung on the {taskLocation.locationID} (slot {slotIndex}).");
+            Log.Game($"{item.DisplayName} hung on the {taskLocation.locationID} (slot {slotIndex}).");
+            GameEvents.RaiseStationReceivedDeposit(this);
         }
 
         public bool IsSlotFree(int slotIndex)
@@ -295,7 +315,7 @@ namespace CorruptedCourt.Gameplay
 
             if (isSabotaged && player.Vitals.currentRole != PlayerRole.Corrupted)
             {
-                Debug.Log("Station was sabotaged! You are stunned!");
+                Log.Game("Station was sabotaged! You are stunned!");
                 player.Vitals.ApplyStun(3f);
                 isSabotaged = false;
             }
@@ -308,7 +328,7 @@ namespace CorruptedCourt.Gameplay
                 int availableSlot = GetFirstAvailableSlotIndex();
                 if (availableSlot == -1)
                 {
-                    Debug.Log("Task Area Full! Cannot deposit item.");
+                    Log.Game("Task Area Full! Cannot deposit item.");
                     return;
                 }
 
@@ -331,17 +351,19 @@ namespace CorruptedCourt.Gameplay
                     RecordDepositor(availableSlot, player);
                     player.ClearHeldItem();
 
-                    Debug.Log($"Item {heldItem.DisplayName} deposited into slot {availableSlot}.");
+                    Log.Game($"Item {heldItem.DisplayName} deposited into slot {availableSlot}.");
 
                     // Instantly refresh UI.
                     // The PlayerController's PerformInteraction loop will evaluate this immediately after and complete the task step!
                     player.TaskBook.RefreshLocalWaypoints();
+
+                    GameEvents.RaiseStationReceivedDeposit(this);
                 }
                 else
                 {
                     bool needsProcessing = (requiredState & ItemState.Processed) != 0 && !heldItem.Has(ItemState.Processed);
-                    if (needsProcessing) Debug.Log("This item needs to be processed first.");
-                    else Debug.Log("This item is not required here.");
+                    if (needsProcessing) Log.Game("This item needs to be processed first.");
+                    else Log.Game("This item is not required here.");
                 }
             }
             // --- PHASE 2: RETRIEVAL LOGIC (Player's hands are empty) ---
@@ -360,7 +382,7 @@ namespace CorruptedCourt.Gameplay
                         depositedItemSlots[i] = null;
                         RecordDepositor(i, null);
                         player.EquipItem(item); // AttachToHand also frees the slot / clears currentStation
-                        Debug.Log($"Took {item.DisplayName} out of the {taskLocation.locationID}.");
+                        Log.Game($"Took {item.DisplayName} out of the {taskLocation.locationID}.");
                         return;
                     }
                 }
@@ -385,7 +407,7 @@ namespace CorruptedCourt.Gameplay
                                 depositedItemSlots[i] = null; // Clear the slot
                                 RecordDepositor(i, null);
 
-                                Debug.Log($"Retrieved {depositedItem.DisplayName} from slot {i}.");
+                                Log.Game($"Retrieved {depositedItem.DisplayName} from slot {i}.");
                                 itemRetrieved = true;
                                 break;
                             }
@@ -396,7 +418,7 @@ namespace CorruptedCourt.Gameplay
 
                 if (!itemRetrieved)
                 {
-                    Debug.Log("There are no items here that you need for your current tasks.");
+                    Log.Game("There are no items here that you need for your current tasks.");
                 }
             }
         }
@@ -418,7 +440,7 @@ namespace CorruptedCourt.Gameplay
                 {
                     depositedItemSlots[i] = null;
                     RecordDepositor(i, null);
-                    Debug.Log($"Item removed from slot {i}. Space is now available.");
+                    Log.Game($"Item removed from slot {i}. Space is now available.");
                     break;
                 }
             }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
 
 namespace CorruptedCourt.Minigames
@@ -37,7 +38,7 @@ namespace CorruptedCourt.Minigames
 
             if (Partner == null)
             {
-                Debug.LogWarning($"[{GetType().Name}] no partner and no dummy prefab - cancelling.");
+                Log.Warn($"[{GetType().Name}] no partner and no dummy prefab - cancelling.");
                 CancelMinigame();
                 return;
             }

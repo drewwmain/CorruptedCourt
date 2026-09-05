@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
 
 namespace CorruptedCourt.Tasks
@@ -96,7 +97,7 @@ namespace CorruptedCourt.Tasks
             if (IsComplete) return;
 
             CurrentStepIndex++;
-            Debug.Log($"[Task System] Advanced '{(Definition != null ? Definition.taskName : "<null>")}' to step {CurrentStepIndex}/{stepRuntimes.Count}");
+            Log.Game($"[Task System] Advanced '{(Definition != null ? Definition.taskName : "<null>")}' to step {CurrentStepIndex}/{stepRuntimes.Count}");
         }
 
         /// <summary>Fetches current objective text for the UI.</summary>
@@ -137,7 +138,7 @@ namespace CorruptedCourt.Tasks
                         // Regression triggered! Roll back to this step's index
                         CurrentStepIndex = i;
 
-                        Debug.Log($"[Task System] Task '{(Definition != null ? Definition.taskName : "<null>")}' regressed to step {CurrentStepIndex} because required item '{acquireStep.requiredItem.displayName}' was dropped/thrown.");
+                        Log.Game($"[Task System] Task '{(Definition != null ? Definition.taskName : "<null>")}' regressed to step {CurrentStepIndex} because required item '{acquireStep.requiredItem.displayName}' was dropped/thrown.");
 
                         // Refresh UI waypoints immediately
                         player.TaskBook.RefreshLocalWaypoints();

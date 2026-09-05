@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
 
 namespace CorruptedCourt.Tasks
@@ -49,7 +50,7 @@ namespace CorruptedCourt.Tasks
                     runtime.GeneratedCode = Random.Range(100, 999).ToString(); // Generate the code
                     runtime.CodeRevealPending = true; // the view shows the popup off the tasks-changed signal
 
-                    Debug.Log($"[Task System] Code {runtime.GeneratedCode} acquired from {sourceStationID}!");
+                    Log.Game($"[Task System] Code {runtime.GeneratedCode} acquired from {sourceStationID}!");
 
                     // Force the waypoints (and the code popup) to update to the new destination
                     player.TaskBook.RefreshLocalWaypoints();

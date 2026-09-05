@@ -33,7 +33,7 @@ namespace CorruptedCourt.Gameplay
             // CHANGED: Only enable the top-right button, do not force the panel open yet
             GameEvents.RaiseVotingPhaseStarted();
 
-            Debug.Log("--- VOTING STARTED: Players can now cast their votes ---");
+            Log.Game("--- VOTING STARTED: Players can now cast their votes ---");
         }
 
         // Called by the UI buttons (Options: "Confirm", "Deny", "Skip")
@@ -44,19 +44,19 @@ namespace CorruptedCourt.Gameplay
             if (playerVotes.ContainsKey(voter))
             {
                 playerVotes[voter] = voteOption;
-                Debug.Log($"{voter.gameObject.name} changed their vote to {voteOption}.");
+                Log.Game($"{voter.gameObject.name} changed their vote to {voteOption}.");
             }
             else
             {
                 playerVotes.Add(voter, voteOption);
-                Debug.Log($"{voter.gameObject.name} voted to {voteOption}.");
+                Log.Game($"{voter.gameObject.name} voted to {voteOption}.");
             }
         }
 
         // Called by the MatchManager when the meeting timer hits zero
         public void TallyVotes()
         {
-            Debug.Log("--- TALLYING VOTES ---");
+            Log.Game("--- TALLYING VOTES ---");
 
             int confirmVotes = 0;
             int denyVotes = 0;
@@ -70,14 +70,14 @@ namespace CorruptedCourt.Gameplay
                 else if (vote == "Skip") skipVotes++;
             }
 
-            Debug.Log($"Results - Confirm: {confirmVotes} | Deny: {denyVotes} | Skip: {skipVotes}");
+            Log.Game($"Results - Confirm: {confirmVotes} | Deny: {denyVotes} | Skip: {skipVotes}");
 
             // Result Logic: Confirm must outright win to execute
             if (confirmVotes > denyVotes && confirmVotes > skipVotes)
             {
                 if (condemnedPlayer != null)
                 {
-                    Debug.Log($"RESULT: The Court has confirmed the execution! {condemnedPlayer.gameObject.name} is EXECUTED!");
+                    Log.Game($"RESULT: The Court has confirmed the execution! {condemnedPlayer.gameObject.name} is EXECUTED!");
                     condemnedPlayer.Vitals.BecomeGhost();
                     condemnedPlayer.Vitals.isArrested = false; // Clear their state
                     // --- NEW: THE KING'S CURSE EVALUATION ---
@@ -85,12 +85,12 @@ namespace CorruptedCourt.Gameplay
                     {
                         if (condemnedPlayer.Vitals.currentRole == PlayerRole.Corrupted)
                         {
-                            Debug.Log("The King successfully executed a Corrupted player!");
+                            Log.Game("The King successfully executed a Corrupted player!");
                             RoleManager.Instance.ResetKingTimer();
                         }
                         else
                         {
-                            Debug.Log("<color=#E74C3C>The King led an Innocent to the slaughter! The curse timer continues ticking.</color>");
+                            Log.Game("<color=#E74C3C>The King led an Innocent to the slaughter! The curse timer continues ticking.</color>");
                             // The King is no longer punished with an instant demotion, so we do nothing here!
                         }
                     }
@@ -98,12 +98,12 @@ namespace CorruptedCourt.Gameplay
             }
             else
             {
-                Debug.Log("RESULT: The Court did not confirm the execution. The prisoner is freed!");
+                Log.Game("RESULT: The Court did not confirm the execution. The prisoner is freed!");
 
                 if (condemnedPlayer != null)
                 {
                     condemnedPlayer.Vitals.isArrested = false;
-                    Debug.Log($"{condemnedPlayer.gameObject.name} steps down from the gallows.");
+                    Log.Game($"{condemnedPlayer.gameObject.name} steps down from the gallows.");
                 }
             }
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using CorruptedCourt.Core;
 
 namespace CorruptedCourt.Minigames
 {
@@ -20,7 +21,7 @@ namespace CorruptedCourt.Minigames
         {
             if (EmoteWheelController.Instance == null)
             {
-                Debug.LogWarning($"[{GetType().Name}] no EmoteWheelController in the scene - cancelling.");
+                Log.Warn($"[{GetType().Name}] no EmoteWheelController in the scene - cancelling.");
                 CancelMinigame();
                 return;
             }

@@ -371,7 +371,7 @@ namespace CorruptedCourt.Gameplay
 
                         if (emptySlotIndex != -1) // We found an empty slot!
                         {
-                            Debug.Log($"[Corrupted] Picked up power-up: {powerUp.powerUpData.powerUpName} in Slot {emptySlotIndex + 1}");
+                            Log.Game($"[Corrupted] Picked up power-up: {powerUp.powerUpData.powerUpName} in Slot {emptySlotIndex + 1}");
 
                             // Assign it to that exact slot
                             player.Vitals.corruptedInventory[emptySlotIndex] = powerUp.powerUpData;
@@ -386,12 +386,12 @@ namespace CorruptedCourt.Gameplay
                         }
                         else
                         {
-                            Debug.Log("Inventory Full! You do not have any empty slots.");
+                            Log.Game("Inventory Full! You do not have any empty slots.");
                         }
                     }
                     else
                     {
-                        Debug.Log("[Innocent] You poke the mysterious object, but have no idea what it is or how to use it.");
+                        Log.Game("[Innocent] You poke the mysterious object, but have no idea what it is or how to use it.");
                     }
                     return; // Stop here so it doesn't run standard interaction logic
                 }
@@ -403,7 +403,7 @@ namespace CorruptedCourt.Gameplay
                     if (player.Vitals.isGhost) return; // Ghosts cannot pick up weapons
                     if (player.Vitals.currentRole != royalWeapon.restrictedRole)
                     {
-                        Debug.Log($"[Denied] Only the {royalWeapon.restrictedRole} may wield this weapon!");
+                        Log.Game($"[Denied] Only the {royalWeapon.restrictedRole} may wield this weapon!");
                         return; // Stop here so they cannot pick it up
                     }
                 }
@@ -446,7 +446,7 @@ namespace CorruptedCourt.Gameplay
                 // A spent item (e.g. an emptied plate) does nothing on [E] - just carry or drop it.
                 if (player.GetHeldItem().Has(ItemState.Spent))
                 {
-                    Debug.Log($"Nothing left to do with the {player.GetHeldItem().DisplayName}.");
+                    Log.Game($"Nothing left to do with the {player.GetHeldItem().DisplayName}.");
                     return;
                 }
 
@@ -469,11 +469,11 @@ namespace CorruptedCourt.Gameplay
                 // ARE meant to be worked on with [E] carry a Process Minigame Prefab, which was launched
                 // above.
                 if (!taskCompleted)
-                    Debug.Log($"Nothing to do with the {player.GetHeldItem().DisplayName} here - carry it where it needs to go.");
+                    Log.Game($"Nothing to do with the {player.GetHeldItem().DisplayName} here - carry it where it needs to go.");
             }
             else
             {
-                Debug.Log("No interactable target in range and hands are empty.");
+                Log.Game("No interactable target in range and hands are empty.");
             }
         }
 
@@ -512,7 +512,7 @@ namespace CorruptedCourt.Gameplay
 
             if (target.GetHeldItem() != null)
             {
-                Debug.Log("Multiplayer interaction failed: Your helper must be empty-handed.");
+                Log.Game("Multiplayer interaction failed: Your helper must be empty-handed.");
                 return;
             }
 
@@ -522,14 +522,14 @@ namespace CorruptedCourt.Gameplay
             // 2. Perform the physical action regardless of tasks! (Allows faking)
             if (player.GetHeldItem() != null && player.GetHeldItem().requiresPartner)
             {
-                Debug.Log($"Used {player.GetHeldItem().DisplayName} with {target.gameObject.name}!" + (taskCompleted ? " (Task Completed)" : " (Faked Task)"));
+                Log.Game($"Used {player.GetHeldItem().DisplayName} with {target.gameObject.name}!" + (taskCompleted ? " (Task Completed)" : " (Faked Task)"));
                 GameObject initiatorItemObj = player.GetHeldItem().gameObject;
                 player.ClearHeldItem();
                 Destroy(initiatorItemObj);
             }
             else if (player.GetHeldItem() == null)
             {
-                Debug.Log($"Interacted with {target.gameObject.name}!" + (taskCompleted ? " (Task Completed)" : " (Faked Task)"));
+                Log.Game($"Interacted with {target.gameObject.name}!" + (taskCompleted ? " (Task Completed)" : " (Faked Task)"));
             }
 
             player.TaskBook.RefreshLocalWaypoints();

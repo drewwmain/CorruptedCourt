@@ -31,7 +31,7 @@ namespace CorruptedCourt.Gameplay
 
             // 2. You can use this space purely for visual/audio effects that should happen
             // every single time the station is used, regardless of who clicks it!
-            Debug.Log($"{interactor.name} interacted with the {taskLocation.locationID} station.");
+            Log.Game($"{interactor.name} interacted with the {taskLocation.locationID} station.");
 
             // Example:
             // GetComponent<AudioSource>().Play();
