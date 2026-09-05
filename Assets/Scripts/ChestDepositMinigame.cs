@@ -17,7 +17,9 @@ using UnityEngine;
 ///
 /// The falling-item physics (no-bounce, funnelled drop) and the "has it touched the chest yet" check
 /// are the GuidedDrop / StationContactProbe capabilities in Assets/Scripts/Minigames/Capabilities -
-/// shared with SwordHangMinigame. See ARCHITECTURE.md P1.
+/// shared with SwordHangMinigame (P1). The freeze / RMB-look / footwork / settings-pause / hand rig
+/// plumbing is HandMinigame, via ItemDepositMinigame (P2) - this class keeps only the lid open/close
+/// phase machine and the funnel-to-slot tuning. See ARCHITECTURE.md.
 /// </summary>
 public class ChestDepositMinigame : ItemDepositMinigame
 {
@@ -38,15 +40,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
     [Tooltip("Leave EMPTY - resolved at runtime: a child of the station with 'grab' in its name (put it at the lid's front edge so the hand follows it up). Falls back to the lid/hinge origin.")]
     public Transform lidGrabPoint;
 
-    [Header("Reach / look / footwork")]
-    [Tooltip("Distance in front of the camera the hand reaches to follow the mouse.")]
-    public float reachDistance = 1.1f;
-    [Tooltip("Hold RIGHT-CLICK + move the mouse to look around while playing.")]
-    public float rmbLookSensitivity = 3f;
-    [Tooltip("A right-click held shorter than this, with no mouse movement, cancels the minigame.")]
-    public float rmbTapCancelTime = 0.2f;
-    [Tooltip("While your controls are locked for the minigame, WASD lets you shuffle this many metres from where you started (e.g. step in closer to reach into the chest). 0 = locked in place.")]
-    public float walkRadius = 1.5f;
+    [Header("Reach / footwork")]
     [Tooltip("Shrinks the player's collision radius to this while the minigame runs, so they can stand right against the chest and reach the opening. The chest stays solid - they still can't clip through it. 0 = leave the radius alone.")]
     public float minigamePlayerRadius = 0.12f;
 
@@ -69,8 +63,6 @@ public class ChestDepositMinigame : ItemDepositMinigame
 
     private PickupItem item;
     private TaskDepositStation chest;
-    private Camera cam;
-    private Transform rightHand;
 
     private Phase phase;
     private float lidOpen01;
@@ -85,23 +77,27 @@ public class ChestDepositMinigame : ItemDepositMinigame
     private float settleTimer;
     private Transform dropTargetSlot; // the slot the released item is being funnelled toward
 
-    private float rmbDownTime;
-    private bool rmbDragged;
-    private bool wasMenuPaused;
-    private Vector3 walkAnchor;
-
     private GuidedDrop.Handle dropHandle;
     private Collider[] passableChestColliders;
     private float savedPlayerRadius = -1f;
+
+    // --- HandMinigame gates -------------------------------------------------------------------
+    // The item stays under the minigame's own reach/look/footwork all the way through seating and
+    // the lid auto-close (unlike the sword, which hands control back the instant it's thrown) - so
+    // these stay active until resolving, with a couple of AimItem-and-released exceptions below.
+    protected override bool LookActive => !resolving;
+    protected override bool FootworkActive => !resolving && !(phase == Phase.AimItem && itemReleased);
+    // Vertical mouse movement is busy swinging the lid open during OpenLid - don't also pitch the camera.
+    protected override bool SuppressPitchLook => phase == Phase.OpenLid;
+    protected override bool AllowTapCancel() => !itemReleased;
+    protected override bool WantsFreeCursor => !(phase == Phase.AimItem && itemReleased);
 
     public override void BeginDeposit(PickupItem heldItem, TaskDepositStation station)
     {
         item = heldItem;
         chest = station;
-        cam = (player != null && player.PlayerCamera != null) ? player.PlayerCamera.GetComponent<Camera>() : Camera.main;
-        rightHand = player != null ? (player.RightHandBone != null ? player.RightHandBone : player.RightHandSocket) : null;
 
-        if (item == null || chest == null || cam == null || rightHand == null) { CancelMinigame(); return; }
+        if (item == null || chest == null || cam == null || Hand.HandBone == null) { CancelMinigame(); return; }
 
         // Prefab assets can't hold references to scene objects, so resolve the lid / grab point by
         // name at runtime. A child named "...Hinge" wins (that's the pivot to rotate); otherwise the
@@ -111,8 +107,6 @@ public class ChestDepositMinigame : ItemDepositMinigame
         if (lidGrabPoint == null) lidGrabPoint = FindChild(chest.transform, "grab");
         lidClosedLocalRot = lid.localRotation;
 
-        player.SetControlsLocked(true);
-        walkAnchor = player.transform.position;
         // Let the player shuffle right up against the chest to reach over it. The chest's solid MESH
         // stays collidable (no clipping through it); only extra Box/Sphere/Capsule colliders - e.g. an
         // oversized interaction volume - are made passable so they can't hold the player back.
@@ -123,8 +117,6 @@ public class ChestDepositMinigame : ItemDepositMinigame
             savedPlayerRadius = player.CharController.radius;
             player.CharController.radius = Mathf.Min(minigamePlayerRadius, savedPlayerRadius);
         }
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
 
         EnterReachLidPhase();
     }
@@ -175,8 +167,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
     {
         phase = Phase.ReachLid;
         MoveItemToHand(player.LeftHandSocket, false); // stow it in the off-hand
-        player.hangReachActive = true;                // reach the empty right hand toward the mouse
-        player.hangReachRotWeight = 0f;
+        Hand.Begin();                                 // reach the empty right hand toward the mouse
     }
 
     private void EnterAimItemPhase()
@@ -184,9 +175,8 @@ public class ChestDepositMinigame : ItemDepositMinigame
         phase = Phase.AimItem;
         itemReleased = false;
         awaitingRetry = false;
-        MoveItemToHand(rightHand, true);             // back to the right hand to aim it
-        player.hangReachActive = true;
-        player.hangReachRotWeight = 0f;
+        MoveItemToHand(Hand.HandBone, true);          // back to the right hand to aim it
+        Hand.Begin();
     }
 
     private void MoveItemToHand(Transform parent, bool aimPose)
@@ -202,23 +192,9 @@ public class ChestDepositMinigame : ItemDepositMinigame
         if (c != null) c.enabled = false;
     }
 
-    void Update()
+    protected override void OnMinigameUpdate()
     {
-        if (item == null || player == null || cam == null || chest == null || lid == null) { FinishFail(); return; }
-
-        if (UIManager.Instance != null && UIManager.Instance.IsSettingsOpen) { wasMenuPaused = true; return; }
-        if (wasMenuPaused)
-        {
-            wasMenuPaused = false;
-            if (!(phase == Phase.AimItem && itemReleased))
-            {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
-        }
-
-        HandleLook();
-        HandleFootwork();
+        if (item == null || chest == null || lid == null) { FinishFail(); return; }
 
         switch (phase)
         {
@@ -246,57 +222,13 @@ public class ChestDepositMinigame : ItemDepositMinigame
         }
     }
 
-    // WASD shuffle while controls are locked, leashed to walkRadius of the start spot. Skipped once
-    // the item is released (normal controls are back for the throw).
-    private void HandleFootwork()
-    {
-        if (walkRadius <= 0f || resolving) return;
-        if (phase == Phase.AimItem && itemReleased) return;
-
-        Vector2 step = new Vector2(
-            (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f),
-            (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f));
-        if (step.sqrMagnitude > 0f) player.MinigameWalk(step, walkAnchor, walkRadius);
-    }
-
-    // Hold RMB to look around (yaw always, pitch except while swinging the lid). Quick tap cancels
-    // while the item is still in hand.
-    private void HandleLook()
-    {
-        if (resolving) return;
-
-        if (Input.GetMouseButtonDown(1)) { rmbDownTime = Time.time; rmbDragged = false; }
-        if (Input.GetMouseButton(1))
-        {
-            float dx = Input.GetAxis("Mouse X");
-            float dy = Input.GetAxis("Mouse Y");
-            if (Mathf.Abs(dx) > 0.001f) { rmbDragged = true; player.MinigameLookYaw(dx * rmbLookSensitivity); }
-            if (Mathf.Abs(dy) > 0.001f && phase != Phase.OpenLid)
-            {
-                rmbDragged = true;
-                player.MinigameLookPitch(dy * rmbLookSensitivity);
-            }
-        }
-        if (Input.GetMouseButtonUp(1) && !rmbDragged && Time.time - rmbDownTime <= rmbTapCancelTime && !itemReleased)
-        {
-            CancelMinigame();
-        }
-    }
-
-    private Vector3 MouseWorld()
-    {
-        Vector3 mp = Input.mousePosition;
-        mp.z = reachDistance;
-        return cam.ScreenToWorldPoint(mp);
-    }
-
     private Vector3 LidGrabWorld() => lidGrabPoint != null ? lidGrabPoint.position : lid.position;
 
     private void UpdateReachLid()
     {
-        player.hangReachPos = MouseWorld();
+        Hand.ReachToward(MouseWorld());
 
-        if (Input.GetMouseButtonDown(0) && Vector3.Distance(rightHand.position, LidGrabWorld()) <= lidGrabDistance)
+        if (MinigameInput.PrimaryDown && Vector3.Distance(Hand.HandBone.position, LidGrabWorld()) <= lidGrabDistance)
         {
             phase = Phase.OpenLid;
             if (debugMinigame) Debug.Log("[ChestDeposit] grabbed the lid - move the mouse UP to open");
@@ -305,12 +237,12 @@ public class ChestDepositMinigame : ItemDepositMinigame
 
     private void UpdateOpenLid()
     {
-        lidOpen01 = Mathf.Clamp01(lidOpen01 + Input.GetAxis("Mouse Y") * lidOpenSensitivity);
+        lidOpen01 = Mathf.Clamp01(lidOpen01 + MinigameInput.MouseDelta.y * lidOpenSensitivity);
         // Blend the hinge from its captured closed pose to the authored open pose.
         lid.localRotation = Quaternion.Slerp(lidClosedLocalRot, Quaternion.Euler(lidOpenLocalEuler), lidOpen01);
 
         // Keep the hand on the lid grab point as it swings.
-        player.hangReachPos = LidGrabWorld();
+        Hand.ReachToward(LidGrabWorld());
 
         if (lidOpen01 >= lidOpenThreshold)
         {
@@ -323,8 +255,8 @@ public class ChestDepositMinigame : ItemDepositMinigame
     {
         if (!itemReleased)
         {
-            player.hangReachPos = MouseWorld();
-            if (Input.GetMouseButtonDown(0)) ReleaseItem();
+            Hand.ReachToward(MouseWorld());
+            if (MinigameInput.PrimaryDown) ReleaseItem();
             return;
         }
 
@@ -404,7 +336,6 @@ public class ChestDepositMinigame : ItemDepositMinigame
         settleTimer = settleTime;
         dropTargetSlot = NearestFreeSlot(); // funnel the fall toward whichever slot is nearest the release point
 
-        player.hangReachActive = false;
         player.ClearHeldItem();
         item.DropInPlace();
 
@@ -432,7 +363,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
                     if (cc != null && !cc.isTrigger) Physics.IgnoreCollision(c, cc, true);
         }
 
-        RestorePlayerControl();
+        RestorePlayer();
     }
 
     // Nearest currently-free DropSlot to the item's present position (its release point).
@@ -453,7 +384,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
 
     // Steers the released item's horizontal position onto the target slot's column while gravity does
     // the falling, so releasing anywhere over the open chest still funnels the item down to the slot.
-    void FixedUpdate()
+    protected override void OnMinigameFixedUpdate()
     {
         if (phase != Phase.AimItem || !itemReleased || resolving || awaitingRetry) return;
         if (item == null || dropTargetSlot == null) return;
@@ -473,35 +404,16 @@ public class ChestDepositMinigame : ItemDepositMinigame
         player.SetControlsLocked(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        MoveItemToHand(rightHand, true);
-        player.hangReachActive = true;
-        player.hangReachRotWeight = 0f;
-    }
-
-    private void RestorePlayerControl()
-    {
-        if (player != null)
-        {
-            player.hangReachActive = false;
-            player.hangReachRotWeight = 0f;
-            player.SetControlsLocked(false);
-        }
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        MoveItemToHand(Hand.HandBone, true);
+        Hand.Begin();
     }
 
     private void FinishFail()
     {
         dropHandle?.End();
         dropHandle = null;
-        RestorePlayerControl();
+        RestorePlayer();
         Destroy(gameObject);
-    }
-
-    public override void CompleteMinigame()
-    {
-        RestorePlayerControl();
-        base.CompleteMinigame();
     }
 
     public override void CancelMinigame()
@@ -511,8 +423,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
         if (lid != null) lid.localRotation = lidClosedLocalRot;
         if (!itemReleased && item != null && player != null)
             item.AttachToHand(player.RightHandSocket); // give the item back as a normal held item
-        RestorePlayerControl();
-        base.CancelMinigame();
+        base.CancelMinigame(); // restores the player via HandMinigame.OnMinigameEnd
     }
 
     void OnDestroy()

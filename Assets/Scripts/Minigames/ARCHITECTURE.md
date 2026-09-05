@@ -3,10 +3,16 @@
 Design for building the ~25 upcoming minigames on a shared, professional foundation, and
 folding the 6 existing minigames into it.
 
-> **Status:** scaffolding only. The abstract bases and capability helpers in this folder
-> compile and are ready to extend. Nothing in the shipping game is wired to them yet — the
-> existing minigames still run on their own code. The migration plan at the bottom moves them
-> over in safe, verifiable phases.
+> **Status:** P0-P2 done. `SwordHangMinigame` / `ChestDepositMinigame` now run on `GuidedDrop` +
+> `StationContactProbe` (P1) and `HandMinigame` (P2, via `ItemDepositMinigame` re-parented onto it -
+> now at `Minigames/Bases/`) instead of their own duplicated code. Everything else in this folder is
+> still unwired scaffolding. The migration plan at the bottom moves the rest over in safe, verifiable
+> phases.
+>
+> Deferred from P2's own description below: the `isPlayingMinigame || hangReachActive` grip-check
+> collapse to `MinigameBase.IsAnyActive` (in PlayerController) was NOT part of P2 as actually
+> requested/executed - it touches a third, much larger file outside what was asked and needs its own
+> pass.
 
 ---
 
@@ -286,12 +292,13 @@ New task-step types implied (small `TaskStep` subclasses, added when needed): `S
 
 ## 10. Phased migration (each phase compiles & is verifiable on its own)
 
-- **P0 — now:** land this folder. No wiring. Game runs unchanged.
-- **P1:** extract `GuidedDrop` + `StationContactProbe` from `SwordHangMinigame` /
+- **P0 — done:** land this folder. No wiring. Game runs unchanged.
+- **P1 — done:** extract `GuidedDrop` + `StationContactProbe` from `SwordHangMinigame` /
   `ChestDepositMinigame`. Pure refactor — behaviour must be identical (test both deposits).
-- **P2:** create `HandMinigame`; lift freeze / RMB-look / footwork / settings-pause / `MouseWorld`
-  out of the two deposit minigames; re-parent `ItemDepositMinigame` onto it. The
-  `isPlayingMinigame || hangReachActive` grip check collapses to `MinigameBase.IsAnyActive`.
+- **P2 — done:** create `HandMinigame`; lift freeze / RMB-look / footwork / settings-pause /
+  `MouseWorld` out of the two deposit minigames; re-parent `ItemDepositMinigame` onto it (now at
+  `Minigames/Bases/`). Still open: the `isPlayingMinigame || hangReachActive` grip check collapsing
+  to `MinigameBase.IsAnyActive` - deferred, touches PlayerController and wasn't part of the P2 ask.
 - **P3:** route `PlayerController.StartMinigame` **and** `TaskDepositStation.LaunchDepositMinigame`
   through `MinigameContext` + `SetupMinigame(context)`. Make `PlayerController.isPlayingMinigame`
   a read-through of `MinigameBase.IsAnyActive`.
@@ -318,7 +325,7 @@ Minigames/
     HandMinigame.cs
     PartnerMinigame.cs
     EmoteMinigame.cs
-    ItemDepositMinigame.cs     ← lives at Scripts/ today; moves here at P2
+    ItemDepositMinigame.cs     ← moved here at P2 (was Scripts/)
     ToolOnTargetMinigame.cs
     DragObjectMinigame.cs
     PourMinigame.cs

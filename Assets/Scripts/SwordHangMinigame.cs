@@ -17,7 +17,9 @@ using UnityEngine;
 ///
 /// The falling-item physics (no-bounce, straight-drop) and the "has it touched the rack yet" check
 /// are the GuidedDrop / StationContactProbe capabilities in Assets/Scripts/Minigames/Capabilities -
-/// shared with ChestDepositMinigame. See ARCHITECTURE.md P1.
+/// shared with ChestDepositMinigame (P1). The freeze / RMB-look / footwork / settings-pause / hand rig
+/// plumbing is HandMinigame, via ItemDepositMinigame (P2) - this class keeps only the notch-slot pick
+/// and the tip-down pose. See ARCHITECTURE.md.
 /// </summary>
 public class SwordHangMinigame : ItemDepositMinigame
 {
@@ -28,18 +30,6 @@ public class SwordHangMinigame : ItemDepositMinigame
     public Vector3 carryLocalEuler = new Vector3(180f, 0f, 0f);
     [Tooltip("Local position of the sword on the hand bone while aiming.")]
     public Vector3 carryLocalPos = new Vector3(0f, 0.05f, 0.05f);
-
-    [Header("Reach")]
-    [Tooltip("Distance in front of the camera the hand reaches to follow the mouse.")]
-    public float reachDistance = 1.3f;
-
-    [Header("Aiming footwork")]
-    [Tooltip("While aiming, WASD lets the player shuffle this many metres from where they were placed so they can line up with the notch set they want. 0 = locked in place.")]
-    public float walkRadius = 1.25f;
-    [Tooltip("Hold RIGHT-CLICK and move the mouse to look around (pan horizontally, tilt vertically). Higher = faster.")]
-    public float rmbLookSensitivity = 3f;
-    [Tooltip("A right-click held shorter than this, with no mouse movement, cancels the minigame instead of panning.")]
-    public float rmbTapCancelTime = 0.2f;
 
     [Header("Landing check")]
     [Tooltip("Seconds to wait for a released sword to settle before judging the outcome.")]
@@ -53,105 +43,53 @@ public class SwordHangMinigame : ItemDepositMinigame
 
     private PickupItem item;
     private TaskDepositStation rack;
-    private Camera cam;
-    private Transform hand;
     private bool released;
     private bool resolving;
     private bool awaitingRetry;
     private bool touchedRack;
     private float settleTimer;
     private GuidedDrop.Handle dropHandle;
-    private bool wasMenuPaused;
-    private Vector3 walkAnchor;
-    private float rmbDownTime;
-    private bool rmbDragged;
+
+    // --- HandMinigame gates: the sword hands full normal control back to the player the instant it's
+    // released (see ReleaseSword), so its own RMB-look / footwork / cursor-refree must stop then too -
+    // otherwise they'd run alongside the player's now-active normal controls.
+    protected override bool LookActive => !released;
+    protected override bool FootworkActive => !released;
+    protected override bool WantsFreeCursor => !released;
 
     public void BeginHang(PickupItem heldItem, TaskDepositStation targetRack)
     {
         item = heldItem;
         rack = targetRack;
-        cam = (player != null && player.PlayerCamera != null) ? player.PlayerCamera.GetComponent<Camera>() : Camera.main;
-        hand = player != null ? (player.RightHandBone != null ? player.RightHandBone : player.RightHandSocket) : null;
 
-        if (item == null || rack == null || cam == null || hand == null) { CancelMinigame(); return; }
+        Transform handBone = Hand != null ? Hand.HandBone : null;
+        if (item == null || rack == null || cam == null || handBone == null) { CancelMinigame(); return; }
 
-        if (player != null) player.SetControlsLocked(true);
+        player.SetControlsLocked(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // The player walked up to the rack themselves - leave them exactly where they are.
-        // They can shuffle with WASD (walkRadius) to line up the notch set they want.
-        walkAnchor = player.transform.position;
+        // The player walked up to the rack themselves - leave them exactly where they are. On a retry
+        // restart (picked the sword back up somewhere else) this re-centres the WASD leash there too.
+        ReanchorFootwork();
 
         // Glue the sword to the hand BONE, tip-down.
-        item.transform.SetParent(hand, false);
+        item.transform.SetParent(handBone, false);
         item.transform.localPosition = carryLocalPos;
         item.transform.localRotation = Quaternion.Euler(carryLocalEuler);
         SetItemPhysics(false);
 
-        player.hangReachActive = true;
-        player.hangReachRotWeight = 0f;
+        Hand.Begin();
     }
 
-    void Update()
+    protected override void OnMinigameUpdate()
     {
-        if (item == null || player == null || cam == null || rack == null) { FinishFail(); return; }
-
-        // Esc / settings menu open: freeze the whole minigame so the mouse stops driving the arm
-        // and the settle timer doesn't tick down behind the menu.
-        if (UIManager.Instance != null && UIManager.Instance.IsSettingsOpen) { wasMenuPaused = true; return; }
-
-        // Just came back from the settings menu during the aiming phase - the menu re-locks the
-        // cursor on close, so put it back the way the minigame needs it.
-        if (wasMenuPaused)
-        {
-            wasMenuPaused = false;
-            if (!released)
-            {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-            }
-        }
+        if (item == null || rack == null) { FinishFail(); return; }
 
         if (!released)
         {
-            // RIGHT-CLICK: hold + move the mouse to look around (pan horizontally, tilt vertically).
-            // A quick tap with no mouse movement still cancels the minigame (sword back to a grip).
-            if (Input.GetMouseButtonDown(1)) { rmbDownTime = Time.time; rmbDragged = false; }
-            if (Input.GetMouseButton(1))
-            {
-                float dx = Input.GetAxis("Mouse X");
-                float dy = Input.GetAxis("Mouse Y");
-                if (Mathf.Abs(dx) > 0.001f)
-                {
-                    rmbDragged = true;
-                    player.MinigameLookYaw(dx * rmbLookSensitivity);
-                }
-                if (Mathf.Abs(dy) > 0.001f)
-                {
-                    rmbDragged = true;
-                    player.MinigameLookPitch(dy * rmbLookSensitivity);
-                }
-            }
-            if (Input.GetMouseButtonUp(1) && !rmbDragged && Time.time - rmbDownTime <= rmbTapCancelTime)
-            {
-                AbortToHand();
-                return;
-            }
-
-            // Let the player shuffle their feet (WASD) to line up with the notch set they want.
-            // The mouse is busy aiming the sword, so footwork is on the keyboard only.
-            if (walkRadius > 0f)
-            {
-                Vector2 step = new Vector2(
-                    (Input.GetKey(KeyCode.D) ? 1f : 0f) - (Input.GetKey(KeyCode.A) ? 1f : 0f),
-                    (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f));
-                if (step.sqrMagnitude > 0f) player.MinigameWalk(step, walkAnchor, walkRadius);
-            }
-
             UpdateAiming();
-
-            if (Input.GetMouseButtonDown(0)) ReleaseSword();
+            if (MinigameInput.PrimaryDown) ReleaseSword();
             return;
         }
 
@@ -229,15 +167,13 @@ public class SwordHangMinigame : ItemDepositMinigame
     {
         // The hand reaches to exactly where the mouse points - no assist. The player has to
         // physically line the sword up over a notch gap and be close enough to reach it.
-        Vector3 mp = Input.mousePosition;
-        mp.z = reachDistance;
-        player.hangReachPos = cam.ScreenToWorldPoint(mp);
+        Hand.ReachToward(MouseWorld());
         player.hangReachRotWeight = 0f;
     }
 
     // Runs after the animator/IK have posed the hand: force the sword's orientation so the tip
     // always points straight down, only yawing with the player so it looks natural as they turn.
-    void LateUpdate()
+    protected override void OnMinigameLateUpdate()
     {
         if (!released && item != null && player != null)
             item.transform.rotation = Quaternion.Euler(0f, player.transform.eulerAngles.y, 0f)
@@ -251,7 +187,6 @@ public class SwordHangMinigame : ItemDepositMinigame
         touchedRack = false;
         settleTimer = settleTime;
 
-        player.hangReachActive = false;
         player.ClearHeldItem();
 
         // Let go of the sword right where the hand is - it falls under physics and, crucially,
@@ -276,8 +211,9 @@ public class SwordHangMinigame : ItemDepositMinigame
         if (col != null && player.CharController != null)
             Physics.IgnoreCollision(col, player.CharController, true);
 
-        // The player can move again while the sword falls.
-        RestorePlayerControl();
+        // The player can move again while the sword falls - hand normal control straight back
+        // (RestorePlayer is safe to call again when the minigame later actually ends).
+        RestorePlayer();
     }
 
     private void ResolveLanding()
@@ -305,39 +241,20 @@ public class SwordHangMinigame : ItemDepositMinigame
         if (col != null) col.enabled = loose;
     }
 
-    private void RestorePlayerControl()
-    {
-        if (player != null)
-        {
-            player.hangReachActive = false;
-            player.hangReachRotWeight = 0f;
-            player.SetControlsLocked(false);
-        }
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-    }
-
     private void AbortToHand()
     {
         dropHandle?.End();
         dropHandle = null;
         if (item != null && player != null) item.AttachToHand(player.RightHandSocket);
-        RestorePlayerControl();
-        base.CancelMinigame();
+        base.CancelMinigame(); // restores the player via HandMinigame.OnMinigameEnd
     }
 
     private void FinishFail()
     {
         dropHandle?.End();
         dropHandle = null;
-        RestorePlayerControl();
+        RestorePlayer();
         Destroy(gameObject);
-    }
-
-    public override void CompleteMinigame()
-    {
-        RestorePlayerControl();
-        base.CompleteMinigame();
     }
 
     public override void CancelMinigame()

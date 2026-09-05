@@ -12,9 +12,21 @@ using UnityEngine;
 ///  - WASD footwork leashed to where the player started,
 ///  - <see cref="MouseWorld"/> - the mouse projected in front of the camera.
 ///
-/// CONVENTION: subclasses override <see cref="OnMinigameUpdate"/> /
-/// <see cref="OnMinigameLateUpdate"/> / <see cref="OnMinigameFixedUpdate"/>. They must NOT declare
-/// their own Update()/LateUpdate()/FixedUpdate() - that would hide the base loop.
+/// ============================================================================================
+/// CONVENTION - READ BEFORE ADDING A SUBCLASS: this class declares Update()/LateUpdate()/
+/// FixedUpdate() ITSELF (see below) to drive the shared look/footwork/menu-pause plumbing every
+/// frame. A subclass must NEVER also declare its own Update()/LateUpdate()/FixedUpdate() - override
+/// OnMinigameUpdate() / OnMinigameLateUpdate() / OnMinigameFixedUpdate() instead.
+///
+/// WHY THIS IS A HARD RULE, NOT A STYLE PREFERENCE: Update() here is a private method, and Unity's
+/// message dispatch finds "magic methods" like Update() by reflecting over the WHOLE type hierarchy,
+/// not by normal C# virtual-call resolution. A private method can't be overridden, so a subclass
+/// Update() would NOT replace this one - Unity would call BOTH every frame (this class's, driving
+/// the shared plumbing, AND the subclass's, running in parallel with no coordination). That is a
+/// silent double-update bug, not a compile error, which is exactly what made the pre-refactor
+/// SwordHangMinigame / ChestDepositMinigame duplication so easy to get subtly wrong - this base
+/// exists so there is exactly one place that owns the frame loop.
+/// ============================================================================================
 /// </summary>
 public abstract class HandMinigame : MinigameBase
 {
@@ -78,7 +90,18 @@ public abstract class HandMinigame : MinigameBase
         Cursor.visible = false;
     }
 
-    // --- Unity loop -> template methods ------------------------------------------------------
+    /// <summary>
+    /// Re-centre the WASD footwork leash on the player's CURRENT position. The anchor is normally set
+    /// once in <see cref="OnMinigameBegin"/>; call this from a subclass that restarts its aiming phase
+    /// somewhere new (e.g. after walking over to retrieve a missed item) and wants the leash to follow.
+    /// </summary>
+    protected void ReanchorFootwork()
+    {
+        if (player != null) walkAnchor = player.transform.position;
+    }
+
+    // --- Unity loop -> template methods -------------------------------------------------------
+    // DO NOT declare Update()/LateUpdate()/FixedUpdate() in any subclass - see the class comment.
 
     private void Update()
     {
@@ -89,8 +112,11 @@ public abstract class HandMinigame : MinigameBase
         if (wasMenuPaused)
         {
             wasMenuPaused = false;
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            if (WantsFreeCursor)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
         }
 
         HandleLook();
@@ -115,6 +141,8 @@ public abstract class HandMinigame : MinigameBase
     /// <summary>Hold RMB to pan the body (and optionally pitch); a quick no-drag tap cancels.</summary>
     protected virtual void HandleLook()
     {
+        if (!LookActive) return;
+
         if (MinigameInput.SecondaryDown) { rmbDownTime = Time.time; rmbDragged = false; }
 
         if (MinigameInput.SecondaryHeld)
@@ -125,7 +153,7 @@ public abstract class HandMinigame : MinigameBase
                 rmbDragged = true;
                 player.MinigameLookYaw(d.x * rmbLookSensitivity);
             }
-            if (rmbAllowPitch && Mathf.Abs(d.y) > 0.001f)
+            if (rmbAllowPitch && !SuppressPitchLook && Mathf.Abs(d.y) > 0.001f)
             {
                 rmbDragged = true;
                 player.MinigameLookPitch(d.y * rmbLookSensitivity);
@@ -142,7 +170,7 @@ public abstract class HandMinigame : MinigameBase
     /// <summary>WASD shuffle, leashed to <see cref="walkRadius"/> of the start position.</summary>
     protected virtual void HandleFootwork()
     {
-        if (walkRadius <= 0f) return;
+        if (!FootworkActive || walkRadius <= 0f) return;
         Vector2 step = MinigameInput.MoveAxis;
         if (step.sqrMagnitude > 0f) player.MinigameWalk(step, walkAnchor, walkRadius);
     }
@@ -171,4 +199,27 @@ public abstract class HandMinigame : MinigameBase
 
     /// <summary>Return false while a quick RMB tap must NOT cancel (e.g. after the item is released).</summary>
     protected virtual bool AllowTapCancel() => true;
+
+    /// <summary>
+    /// Master gate for <see cref="HandleLook"/> - override to fully suppress RMB-look once a subclass
+    /// phase no longer wants it (e.g. once the held item has been released and normal player controls
+    /// have already taken back over, or while a drop is resolving/settling).
+    /// </summary>
+    protected virtual bool LookActive => true;
+
+    /// <summary>Master gate for <see cref="HandleFootwork"/> - see <see cref="LookActive"/>.</summary>
+    protected virtual bool FootworkActive => true;
+
+    /// <summary>
+    /// Suppress the RMB-drag vertical PITCH specifically (yaw still applies) - e.g. while a phase is
+    /// already using vertical mouse movement to drive something else (swinging a lid open).
+    /// </summary>
+    protected virtual bool SuppressPitchLook => false;
+
+    /// <summary>
+    /// Whether re-closing the settings menu should re-free the cursor. False once a subclass phase has
+    /// already handed normal control back to the player (so the cursor should stay locked/hidden as if
+    /// in ordinary gameplay) until it explicitly frees the cursor again itself (e.g. a retry restart).
+    /// </summary>
+    protected virtual bool WantsFreeCursor => true;
 }
