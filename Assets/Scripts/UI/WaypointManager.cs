@@ -57,11 +57,17 @@ namespace CorruptedCourt.UI
         void OnEnable()
         {
             GameEvents.LocalTasksChanged += OnLocalTasksChanged;
+            GameEvents.MeetingWaypointSet      += SetMeetingWaypoint;
+            GameEvents.MeetingWaypointCleared  += ClearMeetingWaypoint;
+            GameEvents.SpymasterWaypointsShown += ShowSpymasterWaypoints;
         }
 
         void OnDisable()
         {
             GameEvents.LocalTasksChanged -= OnLocalTasksChanged;
+            GameEvents.MeetingWaypointSet      -= SetMeetingWaypoint;
+            GameEvents.MeetingWaypointCleared  -= ClearMeetingWaypoint;
+            GameEvents.SpymasterWaypointsShown -= ShowSpymasterWaypoints;
         }
 
         // The local player's task list / current step changed. Rebuild that player's on-screen markers -

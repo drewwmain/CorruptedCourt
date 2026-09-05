@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using CorruptedCourt.UI;
+using CorruptedCourt.Core;
 
 namespace CorruptedCourt.Gameplay
 {
@@ -31,7 +31,7 @@ namespace CorruptedCourt.Gameplay
             Cursor.visible = true;
 
             // CHANGED: Only enable the top-right button, do not force the panel open yet
-            if (UIManager.Instance != null) UIManager.Instance.EnableVotingPhase();
+            GameEvents.RaiseVotingPhaseStarted();
 
             Debug.Log("--- VOTING STARTED: Players can now cast their votes ---");
         }
@@ -111,7 +111,7 @@ namespace CorruptedCourt.Gameplay
             condemnedPlayer = null;
 
             // Hide UI
-            if (UIManager.Instance != null) UIManager.Instance.HideVotingPanel();
+            GameEvents.RaiseVotingPanelHidden();
         }
     }
 }

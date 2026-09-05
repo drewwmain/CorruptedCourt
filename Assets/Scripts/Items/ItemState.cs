@@ -3,7 +3,7 @@ using System;
 namespace CorruptedCourt.Items
 {
     /// <summary>
-    /// Runtime state flags for a <see cref="PickupItem"/>. Replaces the string-prefix encoding
+    /// Runtime state flags for a pickup item. Replaces the string-prefix encoding
     /// (<c>"Processed"</c> / <c>"Deposited"</c> prepended to <c>itemName</c>), which was order-dependent
     /// and could not be extended.
     /// </summary>

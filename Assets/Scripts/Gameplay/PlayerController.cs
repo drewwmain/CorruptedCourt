@@ -1,22 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using CorruptedCourt.Core;
 using CorruptedCourt.Items;
 using CorruptedCourt.Minigames;
 using CorruptedCourt.Tasks;
-using CorruptedCourt.UI;
 
 namespace CorruptedCourt.Gameplay
 {
-    // 1. Define the roles globally so any script can use them
-    public enum PlayerRole
-    {
-        None,
-        King,
-        Kingsguard,
-        Court,
-        Corrupted
-    }
-
     public enum MinigameTargetType
     {
         Station,

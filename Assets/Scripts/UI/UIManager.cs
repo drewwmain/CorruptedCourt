@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using System.Text;
+using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Tasks;
 
@@ -87,6 +88,13 @@ namespace CorruptedCourt.UI
             GameEvents.CourtProgressChanged += UpdateGlobalMeter;
             GameEvents.MatchStateChanged   += OnMatchStateChanged;
             GameEvents.AbsentPlayersChanged += OnAbsentPlayersChanged;
+            GameEvents.CorruptedInventoryChanged += UpdateCorruptedInventory;
+            GameEvents.CorruptedSlotHighlighted  += HighlightSlot;
+            GameEvents.TransitionTimerTicked     += UpdateTransitionTimer;
+            GameEvents.GameOverShown             += ShowGameOverScreen;
+            GameEvents.GameOverHidden            += HideGameOverScreen;
+            GameEvents.VotingPhaseStarted        += EnableVotingPhase;
+            GameEvents.VotingPanelHidden         += HideVotingPanel;
 
             // We may have missed raises that happened before this object was enabled - pull the
             // current values so the view is correct on scene load and after a manual re-enable.
@@ -96,6 +104,8 @@ namespace CorruptedCourt.UI
                 OnMatchStateChanged(MatchManager.Instance.currentState);
             if (PlayerController.Local != null)
                 OnLocalTasksChanged(PlayerController.Local);
+            // Fresh UIManager => menu is closed; keep the shared flag in sync.
+            GameEvents.RaiseSettingsMenuToggled(isSettingsOpen);
         }
 
         void OnDisable()
@@ -104,6 +114,13 @@ namespace CorruptedCourt.UI
             GameEvents.CourtProgressChanged -= UpdateGlobalMeter;
             GameEvents.MatchStateChanged   -= OnMatchStateChanged;
             GameEvents.AbsentPlayersChanged -= OnAbsentPlayersChanged;
+            GameEvents.CorruptedInventoryChanged -= UpdateCorruptedInventory;
+            GameEvents.CorruptedSlotHighlighted  -= HighlightSlot;
+            GameEvents.TransitionTimerTicked     -= UpdateTransitionTimer;
+            GameEvents.GameOverShown             -= ShowGameOverScreen;
+            GameEvents.GameOverHidden            -= HideGameOverScreen;
+            GameEvents.VotingPhaseStarted        -= EnableVotingPhase;
+            GameEvents.VotingPanelHidden         -= HideVotingPanel;
         }
 
         // --- GAMEPLAY EVENT HANDLERS (views react; gameplay never calls us) ---
@@ -450,6 +467,7 @@ namespace CorruptedCourt.UI
         public void ToggleInGameSettings()
         {
             isSettingsOpen = !isSettingsOpen;
+            GameEvents.RaiseSettingsMenuToggled(isSettingsOpen);
             if (inGameSettingsPanel != null) inGameSettingsPanel.SetActive(isSettingsOpen);
 
             // Freeze / unfreeze the local player so the menu can be used independently.

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Tasks;
-using CorruptedCourt.UI;
 
 namespace CorruptedCourt.Minigames
 {

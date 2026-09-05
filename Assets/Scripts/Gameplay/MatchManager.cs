@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using CorruptedCourt.Core;
 using CorruptedCourt.Tasks;
-using CorruptedCourt.UI;
 
 namespace CorruptedCourt.Gameplay
 {
@@ -73,11 +73,8 @@ namespace CorruptedCourt.Gameplay
 
                     if (RoleManager.Instance != null) RoleManager.Instance.AssignAllRoles();
 
-                    if (UIManager.Instance != null)
-                    {
-                        UIManager.Instance.HideVotingPanel();
-                        UIManager.Instance.HideGameOverScreen();
-                    }
+                    GameEvents.RaiseVotingPanelHidden();
+                    GameEvents.RaiseGameOverHidden();
 
                     ChangeState(MatchState.ActionStage);
                     break;
@@ -99,10 +96,10 @@ namespace CorruptedCourt.Gameplay
                     Debug.Log($"--- ROUND OVER: 20 Seconds to reach the {meetingZoneID}! ---");
                     currentTimer = transitionDuration;
 
-                    // Tell the Waypoint Manager to draw a marker at the meeting room
-                    if (WaypointManager.Instance != null && meetingRoomTransform != null)
+                    // Ask the view to draw a marker at the meeting room
+                    if (meetingRoomTransform != null)
                     {
-                        WaypointManager.Instance.SetMeetingWaypoint(meetingRoomTransform);
+                        GameEvents.RaiseMeetingWaypointSet(meetingRoomTransform);
                     }
                     break;
 
@@ -111,7 +108,7 @@ namespace CorruptedCourt.Gameplay
                     currentTimer = meetingDuration;
 
                     // 1. Turn off the meeting waypoint (the transition panel hides off MatchStateChanged)
-                    if (WaypointManager.Instance != null) WaypointManager.Instance.ClearMeetingWaypoint();
+                    GameEvents.RaiseMeetingWaypointCleared();
 
                     // 2. We do one final scan to lock in the absent players for the meeting phase
                     List<string> finalAbsentPlayers = new List<string>();
@@ -136,10 +133,7 @@ namespace CorruptedCourt.Gameplay
                     Cursor.lockState = CursorLockMode.None;
                     Cursor.visible = true;
 
-                    if (UIManager.Instance != null)
-                    {
-                        UIManager.Instance.ShowGameOverScreen(winningTeam, winReason);
-                    }
+                    GameEvents.RaiseGameOverShown(winningTeam, winReason);
                     break;
             }
         }
@@ -155,9 +149,7 @@ namespace CorruptedCourt.Gameplay
                 // Constantly update the UI timer AND the Absent List if we are in the transition scramble
                 if (currentState == MatchState.TransitionToMeeting)
                 {
-                    // NOTE: still a direct UIManager call - out of scope for the GameEvents pass, which
-                    // only covered ShowTransitionWarning / HideTransitionUI / ShowAbsentMembers.
-                    if (UIManager.Instance != null) UIManager.Instance.UpdateTransitionTimer(currentTimer);
+                    GameEvents.RaiseTransitionTimerTicked(currentTimer);
 
                     // LIVE ABSENT TRACKING: Constantly scan the room as the clock ticks down
                     List<string> liveAbsentPlayers = new List<string>();

@@ -1,5 +1,5 @@
 using UnityEngine;
-using CorruptedCourt.UI;
+using CorruptedCourt.Gameplay;
 
 namespace CorruptedCourt.Minigames
 {
@@ -15,8 +15,7 @@ namespace CorruptedCourt.Minigames
     public static class MinigameInput
     {
         /// <summary>True while the settings / pause menu is open - callers should ignore input this frame.</summary>
-        public static bool Suppressed =>
-            UIManager.Instance != null && UIManager.Instance.IsSettingsOpen;
+        public static bool Suppressed => GameEvents.SettingsMenuOpen;
 
         // --- primary (left mouse) --------------------------------------------------------------------
         public static bool PrimaryDown => !Suppressed && Input.GetMouseButtonDown(0);

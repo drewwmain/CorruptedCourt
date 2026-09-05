@@ -1,7 +1,7 @@
 using UnityEngine;
-using CorruptedCourt.Gameplay;
+using CorruptedCourt.Core;
 
-namespace CorruptedCourt.Items
+namespace CorruptedCourt.Gameplay
 {
     public class RoyalWeapon : PickupItem
     {

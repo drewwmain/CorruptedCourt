@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using TMPro;
 using CorruptedCourt.Core;
 using CorruptedCourt.Items;
-using CorruptedCourt.UI;
 
 namespace CorruptedCourt.Gameplay
 {
@@ -377,7 +376,7 @@ namespace CorruptedCourt.Gameplay
                             // Assign it to that exact slot
                             player.Vitals.corruptedInventory[emptySlotIndex] = powerUp.powerUpData;
 
-                            if (UIManager.Instance != null) UIManager.Instance.UpdateCorruptedInventory(player.Vitals.corruptedInventory);
+                            GameEvents.RaiseCorruptedInventoryChanged(player.Vitals.corruptedInventory);
 
                             Destroy(powerUp.gameObject); // Remove from floor
 

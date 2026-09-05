@@ -2,9 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using CorruptedCourt.Core;
-using CorruptedCourt.Gameplay;
+using CorruptedCourt.Items;
 
-namespace CorruptedCourt.Items
+namespace CorruptedCourt.Gameplay
 {
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(Collider))]

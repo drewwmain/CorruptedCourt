@@ -1,7 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
 using CorruptedCourt.Items;
-using CorruptedCourt.Minigames;
 
 namespace CorruptedCourt.Gameplay
 {

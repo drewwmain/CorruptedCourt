@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
+using CorruptedCourt.Core;
 using CorruptedCourt.Items;
-using CorruptedCourt.UI;
 
 namespace CorruptedCourt.Gameplay
 {
@@ -898,11 +898,8 @@ namespace CorruptedCourt.Gameplay
 
                     activeSlotIndex = -1; // Return to empty-handed
 
-                    if (UIManager.Instance != null)
-                    {
-                        UIManager.Instance.UpdateCorruptedInventory(corruptedInventory);
-                        UIManager.Instance.HighlightSlot(-1);
-                    }
+                    GameEvents.RaiseCorruptedInventoryChanged(corruptedInventory);
+                    GameEvents.RaiseCorruptedSlotHighlighted(-1);
                 }
             }
             else
@@ -976,7 +973,7 @@ namespace CorruptedCourt.Gameplay
             if (index == -1)
             {
                 activeSlotIndex = -1;
-                if (UIManager.Instance != null) UIManager.Instance.HighlightSlot(-1);
+                GameEvents.RaiseCorruptedSlotHighlighted(-1);
                 return;
             }
 
@@ -987,7 +984,7 @@ namespace CorruptedCourt.Gameplay
             // 4. If the slot is EMPTY, highlight it but don't spawn anything in-hand
             if (data == null)
             {
-                if (UIManager.Instance != null) UIManager.Instance.HighlightSlot(activeSlotIndex);
+                GameEvents.RaiseCorruptedSlotHighlighted(activeSlotIndex);
                 Debug.Log($"Equipped empty slot {index + 1}");
                 return; // Stop here!
             }
@@ -1011,7 +1008,7 @@ namespace CorruptedCourt.Gameplay
             }
 
             // Update the UI
-            if (UIManager.Instance != null) UIManager.Instance.HighlightSlot(activeSlotIndex);
+            GameEvents.RaiseCorruptedSlotHighlighted(activeSlotIndex);
             Debug.Log($"Equipped {data.powerUpName} in slot {index + 1}");
         }
 
@@ -1080,9 +1077,9 @@ namespace CorruptedCourt.Gameplay
                             vipTargets.Add(RoleManager.Instance.currentKingsguard.transform);
                     }
 
-                    if (WaypointManager.Instance != null && vipTargets.Count > 0)
+                    if (vipTargets.Count > 0)
                     {
-                        WaypointManager.Instance.ShowSpymasterWaypoints(vipTargets, 10f);
+                        GameEvents.RaiseSpymasterWaypointsShown(vipTargets, 10f);
                         Debug.Log("Spymaster's Ledger used! High-value targets revealed for 10 seconds.");
                         return true;
                     }
