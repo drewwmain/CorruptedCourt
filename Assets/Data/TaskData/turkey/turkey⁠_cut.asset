@@ -39,15 +39,15 @@ MonoBehaviour:
       type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: eb1ae3baa1f34a56b4b642f93d11793e, type: 2}
         requiredState: 0
-        legacyRequiredItemName: TurkeyLeg
+        legacyRequiredItemName: 
     - rid: 5911507330253979738
       type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: eb1ae3baa1f34a56b4b642f93d11793e, type: 2}
         requiredState: 0
         targetStationID: Platter
         requireOwnDeposit: 0
-        legacyRequiredItemName: TurkeyLeg
+        legacyRequiredItemName: 

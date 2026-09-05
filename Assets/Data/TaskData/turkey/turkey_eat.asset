@@ -31,13 +31,13 @@ MonoBehaviour:
       type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: eb1ae3baa1f34a56b4b642f93d11793e, type: 2}
         requiredState: 0
-        legacyRequiredItemName: "\u2060TurkeyLeg\u2060"
+        legacyRequiredItemName: 
     - rid: 5911507330253979763
       type: {class: ConsumeItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: eb1ae3baa1f34a56b4b642f93d11793e, type: 2}
         requiredState: 0
-        legacyRequiredItemName: "\u2060TurkeyLeg\u2060"
+        legacyRequiredItemName: 

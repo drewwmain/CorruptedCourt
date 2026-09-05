@@ -31,13 +31,13 @@ MonoBehaviour:
       type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: e059ca0df8544f95873fabb7244799df, type: 2}
         requiredState: 0
-        legacyRequiredItemName: Instrument
+        legacyRequiredItemName: 
     - rid: 5911507330253979765
       type: {class: PlayerInteractStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: e059ca0df8544f95873fabb7244799df, type: 2}
         requiredState: 0
-        legacyRequiredHeldItemName: Instrument
+        legacyRequiredHeldItemName: 

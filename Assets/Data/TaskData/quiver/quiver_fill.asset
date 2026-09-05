@@ -31,15 +31,15 @@ MonoBehaviour:
       type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: ad4d768df54947049144719d86ab699d, type: 2}
         requiredState: 0
-        legacyRequiredItemName: Arrows
+        legacyRequiredItemName: 
     - rid: 5911507332722851844
       type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: ad4d768df54947049144719d86ab699d, type: 2}
         requiredState: 0
         targetStationID: Quiver
         requireOwnDeposit: 0
-        legacyRequiredItemName: Arrows
+        legacyRequiredItemName: 

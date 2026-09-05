@@ -31,15 +31,15 @@ MonoBehaviour:
       type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: 3085eb0adec14c1ba9e713709938ecfd, type: 2}
         requiredState: 0
-        legacyRequiredItemName: "\u2060GiftBox\u2060"
+        legacyRequiredItemName: 
     - rid: 5911507330253979761
       type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: 3085eb0adec14c1ba9e713709938ecfd, type: 2}
         requiredState: 0
         targetStationID: GiftTable
         requireOwnDeposit: 0
-        legacyRequiredItemName: GiftBox
+        legacyRequiredItemName: 

@@ -32,20 +32,20 @@ MonoBehaviour:
       type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: 51de4b8b67484d5da9ee89761ec01454, type: 2}
         requiredState: 0
-        legacyRequiredItemName: "\u2060WineGlass\u2060"
+        legacyRequiredItemName: 
     - rid: 5911507330253979767
       type: {class: PlayerInteractStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: 51de4b8b67484d5da9ee89761ec01454, type: 2}
         requiredState: 0
-        legacyRequiredHeldItemName: "\u2060WineGlass\u2060"
+        legacyRequiredHeldItemName: 
     - rid: 5911507330253979768
       type: {class: ConsumeItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
-        requiredItem: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: 51de4b8b67484d5da9ee89761ec01454, type: 2}
         requiredState: 0
-        legacyRequiredItemName: "\u2060WineGlass\u2060"
+        legacyRequiredItemName: 
