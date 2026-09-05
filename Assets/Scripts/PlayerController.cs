@@ -47,9 +47,10 @@ public class PlayerController : MonoBehaviour
 
     [Header("Look Settings")]
     [SerializeField] private Transform playerCamera;
-    [SerializeField] private float mouseSensitivity = 0.1f;
-    [SerializeField] private float upperLookLimit = 80f;
-    [SerializeField] private float lowerLookLimit = -80f;
+    [Tooltip("Owns look rotation (mouse sensitivity, pitch clamp), the minigame free-look yaw clamp, " +
+             "and the lean camera arc. Must live on this same GameObject. Resolved automatically via " +
+             "GetComponent if left unassigned.")]
+    [SerializeField] private PlayerLook look;
 
     [Header("Equipment Settings")]
     [SerializeField] private Transform rightHandSocket;
@@ -257,14 +258,8 @@ public class PlayerController : MonoBehaviour
     private bool itemSwappedToLeftHand = false;
     // --- NEW: Tracks the current target for IK logic ---
     public MinigameTargetType currentMinigameTargetType = MinigameTargetType.None;
-
-    [Tooltip("How far left or right (in degrees) a player can look while playing a minigame.")]
-    public float minigameLookLimit = 90f;
-    private float currentMinigameYaw = 0f; // Tracks how far we have turned
-
-    // --- NEW: Camera Snap Anchors ---
-    private Quaternion minigameStartBodyRotation;
-    private float minigameStartVerticalRotation;
+    // minigameLookLimit, currentMinigameYaw, and the camera snap anchors (minigameStartBodyRotation /
+    // minigameStartVerticalRotation) now live on PlayerLook.
 
     [Header("Minigame IK Tracking")]
     [Tooltip("How far in front of the camera the hand should hover while playing.")]
@@ -284,22 +279,14 @@ public class PlayerController : MonoBehaviour
     public bool controlsLocked { get; private set; } // true while a blocking UI (pause menu) is up
     private Vector2 moveInput;
     private Vector2 lookInput;
-    private float verticalRotation = 0f;
 
     [Header("Lean (hold Ctrl to bend forward at the hips - reach low stations)")]
-    [Tooltip("Bend angle at the hips when fully leaned. The camera swings forward+down on this same arc.")]
-    [SerializeField] private float leanAngle = 45f;
-    [Tooltip("Height of the hip pivot in the player's LOCAL space (the camera arcs around this point). Lower it if the camera doesn't move far enough forward.")]
-    [SerializeField] private float leanHipLocalY = -0.1f;
-    [Tooltip("How much the camera pitches while fully leaned, in degrees. Positive = look down, NEGATIVE = tilt UP (keeps your hands in frame while aiming in a minigame). Independent of the body-bend angle.")]
-    [SerializeField] private float leanViewPitch = -5f;
-    [Range(0f, 1f)]
-    [Tooltip("While a minigame drives the right hand, the camera's FORWARD lean travel is scaled by this (the drop is kept). Lower = the hand's aim target stays within arm's reach.")]
-    [SerializeField] private float leanMinigameForwardFactor = 0.2f;
     [Tooltip("The lower spine bone to bend forward while leaning (e.g. Spine_01). Empty = the avatar's Spine bone. The bend is SKIPPED while a minigame is driving the right hand, so the outstretched arm stays put for aiming.")]
     [SerializeField] private Transform leanSpineBone;
-    // isLeaning / leanBlend now live on PlayerMotor (see motor.LeanBlend) - the bend angle and camera
-    // arc tuning above stay here since ApplyLeanCameraArc / ApplyLeanSpineBend stay on PlayerController.
+    // isLeaning / leanBlend live on PlayerMotor (motor.LeanBlend). verticalRotation, leanAngle,
+    // leanHipLocalY, leanViewPitch, leanMinigameForwardFactor, and the lean camera arc itself now live
+    // on PlayerLook (look.LeanAngle exposes the angle back here) - only the spine-bend bone stays on
+    // PlayerController, since ApplyLeanSpineBend must run after the Animator (LateUpdate).
 
     void Awake()
     {
@@ -313,6 +300,7 @@ public class PlayerController : MonoBehaviour
         RoleManager.Instance?.Register(this);
 
         if (motor == null) motor = GetComponent<PlayerMotor>();
+        if (look == null) look = GetComponent<PlayerLook>();
         playerInput = GetComponent<PlayerInput>();
         // Grab the Animator from the child CharacterVisuals model
         animator = GetComponentInChildren<Animator>();
@@ -362,7 +350,7 @@ public class PlayerController : MonoBehaviour
             //    and NOT locked into a strangle (the strangle coroutine drives position/rotation itself).
             if (!isPlayingMinigame && !isStrangling)
             {
-                HandleRotation();
+                look.HandleRotation(lookInput);
                 motor.HandleMovement(moveInput);
                 motor.HandleCrouchTransition();
                 CheckForInteractable();
@@ -379,7 +367,7 @@ public class PlayerController : MonoBehaviour
                 // --- NEW: Allow camera rotation if holding RMB in a minigame ---
                 if (isPlayingMinigame && isMinigameLooking)
                 {
-                    HandleRotation();
+                    look.HandleRotation(lookInput);
                 }
                 // Force the target UI crosshair/prompts to fade away while the minigame or strangle is active
                 targetUIAlpha = 0f;
@@ -416,7 +404,7 @@ public class PlayerController : MonoBehaviour
         // leaning (snapping back once the lean fully released). Left unconditional (like
         // motor.UpdateLeanBlend() above) so it keeps decaying the arc smoothly even while
         // controlsLocked, matching its old always-runs-in-LateUpdate behaviour.
-        ApplyLeanCameraArc();
+        look.ApplyLeanCameraArc();
     }
 
     #region Input Action Callbacks 
@@ -621,7 +609,7 @@ public class PlayerController : MonoBehaviour
             
             if (isMinigameLooking)
             {
-                currentMinigameYaw = 0f;
+                look.BeginMinigameLook();
                 // Hide cursor and lock it to the center so we can move the camera
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
@@ -629,9 +617,7 @@ public class PlayerController : MonoBehaviour
             else
             {
                 // --- NEW: SNAP BACK TO ORIGINAL POSITION ---
-                transform.rotation = minigameStartBodyRotation;
-                verticalRotation = minigameStartVerticalRotation;
-                playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+                look.EndMinigameLook();
 
                 // Show cursor and unlock it so we can play the minigame again
                 Cursor.lockState = CursorLockMode.None;
@@ -1029,7 +1015,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        sb.rotation = Quaternion.AngleAxis(leanAngle * motor.LeanBlend, transform.right) * sb.rotation;
+        sb.rotation = Quaternion.AngleAxis(look.LeanAngle * motor.LeanBlend, transform.right) * sb.rotation;
     }
 
     // Keeps haulActive in sync with what's held, re-poses the item, and refreshes the grip-point +
@@ -1830,35 +1816,10 @@ public class PlayerController : MonoBehaviour
 
     #region Core FPS Logic
     // HandleMovement now lives on PlayerMotor (motor.HandleMovement, called from Update()).
+    // HandleRotation now lives on PlayerLook (look.HandleRotation, called from Update()).
 
-    private void HandleRotation()
-    {
-        // --- 1. HORIZONTAL ROTATION (Body) ---
-        if (isPlayingMinigame && isMinigameLooking)
-        {
-            // Add the mouse input to our tracker
-            currentMinigameYaw += lookInput.x * mouseSensitivity;
-            
-            // Clamp it so they can't turn past the limit (e.g., -90 to 90 degrees)
-            currentMinigameYaw = Mathf.Clamp(currentMinigameYaw, -minigameLookLimit, minigameLookLimit);
-            
-            // Apply the clamped rotation relative to their original starting angle
-            transform.rotation = minigameStartBodyRotation * Quaternion.Euler(0f, currentMinigameYaw, 0f);
-        }
-        else
-        {
-            // Normal FPS free rotation
-            transform.Rotate(Vector3.up * lookInput.x * mouseSensitivity);
-        }
-
-        // --- 2. VERTICAL ROTATION (Camera Pitch) ---
-        // (This remains exactly the same since it's already perfectly clamped!)
-        verticalRotation -= lookInput.y * mouseSensitivity;
-        verticalRotation = Mathf.Clamp(verticalRotation, lowerLookLimit, upperLookLimit);
-        playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
-    }
-
-    // ApplyLeanCameraArc moved to the end of Update() - see the comment there. These two stay in
+    // ApplyLeanCameraArc moved to PlayerLook, called at the end of Update() - see the comment there.
+    // These two stay in
     // LateUpdate because they pose bones (spine / fingers) and must run AFTER the Animator has
     // evaluated this frame's pose (which happens between Update and LateUpdate), or the Animator
     // would immediately overwrite them.
@@ -1996,26 +1957,7 @@ public class PlayerController : MonoBehaviour
                 gripThumbBones[i].localRotation = gripThumbDefaults[i] * Quaternion.Slerp(Quaternion.identity, gripThumbCurls[i], t);
     }
 
-    // Pivots the camera forward + down around a hip point, matching a bend at the hips, so it clears
-    // the body instead of clipping straight down through it. Computed from the CLEAN base (camBase*)
-    // set by HandleCrouchTransition, never from the current position - so it can't run away.
-    private void ApplyLeanCameraArc()
-    {
-        if (motor.LeanBlend <= 0.001f || playerCamera == null) return;
-
-        float theta = leanAngle * motor.LeanBlend;
-        Vector3 baseLocal = new Vector3(motor.CamBaseLocalXZ.x, motor.CamBaseY, motor.CamBaseLocalXZ.z);
-        Vector3 pivot = new Vector3(baseLocal.x, leanHipLocalY, baseLocal.z);
-
-        Vector3 arm = Quaternion.AngleAxis(theta, Vector3.right) * (baseLocal - pivot); // swing forward + down
-        // During a minigame the camera pushing forward drags the hand's IK target out of arm's reach
-        // (it's measured from the camera), so keep the drop but cut most of the forward travel.
-        if (hangReachActive) arm.z *= leanMinigameForwardFactor;
-        playerCamera.localPosition = pivot + arm;
-        // View pitch is its own tunable (can be negative = tilt up) so the hands stay in frame.
-        playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f)
-                                     * Quaternion.AngleAxis(leanViewPitch * motor.LeanBlend, Vector3.right);
-    }
+    // ApplyLeanCameraArc now lives on PlayerLook (look.ApplyLeanCameraArc, called from Update()).
     #endregion
 
     #region Social Deduction Mechanics
@@ -2653,16 +2595,14 @@ public class PlayerController : MonoBehaviour
     // can pan across a wide target; the mouse's vertical axis stays free for aiming.
     public void MinigameLookYaw(float degrees)
     {
-        transform.Rotate(0f, degrees, 0f, Space.World);
+        look.MinigameLookYaw(degrees);
     }
 
     // Vertical look for placement minigames. Positive `degrees` = look up (matches mouse-up). Pitch is
     // clamped to the same limits as normal FPS look and applied straight to the camera.
     public void MinigameLookPitch(float degrees)
     {
-        if (playerCamera == null) return;
-        verticalRotation = Mathf.Clamp(verticalRotation - degrees, lowerLookLimit, upperLookLimit);
-        playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+        look.MinigameLookPitch(degrees);
     }
 
     // Add this helper method anywhere inside PlayerController
@@ -2679,16 +2619,7 @@ public class PlayerController : MonoBehaviour
     // Aim the body + camera at a world point (used when a placement minigame starts).
     public void PointCameraAt(Vector3 worldPoint)
     {
-        if (playerCamera == null) return;
-
-        Vector3 dir = worldPoint - playerCamera.position;
-        Vector3 flat = new Vector3(dir.x, 0f, dir.z);
-        if (flat.sqrMagnitude > 0.0001f) transform.rotation = Quaternion.LookRotation(flat);
-
-        float pitch = Quaternion.LookRotation(dir).eulerAngles.x;
-        if (pitch > 180f) pitch -= 360f;
-        verticalRotation = Mathf.Clamp(pitch, lowerLookLimit, upperLookLimit);
-        playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+        look.PointCameraAt(worldPoint);
     }
 
     // --- NEW: COMBAT DAMAGE SYSTEM ---
@@ -2850,7 +2781,7 @@ public class PlayerController : MonoBehaviour
                 
                 float targetPitch = Quaternion.LookRotation(lookDir).eulerAngles.x;
                 if (targetPitch > 180f) targetPitch -= 360f;
-                verticalRotation = Mathf.Clamp(targetPitch, lowerLookLimit, upperLookLimit);
+                look.SnapPitch(targetPitch);
             }
             // SCENARIO 2: The minigame targets an ITEM (one we hold, or a world prop such as a
             // Cake/Sword). Item minigames are performed in-hand and must NEVER move or turn the player.
@@ -2900,7 +2831,7 @@ public class PlayerController : MonoBehaviour
                     Vector3 lookDir = leftHandSocket.position - playerCamera.position;
                     float targetPitch = Quaternion.LookRotation(lookDir).eulerAngles.x;
                     if (targetPitch > 180f) targetPitch -= 360f;
-                    verticalRotation = Mathf.Clamp(targetPitch, lowerLookLimit, upperLookLimit);
+                    look.SnapPitch(targetPitch);
                 }
             }
             // SCENARIO 3: We are interacting with a Task Station (Default)
@@ -2932,17 +2863,13 @@ public class PlayerController : MonoBehaviour
                 Vector3 finalLookDirection = targetInteractable.transform.position - playerCamera.position;
                 float targetPitch = Quaternion.LookRotation(finalLookDirection).eulerAngles.x;
                 if (targetPitch > 180f) targetPitch -= 360f;
-                verticalRotation = Mathf.Clamp(targetPitch, lowerLookLimit, upperLookLimit);
+                look.SnapPitch(targetPitch);
             }
-            
-            // Apply the calculated vertical camera pitch
-            playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
         }
 
         // Save the rotation so we can snap back to it later when Right Click is released
-        minigameStartBodyRotation = transform.rotation;
-        minigameStartVerticalRotation = verticalRotation;
-        
+        look.CaptureMinigameLookHome();
+
         // Free the mouse cursor for tactile dragging
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

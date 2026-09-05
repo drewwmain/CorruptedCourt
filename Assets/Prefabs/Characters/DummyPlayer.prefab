@@ -153,6 +153,7 @@ GameObject:
   - component: {fileID: 4309804080507697953}
   - component: {fileID: 3961424763485113663}
   - component: {fileID: 4001409324923322614}
+  - component: {fileID: 884388787729368009}
   - component: {fileID: 7573359855154504944}
   - component: {fileID: 6668280575978724801}
   m_Layer: 7
@@ -249,9 +250,7 @@ MonoBehaviour:
   isLocalPlayer: 1
   motor: {fileID: 0}
   playerCamera: {fileID: 6875407516785058764}
-  mouseSensitivity: 0.1
-  upperLookLimit: 80
-  lowerLookLimit: -80
+  look: {fileID: 0}
   rightHandSocket: {fileID: 2682449844836838116}
   leftHandSocket: {fileID: 2705351071062112603}
   rightHandBone: {fileID: 0}
@@ -338,15 +337,30 @@ MonoBehaviour:
   isMinigameLooking: 0
   activeMinigameTarget: {fileID: 0}
   currentMinigameTargetType: 3
-  minigameLookLimit: 90
   minigameIKDepth: 0.6
   ikBlendSpeed: 8
   rightHandRotationOffset: {x: 0, y: 0, z: -90}
+  leanSpineBone: {fileID: 0}
+--- !u!114 &884388787729368009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2874292650299591091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67b85c93b4e92b44e8d89d7e58f6cfdb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mouseSensitivity: 0.1
+  upperLookLimit: 80
+  lowerLookLimit: -80
+  minigameLookLimit: 90
   leanAngle: 45
   leanHipLocalY: -0.1
   leanViewPitch: -5
   leanMinigameForwardFactor: 0.2
-  leanSpineBone: {fileID: 0}
 --- !u!114 &7573359855154504944
 MonoBehaviour:
   m_ObjectHideFlags: 0
