@@ -80,8 +80,8 @@ namespace CorruptedCourt.Gameplay
         [Tooltip("How far in front of the camera the hand should hover while playing.")]
         public float minigameIKDepth = 0.6f;
         [Tooltip("How fast the hand raises and lowers when opening/closing a minigame. Also shared by " +
-                 "PlayerController's ApplyStrangleIK / ApplyHangReachIK blends via the ikBlendSpeed " +
-                 "forwarding property.")]
+                 "PlayerStrangle's ApplyStrangleIK / PlayerController's ApplyHangReachIK blends via the " +
+                 "ikBlendSpeed forwarding property.")]
         public float ikBlendSpeed = 8f;
 
         [Tooltip("Tweak this to rotate the hand bone so the palm faces inward.")]

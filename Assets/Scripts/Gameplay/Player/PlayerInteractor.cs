@@ -34,10 +34,10 @@ namespace CorruptedCourt.Gameplay
         private IInteractable currentTarget; // Stores what the player is currently looking at
         private PlayerController targetPlayer; // Tracks the player you are looking at
         /// <summary>The other player the crosshair is currently on, or null. Read by PlayerController's
-        /// OnNominate and by PlayerVitals' strangle-hunt (FindStrangleVictim).</summary>
+        /// OnNominate and by PlayerStrangle's strangle-hunt (FindStrangleVictim).</summary>
         public PlayerController TargetPlayer => targetPlayer;
         public void ClearTargetPlayer() => targetPlayer = null;
-        /// <summary>The station/item currently aimed at, or null. Read by PlayerVitals' TargetedSabotage power-up.</summary>
+        /// <summary>The station/item currently aimed at, or null. Read by PlayerPowerUps' TargetedSabotage power-up.</summary>
         public IInteractable CurrentTarget => currentTarget;
 
         private Gallows sceneGallows;
