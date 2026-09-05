@@ -248,7 +248,11 @@ public class PlayerController : MonoBehaviour
     private Renderer[] playerRenderers;
 
     [Header("Minigame State")]
-    public bool isPlayingMinigame = false;
+    // Read-through onto MinigameBase's own registry (ARCHITECTURE.md P3) - the ONE source of truth
+    // for "is this player in a minigame", covering every launch path (StartMinigame and
+    // TaskDepositStation.LaunchDepositMinigame alike) since both now register through SetupMinigame.
+    // No longer a field: nothing outside MinigameBase's registry may set this.
+    public bool isPlayingMinigame => MinigameBase.IsAnyActive;
     public bool isMinigameLooking = false;
     private GameObject activeMinigameInstance;
     private Transform activeMinigameStation;
@@ -2075,14 +2079,14 @@ public class PlayerController : MonoBehaviour
         if (!gripBonesCollected) CollectHandGripBones();
 
         // Curl toward a fist while the LEFT MOUSE BUTTON is held during ANY minigame, open otherwise.
-        // isPlayingMinigame covers the StartMinigame-based ones (cake, consume, ...); hangReachActive
-        // covers the deposit minigames (sword rack, dowry chest) which are launched straight from the
-        // TaskDepositStation and never set isPlayingMinigame.
-        bool inMinigame = isPlayingMinigame || hangReachActive;
+        // isPlayingMinigame is a read-through of MinigameBase.IsAnyActive (ARCHITECTURE.md P3), so this
+        // covers every minigame regardless of launch path - StartMinigame ones (cake, consume, ...) and
+        // the deposit ones (sword rack, dowry chest) alike. Used to need `|| hangReachActive` to cover
+        // the deposit case, since TaskDepositStation.LaunchDepositMinigame never set isPlayingMinigame.
         // The deposit minigames act on the mouse-DOWN (drop / grab the lid), so a real hold never
         // happens - latch a short pulse on the click so the grab is always visible.
-        if (inMinigame && Input.GetMouseButtonDown(0)) gripHoldUntil = Time.time + handGripPulseTime;
-        bool wantGrip = inMinigame && (Input.GetMouseButton(0) || Time.time < gripHoldUntil);
+        if (isPlayingMinigame && Input.GetMouseButtonDown(0)) gripHoldUntil = Time.time + handGripPulseTime;
+        bool wantGrip = isPlayingMinigame && (Input.GetMouseButton(0) || Time.time < gripHoldUntil);
         handGripTarget = wantGrip ? 1f : 0f;
 
         handGrip01 = Mathf.MoveTowards(handGrip01, handGripTarget, Time.deltaTime * handGripSpeed);
@@ -2963,7 +2967,6 @@ public class PlayerController : MonoBehaviour
     {
         if (isPlayingMinigame || minigamePrefab == null) return;
 
-        isPlayingMinigame = true;
         activeMinigameTarget = targetInteractable;
         activeMinigameTask = task; // So the waypoint for this task can be hidden while the minigame is open
         itemSwappedToLeftHand = false; // Reset flag
@@ -3082,12 +3085,19 @@ public class PlayerController : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // Instantiate and setup the Minigame UI
+        // Instantiate and set up the minigame, routed through a MinigameContext (ARCHITECTURE.md P3) -
+        // the same entry point TaskDepositStation.LaunchDepositMinigame uses.
         activeMinigameInstance = Instantiate(minigamePrefab);
         MinigameBase minigameScript = activeMinigameInstance.GetComponent<MinigameBase>();
         if (minigameScript != null)
         {
-            minigameScript.SetupMinigame(this, task);
+            MinigameContext context = new MinigameContext(this, task)
+            {
+                TargetType = currentMinigameTargetType,
+                Target = targetInteractable,
+                HeldItem = targetInteractable != null ? targetInteractable.GetComponent<PickupItem>() : null,
+            };
+            minigameScript.SetupMinigame(context.Resolve());
         }
 
         // Redraw waypoints now so this task's marker disappears while the minigame is open.
@@ -3096,9 +3106,15 @@ public class PlayerController : MonoBehaviour
 
     public void FinishMinigame(TaskInstance task)
     {
-        isPlayingMinigame = false;
+        // isPlayingMinigame now clears itself: MinigameBase already removed this minigame from its
+        // registry before calling here (see MinigameBase.CompleteMinigame).
         isMinigameLooking = false;
         activeMinigameTask = null; // Minigame closed: this task's waypoint may show again
+        // ApplyMinigameIK reads these to pose the off-hand for a StartMinigame-launched minigame -
+        // clear them so a later deposit minigame (which never sets them) doesn't inherit a stale
+        // Player/Item/Station pose left over from this one.
+        currentMinigameTargetType = MinigameTargetType.None;
+        activeMinigameStation = null;
 
         ReturnSwappedItem(); // --- NEW: Snap item back to right hand ---
 
@@ -3163,9 +3179,14 @@ public class PlayerController : MonoBehaviour
 
     public void CancelMinigame()
     {
-        isPlayingMinigame = false;
+        // isPlayingMinigame now clears itself: MinigameBase already removed this minigame from its
+        // registry before calling here (see MinigameBase.CancelMinigame).
         isMinigameLooking = false;
         activeMinigameTask = null; // Minigame closed: this task's waypoint may show again
+        // See the matching comment in FinishMinigame - avoid handing a stale Player/Item/Station
+        // IK pose to whatever minigame opens next.
+        currentMinigameTargetType = MinigameTargetType.None;
+        activeMinigameStation = null;
 
         ReturnSwappedItem(); // --- NEW: Snap item back to right hand ---
 

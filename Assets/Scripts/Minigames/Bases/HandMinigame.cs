@@ -81,13 +81,21 @@ public abstract class HandMinigame : MinigameBase
         RestorePlayer();
     }
 
-    /// <summary>Un-freeze the player, re-lock the cursor, release the hand rig.</summary>
+    /// <summary>
+    /// Un-freeze the player, re-lock the cursor, release the hand rig. Also leaves the active registry
+    /// (see MinigameBase.LeaveActiveRegistry) - a subclass that calls this mid-lifecycle (e.g. the
+    /// instant a deposit item is released, well before its outcome is known) hands the player fully
+    /// back to normal controls, so MinigameBase.IsAnyActive must go false too, not just controlsLocked.
+    /// If the minigame later resumes restricting the player (a retry re-aims), call
+    /// MinigameBase.RejoinActiveRegistry() from wherever it re-locks controls.
+    /// </summary>
     protected void RestorePlayer()
     {
         if (Hand != null) Hand.End();
         if (player != null) player.SetControlsLocked(false);
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        LeaveActiveRegistry();
     }
 
     /// <summary>

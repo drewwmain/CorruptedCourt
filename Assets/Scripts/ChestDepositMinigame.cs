@@ -401,6 +401,9 @@ public class ChestDepositMinigame : ItemDepositMinigame
         awaitingRetry = false;
         touchedChest = false;
         dropTargetSlot = null;
+        // Player is "busy" again while re-aiming - ReleaseItem's RestorePlayer left the registry the
+        // moment the item was released (see MinigameBase.LeaveActiveRegistry).
+        RejoinActiveRegistry();
         player.SetControlsLocked(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

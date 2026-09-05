@@ -3,16 +3,15 @@
 Design for building the ~25 upcoming minigames on a shared, professional foundation, and
 folding the 6 existing minigames into it.
 
-> **Status:** P0-P2 done. `SwordHangMinigame` / `ChestDepositMinigame` now run on `GuidedDrop` +
+> **Status:** P0-P3 done. `SwordHangMinigame` / `ChestDepositMinigame` now run on `GuidedDrop` +
 > `StationContactProbe` (P1) and `HandMinigame` (P2, via `ItemDepositMinigame` re-parented onto it -
-> now at `Minigames/Bases/`) instead of their own duplicated code. Everything else in this folder is
-> still unwired scaffolding. The migration plan at the bottom moves the rest over in safe, verifiable
-> phases.
->
-> Deferred from P2's own description below: the `isPlayingMinigame || hangReachActive` grip-check
-> collapse to `MinigameBase.IsAnyActive` (in PlayerController) was NOT part of P2 as actually
-> requested/executed - it touches a third, much larger file outside what was asked and needs its own
-> pass.
+> now at `Minigames/Bases/`) instead of their own duplicated code. Both launchers
+> (`PlayerController.StartMinigame`, `TaskDepositStation.LaunchDepositMinigame`) route through
+> `MinigameContext` + `SetupMinigame(context)`, and `PlayerController.isPlayingMinigame` is now a
+> read-through of `MinigameBase.IsAnyActive` - the P2 status note's deferred grip-check collapse is
+> done as part of P3 (see P3 below for the staleness fix that had to go with it). Everything else in
+> this folder is still unwired scaffolding. The migration plan at the bottom moves the rest over in
+> safe, verifiable phases.
 
 ---
 
@@ -299,9 +298,38 @@ New task-step types implied (small `TaskStep` subclasses, added when needed): `S
   `MouseWorld` out of the two deposit minigames; re-parent `ItemDepositMinigame` onto it (now at
   `Minigames/Bases/`). Still open: the `isPlayingMinigame || hangReachActive` grip check collapsing
   to `MinigameBase.IsAnyActive` - deferred, touches PlayerController and wasn't part of the P2 ask.
-- **P3:** route `PlayerController.StartMinigame` **and** `TaskDepositStation.LaunchDepositMinigame`
-  through `MinigameContext` + `SetupMinigame(context)`. Make `PlayerController.isPlayingMinigame`
-  a read-through of `MinigameBase.IsAnyActive`.
+- **P3 — done:** route `PlayerController.StartMinigame` **and**
+  `TaskDepositStation.LaunchDepositMinigame` through `MinigameContext` + `SetupMinigame(context)`.
+  Make `PlayerController.isPlayingMinigame` a read-through of `MinigameBase.IsAnyActive` (deleting
+  every `isPlayingMinigame || hangReachActive` compound check). This exposed a real bug: `ApplyMinigameIK`
+  used `isPlayingMinigame` as a stand-in for "a StartMinigame-launched minigame is open, with
+  `currentMinigameTargetType`/`activeMinigameStation` populated" - once true for deposit minigames too
+  (which never set those two), its LEFT-HAND station-pose branch would fire using stale leftovers from
+  whatever `StartMinigame` call happened earlier in the match. Fixed by resetting both fields in
+  `FinishMinigame`/`CancelMinigame`; `ApplyMinigameIK`'s RIGHT-hand output is harmlessly overwritten by
+  `ApplyHangReachIK`, which `PlayerIKHelper` always calls after it in the same `OnAnimatorIK`.
+  The legacy `SetupMinigame(PlayerController, TaskInstance)` overload is NOT dead - `SetupMinigame
+  (MinigameContext)` still calls it internally - so it was kept, not deleted.
+
+  **Post-P3 fix (found in Editor testing):** a HandMinigame-based deposit hands the player back to
+  normal controls the INSTANT the item is released (`HandMinigame.RestorePlayer`, well before the
+  drop's outcome - hang / seat / miss-and-retry - is known), but stayed in `MinigameBase`'s registry
+  the whole time regardless. Once `isPlayingMinigame` became a pure `IsAnyActive` read-through, that
+  made `PlayerController.Update()`'s `if (!isPlayingMinigame && !isStrangling)` branch (normal
+  move/look) wrongly stay in its minigame-restricted `else` branch for the entire released-but-not-yet-
+  resolved window - the player was stuck unable to move or aim until the *whole* minigame object ended
+  (miss retry, abandon, or seat). Fixed by giving `MinigameBase` `LeaveActiveRegistry()` /
+  `RejoinActiveRegistry()`: `HandMinigame.RestorePlayer()` now calls `LeaveActiveRegistry()` (so
+  `IsAnyActive` goes false the moment control is handed back), and `SwordHangMinigame.BeginHang()` /
+  `ChestDepositMinigame.RestartAim()` call `RejoinActiveRegistry()` when a retry re-locks controls.
+  Waypoint-hiding (`WaypointManager`) no longer ANDs with `isPlayingMinigame` - it hides on
+  `activeMinigameTask` alone, which is already scoped to the minigame's whole session, so the
+  waypoint doesn't flicker back on while the item is still falling.
+  **Known residual edge case, not fixed:** while a released item is still falling/settling
+  (`isPlayingMinigame` now false, minigame object still alive), the player could technically start an
+  unrelated *second* minigame elsewhere before the first resolves - `StartMinigame`'s re-entrancy guard
+  only checks `isPlayingMinigame`. Narrow, requires deliberately sprinting off within the ~1s settle
+  window; not hardened against since doing so would reintroduce a second "is busy" signal.
 - **P4:** build `EmoteWheelController`, `PartnerResolver`, `DummyPartner` (unblocks 7 minigames).
 - **P5:** implement concretes in dependency order:
   1. deposits (#3, 11, 12, 20, 21) — thin subclasses of the already-proven `ItemDepositMinigame`

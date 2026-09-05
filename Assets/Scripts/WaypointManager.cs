@@ -101,8 +101,13 @@ public class WaypointManager : MonoBehaviour
 
             if (!localPlayer.activeTasks.Contains(task)) continue;
 
-            // Hide this task's waypoint while its minigame UI is open.
-            if (localPlayer.isPlayingMinigame && localPlayer.activeMinigameTask == task) continue;
+            // Hide this task's waypoint for the minigame's whole session - start to true end
+            // (FinishMinigame/CancelMinigame clear activeMinigameTask). Deliberately NOT gated on
+            // isPlayingMinigame: a HandMinigame-based deposit hands the player back to normal controls
+            // (isPlayingMinigame false) the instant the item is released, well before the drop's
+            // outcome - hang / seat / miss-and-retry - is known, and the waypoint should stay hidden
+            // through that whole window, not flicker back on while the item is still falling.
+            if (localPlayer.activeMinigameTask == task) continue;
 
             // --- NEW: FETCH THE ACTIVE STEP ---
             TaskStep activeStep = task.GetCurrentStep();

@@ -65,6 +65,11 @@ public class SwordHangMinigame : ItemDepositMinigame
         Transform handBone = Hand != null ? Hand.HandBone : null;
         if (item == null || rack == null || cam == null || handBone == null) { CancelMinigame(); return; }
 
+        // Re-enter the busy registry: on the very first call this is a harmless re-add (SetupMinigame
+        // already added it); on a retry restart (after ReleaseSword's RestorePlayer left it - see
+        // MinigameBase.LeaveActiveRegistry) this is what makes the player "busy" again while re-aiming.
+        RejoinActiveRegistry();
+
         player.SetControlsLocked(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

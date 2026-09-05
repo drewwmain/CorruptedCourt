@@ -33,12 +33,18 @@ public abstract class MinigameBase : MonoBehaviour
     public MinigameContext Context { get; protected set; }
 
     /// <summary>
-    /// Legacy entry point: injects the player and task the moment the minigame spawns.
+    /// Legacy entry point: injects the player and task the moment the minigame spawns. Still the
+    /// actual implementation - SetupMinigame(MinigameContext) forwards to this after stashing the
+    /// context, so both launch paths (PlayerController.StartMinigame and
+    /// TaskDepositStation.LaunchDepositMinigame) funnel through here.
     /// </summary>
     public virtual void SetupMinigame(PlayerController playerRef, TaskInstance task)
     {
         player = playerRef;
         activeTask = task;
+        // Every launch path sets this so WaypointManager can hide this task's marker while any
+        // minigame is open, regardless of which of the two launchers started it.
+        if (playerRef != null) playerRef.activeMinigameTask = task;
         active.Add(this);
         OnMinigameBegin();
     }
@@ -89,4 +95,24 @@ public abstract class MinigameBase : MonoBehaviour
 
     /// <summary>Runs as the minigame closes. <paramref name="won"/> = it reached its success state.</summary>
     protected virtual void OnMinigameEnd(bool won) { }
+
+    // --- mid-lifecycle registry control ---------------------------------------------------------
+    // A HandMinigame-style subclass can hand control back to the player WELL BEFORE its outcome is
+    // known - e.g. the instant a deposit item is released, while it's still falling/settling/awaiting
+    // a miss retry. IsAnyActive (hence PlayerController.isPlayingMinigame) needs to go false for that
+    // whole window too, or the player is stuck unable to move: PlayerController.Update() only takes
+    // the normal-controls branch when isPlayingMinigame is false. CompleteMinigame/CancelMinigame
+    // already remove the minigame for its true end; these are for the earlier, mid-lifecycle handback.
+
+    /// <summary>
+    /// Leaves the active registry without ending the minigame. Call when a subclass hands control back
+    /// to the player mid-lifecycle (see HandMinigame.RestorePlayer). Call <see cref="RejoinActiveRegistry"/>
+    /// if the minigame goes back to restricting the player afterwards (e.g. a retry re-locks controls).
+    /// Harmless to call again from CompleteMinigame/CancelMinigame's own removal - HashSet.Remove on a
+    /// non-member is a no-op.
+    /// </summary>
+    protected void LeaveActiveRegistry() => active.Remove(this);
+
+    /// <summary>Re-enters the active registry after <see cref="LeaveActiveRegistry"/> - see there.</summary>
+    protected void RejoinActiveRegistry() => active.Add(this);
 }

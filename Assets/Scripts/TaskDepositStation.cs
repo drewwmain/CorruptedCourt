@@ -228,7 +228,16 @@ public class TaskDepositStation : MonoBehaviour, IInteractable
             return;
         }
 
-        mg.SetupMinigame(player, FindMatchingDepositTask(player, heldItem));
+        // Routed through MinigameContext (ARCHITECTURE.md P3) - same entry point PlayerController.
+        // StartMinigame uses, so this launch path registers in MinigameBase's registry identically.
+        MinigameContext context = new MinigameContext(player, FindMatchingDepositTask(player, heldItem))
+        {
+            TargetType = MinigameTargetType.Station,
+            Target = gameObject,
+            Station = this,
+            HeldItem = heldItem,
+        };
+        mg.SetupMinigame(context);
         mg.BeginDeposit(heldItem, this); // the item stays with the player for the minigame
     }
 
