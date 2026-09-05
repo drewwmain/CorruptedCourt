@@ -34,6 +34,12 @@ namespace CorruptedCourt.Gameplay
         [Tooltip("The physical center of the meeting room for the UI Waypoint")]
         public Transform meetingRoomTransform;
 
+        [Header("Corpses")]
+        [Tooltip("Body left behind when a player dies, so the Court has physical evidence a murder " +
+                 "happened. Must carry a Corpse component and sit on the Interactable layer. Leave empty " +
+                 "to disable corpse spawning.")]
+        public GameObject corpsePrefab;
+
         [Header("Spawn Settings")]
         public Transform[] actionStageSpawnPoints;
 
@@ -50,12 +56,26 @@ namespace CorruptedCourt.Gameplay
         // Court members currently outside the meeting room. Maintained by PlayerZoneChanged / PlayerGhosted
         // while the pre-meeting scramble is live, instead of scanning every player every frame.
         private readonly HashSet<PlayerController> absentPlayers = new HashSet<PlayerController>();
-        // Refilled (never reallocated) each time we broadcast the absent list. Subscribers (UIManager)
-        // consume it synchronously, so reusing the buffer is safe.
+        // Refilled (never reallocated) each time we broadcast the roll-call. Subscribers (UIManager)
+        // consume them synchronously, so reusing the buffers is safe.
         private readonly List<string> absentNamesBuffer = new List<string>();
+        private readonly List<string> deadNamesBuffer = new List<string>();
         // Last whole-second value pushed to the transition-timer view, so we raise the event (and its
         // string build on the UI side) once per second instead of every frame.
         private int lastTransitionSecondShown = -1;
+
+        /// <summary>Seconds of play since the match left Initialization. Stamped onto a Corpse at the
+        /// moment of death so a body report can say when the kill happened. Pure runtime state.</summary>
+        public float MatchTime { get; private set; }
+
+        // --- Most recent body report (Corpse.OnInteract -> TriggerReportedBodyMeeting). A report has no
+        //     condemned defendant, so this is separate from VotingManager.condemnedPlayer. Recorded for
+        //     the meeting flow / UI; G2.2 turns this into a proper reported-body meeting type. Cleared
+        //     when a fresh action stage begins. ---
+        public PlayerController LastBodyReportReporter { get; private set; }
+        public PlayerController LastBodyReportVictim { get; private set; }
+        public string LastBodyReportZoneID { get; private set; }
+        public bool HasPendingBodyReport { get; private set; }
 
         void Awake()
         {
@@ -84,6 +104,10 @@ namespace CorruptedCourt.Gameplay
 
         void Update()
         {
+            // Match clock: advances during live play (not while the match is booting or finished).
+            if (currentState != MatchState.Initialization && currentState != MatchState.GameOver)
+                MatchTime += Time.deltaTime;
+
             HandleStateTimers();
 
             // Win conditions are event-driven now (see OnPlayerGhosted / OnCourtProgressChanged /
@@ -119,6 +143,12 @@ namespace CorruptedCourt.Gameplay
                 case MatchState.ActionStage:
                     Log.Game($"--- STAGE {currentStage}: Action Stage Started! ---");
                     currentTimer = actionDuration;
+
+                    // A new action stage clears any body report the last meeting was called on.
+                    HasPendingBodyReport = false;
+                    LastBodyReportReporter = null;
+                    LastBodyReportVictim = null;
+                    LastBodyReportZoneID = null;
 
                     Cursor.lockState = CursorLockMode.Locked;
                     Cursor.visible = false;
@@ -217,6 +247,59 @@ namespace CorruptedCourt.Gameplay
             }
         }
 
+        // --- CORPSES ---
+
+        // Called from PlayerVitals.BecomeGhost the instant a player dies. Drops a reportable body at
+        // the victim's position/rotation carrying who they were, the room they died in, and the
+        // match-clock time of death. Skipped outside live play (an on-stage gallows execution during
+        // the meeting needs no body report).
+        public void SpawnCorpse(PlayerController victim)
+        {
+            if (victim == null || corpsePrefab == null) return;
+            if (currentState != MatchState.ActionStage && currentState != MatchState.TransitionToMeeting) return;
+
+            GameObject corpseObj = Instantiate(corpsePrefab, victim.transform.position, victim.transform.rotation);
+
+            Corpse corpse = corpseObj.GetComponent<Corpse>();
+            if (corpse != null)
+            {
+                string zone = victim.Vitals != null ? victim.Vitals.currentZoneID : "";
+                corpse.Initialize(victim, zone, MatchTime);
+            }
+            else
+            {
+                Log.Warn("[MatchManager] corpsePrefab has no Corpse component - the body cannot be reported.");
+            }
+        }
+
+        // Entry point for a corpse report (Corpse.OnInteract). Unlike TriggerGallowsMeeting there is no
+        // condemned defendant yet - a report just opens a meeting. Records who reported whom and where,
+        // raises the meeting-open announcement, then reuses the existing pre-meeting flow. Returns false
+        // (and does nothing) if a meeting is already under way, so the body stays reportable. G2.2
+        // splits this into a real reported-body meeting type.
+        public bool TriggerReportedBodyMeeting(PlayerController reporter, PlayerController victim, string deathZoneID)
+        {
+            if (currentState != MatchState.ActionStage) return false;
+
+            LastBodyReportReporter = reporter;
+            LastBodyReportVictim = victim;
+            LastBodyReportZoneID = deathZoneID;
+            HasPendingBodyReport = true;
+
+            string reporterName = reporter != null ? reporter.gameObject.name : "Someone";
+            string victimName = victim != null ? victim.gameObject.name : "an unknown court member";
+            string zoneName = string.IsNullOrEmpty(deathZoneID) ? "an unknown location" : deathZoneID;
+
+            Log.Game($"<color=#E74C3C>--- BODY REPORTED: {reporterName} found {victimName} in {zoneName}! ---</color>");
+
+            ChangeState(MatchState.TransitionToMeeting);
+
+            // Raised after the state change so the view has already reset its meeting panels for the
+            // new meeting before it paints the announcement over them.
+            GameEvents.RaiseMeetingAnnouncement($"{reporterName} reported {victimName}'s body in {zoneName}.");
+            return true;
+        }
+
         private void TransitionToNextPhase()
         {
             if (currentState == MatchState.ActionStage)
@@ -243,7 +326,10 @@ namespace CorruptedCourt.Gameplay
 
         // TELEPORT METHOD REMOVED ENTIRELY
 
-        // --- ABSENT-PLAYER TRACKING (event-driven; see OnPlayerZoneChanged / OnPlayerGhosted) ---
+        // --- ROLL-CALL TRACKING (event-driven; see OnPlayerZoneChanged / OnPlayerGhosted) ---
+        // "Absent" is only living members out of the room. Dead members are reported separately (see
+        // BroadcastAbsentPlayers) so a living player can account for every name in the lobby: anyone
+        // not in the absent list and not in the dead list is present in the room.
 
         private bool IsAbsent(PlayerController p)
             => p != null && !p.Vitals.isGhost && p.Vitals.currentZoneID != meetingZoneID;
@@ -268,7 +354,18 @@ namespace CorruptedCourt.Gameplay
             absentNamesBuffer.Clear();
             foreach (PlayerController p in absentPlayers)
                 if (p != null) absentNamesBuffer.Add(p.gameObject.name);
-            GameEvents.RaiseAbsentPlayersChanged(absentNamesBuffer);
+
+            // Dead members, rebuilt from the lobby each broadcast - a ghost is never in absentPlayers,
+            // so without this list a murdered player would just vanish from the roll-call.
+            deadNamesBuffer.Clear();
+            if (RoleManager.Instance != null)
+            {
+                foreach (PlayerController p in RoleManager.Instance.allPlayers)
+                    if (p != null && p.Vitals != null && p.Vitals.isGhost)
+                        deadNamesBuffer.Add(p.gameObject.name);
+            }
+
+            GameEvents.RaiseAbsentPlayersChanged(absentNamesBuffer, deadNamesBuffer);
         }
 
         private void OnPlayerZoneChanged(PlayerController p)

@@ -39,12 +39,22 @@ namespace CorruptedCourt.Gameplay
             MatchStateChanged?.Invoke(state);
         }
 
-        /// <summary>The set of court members not in the meeting room changed. Carries their display names.</summary>
-        public static event Action<IReadOnlyList<string>> AbsentPlayersChanged;
-        public static void RaiseAbsentPlayersChanged(IReadOnlyList<string> absentNames)
+        /// <summary>The roll-call for the meeting room changed. Carries two lists so a living player can
+        /// account for every lobby member: <paramref name="absentNames"/> are living members not in the
+        /// room, <paramref name="deadNames"/> are members confirmed dead (ghosts). Anyone in neither list
+        /// is present.</summary>
+        public static event Action<IReadOnlyList<string>, IReadOnlyList<string>> AbsentPlayersChanged;
+        public static void RaiseAbsentPlayersChanged(IReadOnlyList<string> absentNames, IReadOnlyList<string> deadNames)
         {
-            AbsentPlayersChanged?.Invoke(absentNames);
+            AbsentPlayersChanged?.Invoke(absentNames, deadNames);
         }
+
+        /// <summary>A meeting was opened by a body report. Carries a ready-to-display line naming the
+        /// reporter, the victim and the death zone, for the meeting UI. Raised from
+        /// <c>MatchManager.TriggerReportedBodyMeeting</c>. G2.2 will replace this with a structured
+        /// reported-body meeting type.</summary>
+        public static event Action<string> MeetingAnnouncement;
+        public static void RaiseMeetingAnnouncement(string announcement) => MeetingAnnouncement?.Invoke(announcement);
 
         /// <summary>A player entered or left a <see cref="TaskZone"/> (their currentZoneID just changed).
         /// Carries that player. Lets managers track room occupancy off events instead of polling every frame.</summary>
@@ -123,6 +133,7 @@ namespace CorruptedCourt.Gameplay
             CourtProgressChanged = null;
             MatchStateChanged = null;
             AbsentPlayersChanged = null;
+            MeetingAnnouncement = null;
             PlayerZoneChanged = null;
             PlayerGhosted = null;
             StationReceivedDeposit = null;

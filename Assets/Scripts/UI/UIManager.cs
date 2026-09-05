@@ -22,6 +22,9 @@ namespace CorruptedCourt.UI
         public GameObject transitionPanel; // Shows during the 20s scramble
         public TextMeshProUGUI transitionTimerText;
         public TextMeshProUGUI absentMembersText; // Shows during the actual meeting
+        [Tooltip("Optional. Shows the body-report line (who found whom, and where) for a meeting opened " +
+                 "from a corpse report. Hidden again when the next action stage begins.")]
+        public TextMeshProUGUI meetingAnnouncementText;
 
         [Header("Voting UI")]
         public GameObject openVoteButton; // NEW: The button in the top right to open the panel
@@ -88,6 +91,7 @@ namespace CorruptedCourt.UI
             GameEvents.CourtProgressChanged += UpdateGlobalMeter;
             GameEvents.MatchStateChanged   += OnMatchStateChanged;
             GameEvents.AbsentPlayersChanged += OnAbsentPlayersChanged;
+            GameEvents.MeetingAnnouncement  += OnMeetingAnnouncement;
             GameEvents.CorruptedInventoryChanged += UpdateCorruptedInventory;
             GameEvents.CorruptedSlotHighlighted  += HighlightSlot;
             GameEvents.TransitionTimerTicked     += UpdateTransitionTimer;
@@ -114,6 +118,7 @@ namespace CorruptedCourt.UI
             GameEvents.CourtProgressChanged -= UpdateGlobalMeter;
             GameEvents.MatchStateChanged   -= OnMatchStateChanged;
             GameEvents.AbsentPlayersChanged -= OnAbsentPlayersChanged;
+            GameEvents.MeetingAnnouncement  -= OnMeetingAnnouncement;
             GameEvents.CorruptedInventoryChanged -= UpdateCorruptedInventory;
             GameEvents.CorruptedSlotHighlighted  -= HighlightSlot;
             GameEvents.TransitionTimerTicked     -= UpdateTransitionTimer;
@@ -160,6 +165,22 @@ namespace CorruptedCourt.UI
             // The 20s scramble panel is visible only during the transition-to-meeting state.
             if (transitionPanel != null)
                 transitionPanel.SetActive(state == MatchManager.MatchState.TransitionToMeeting);
+
+            // The body-report line belongs to one meeting only - clear it once play resumes.
+            if (meetingAnnouncementText != null
+                && (state == MatchManager.MatchState.ActionStage || state == MatchManager.MatchState.Initialization))
+            {
+                meetingAnnouncementText.text = "";
+                meetingAnnouncementText.gameObject.SetActive(false);
+            }
+        }
+
+        // A meeting was opened by a corpse report - show who found the body and where.
+        private void OnMeetingAnnouncement(string announcement)
+        {
+            if (meetingAnnouncementText == null) return;
+            meetingAnnouncementText.gameObject.SetActive(true);
+            meetingAnnouncementText.text = $"<color=#E74C3C><b>{announcement}</b></color>";
         }
 
         void Update()
@@ -249,7 +270,7 @@ namespace CorruptedCourt.UI
             }
         }
 
-        private void OnAbsentPlayersChanged(IReadOnlyList<string> absentPlayers)
+        private void OnAbsentPlayersChanged(IReadOnlyList<string> absentPlayers, IReadOnlyList<string> deadPlayers)
         {
             if (absentMembersText == null) return;
 
@@ -260,13 +281,30 @@ namespace CorruptedCourt.UI
 
             if (absentPlayers == null || absentPlayers.Count == 0)
             {
-                sb.AppendLine("<color=#BDC3C7>None (All members present)</color>");
+                sb.AppendLine("<color=#BDC3C7>None (all living members present)</color>");
             }
             else
             {
                 foreach (string name in absentPlayers)
                 {
                     sb.AppendLine($"<color=#BDC3C7>{name}</color>");
+                }
+            }
+
+            // Dead members are listed separately so every name in the lobby is accounted for:
+            // present in the room, absent from it, or dead.
+            sb.AppendLine();
+            sb.AppendLine("<color=#922B21><b>Confirmed dead:</b></color>");
+
+            if (deadPlayers == null || deadPlayers.Count == 0)
+            {
+                sb.AppendLine("<color=#BDC3C7>None</color>");
+            }
+            else
+            {
+                foreach (string name in deadPlayers)
+                {
+                    sb.AppendLine($"<s><color=#7F8C8D>{name}</color></s>");
                 }
             }
 

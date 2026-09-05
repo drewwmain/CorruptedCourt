@@ -191,6 +191,10 @@ namespace CorruptedCourt.Gameplay
             // 4. (Optional) You can increase their movement speed here so ghosts can float around faster
             motor.ScaleWalkSpeed(1.5f);
 
+            // 5. Leave a body where they fell so the Court can discover the murder. MatchManager owns
+            //    the corpse prefab + the match clock, and no-ops this outside live play.
+            if (MatchManager.Instance != null) MatchManager.Instance.SpawnCorpse(player);
+
             // Let managers re-evaluate off this one event (MatchManager checks win conditions and drops
             // the player from the pre-meeting absent list) instead of polling isGhost every frame.
             GameEvents.RaisePlayerGhosted(player);
