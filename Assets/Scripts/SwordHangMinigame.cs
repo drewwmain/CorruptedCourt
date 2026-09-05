@@ -14,6 +14,10 @@ using UnityEngine;
 ///
 /// Launched by TaskDepositStation when its "Deposit Minigame Prefab" is set. Prefab = an empty
 /// GameObject with this component. Extends MinigameBase so success advances the DepositItemStep.
+///
+/// The falling-item physics (no-bounce, straight-drop) and the "has it touched the rack yet" check
+/// are the GuidedDrop / StationContactProbe capabilities in Assets/Scripts/Minigames/Capabilities -
+/// shared with ChestDepositMinigame. See ARCHITECTURE.md P1.
 /// </summary>
 public class SwordHangMinigame : ItemDepositMinigame
 {
@@ -56,12 +60,7 @@ public class SwordHangMinigame : ItemDepositMinigame
     private bool awaitingRetry;
     private bool touchedRack;
     private float settleTimer;
-    private RigidbodyConstraints savedConstraints;
-    private float savedMaxDepen;
-    private float savedMaxAngVel;
-    private PhysicsMaterial savedMaterial;
-    private PhysicsMaterial dropMaterial;
-    private bool guidedDropActive;
+    private GuidedDrop.Handle dropHandle;
     private bool wasMenuPaused;
     private Vector3 walkAnchor;
     private float rmbDownTime;
@@ -175,7 +174,7 @@ public class SwordHangMinigame : ItemDepositMinigame
         }
 
         // Record the moment the falling sword physically touches the rack.
-        if (!touchedRack && RaycastTouchingRack()) touchedRack = true;
+        if (!touchedRack && StationContactProbe.Resting(item.transform, rack.transform)) touchedRack = true;
 
         // It can only hang once it has actually touched the rack AND is lined up with a free slot.
         // That may be true the instant it lands, or after it has settled against the notches.
@@ -185,17 +184,6 @@ public class SwordHangMinigame : ItemDepositMinigame
         Rigidbody rb = item.GetComponent<Rigidbody>();
         bool stillMoving = rb != null && !rb.isKinematic && rb.linearVelocity.sqrMagnitude > 0.04f;
         if (settleTimer <= 0f && !stillMoving) ResolveLanding();
-    }
-
-    // True when the sword's hilt (pivot) is physically resting on the rack - a short ray straight
-    // down finds a rack collider within a few centimetres. Works with non-convex mesh colliders.
-    // (A sword standing on its tip has its pivot a full blade-length up, so it does NOT count.)
-    private bool RaycastTouchingRack()
-    {
-        if (!Physics.Raycast(item.transform.position + Vector3.up * 0.03f, Vector3.down,
-                             out RaycastHit h, 0.12f, ~0, QueryTriggerInteraction.Ignore)) return false;
-        return h.collider.GetComponentInParent<TaskDepositStation>() == rack
-               || h.collider.transform.IsChildOf(rack.transform);
     }
 
     // If the sword's pivot is within catchRadius of a free DropSlot, hang it there. Returns true.
@@ -214,7 +202,8 @@ public class SwordHangMinigame : ItemDepositMinigame
         if (slot < 0 || best > catchRadius) return false;
 
         resolving = true;
-        ConfigureGuidedDrop(false);
+        dropHandle?.End();
+        dropHandle = null;
         rack.DepositIntoSlot(item, slot, player); // parents + poses it in the notch
         if (debugLanding)
             Debug.Log($"[SwordHang] hung on slot {slot} via {via} (dist {best:F2} <= {catchRadius}).");
@@ -227,7 +216,8 @@ public class SwordHangMinigame : ItemDepositMinigame
     // rack and task rather than ending.
     private void RestartAiming()
     {
-        ConfigureGuidedDrop(false);
+        dropHandle?.End();
+        dropHandle = null;
         released = false;
         resolving = false;
         awaitingRetry = false;
@@ -268,12 +258,21 @@ public class SwordHangMinigame : ItemDepositMinigame
         // becomes pick-up-able again (DropInPlace resets isHeld).
         item.DropInPlace();
 
-        // The fall: straight down (X/Z frozen) but rotation LEFT FREE (spin-capped) so contact with
-        // the rack physically tips it. No bounce, gentle depenetration.
-        ConfigureGuidedDrop(true);
+        // The fall: X/Z position and all rotation frozen so it drops straight down and stays
+        // tip-down; no bounce, gentle depenetration. (GuidedDrop capability.)
+        Rigidbody rb = item.GetComponent<Rigidbody>();
+        Collider col = item.GetComponent<Collider>();
+        dropHandle = GuidedDrop.Begin(rb, col, new GuidedDrop.Settings
+        {
+            maxAngularVelocity = 2.5f,
+            maxDepenetrationVelocity = 0.5f,
+            freezeRotation = true,
+            freezeHorizontalPosition = true,
+            funnelSpeed = 0f,
+            materialName = "SwordDrop"
+        });
 
         // Don't let it bounce off the player standing right there.
-        Collider col = item.GetComponent<Collider>();
         if (col != null && player.CharController != null)
             Physics.IgnoreCollision(col, player.CharController, true);
 
@@ -292,66 +291,6 @@ public class SwordHangMinigame : ItemDepositMinigame
     }
 
     // --- helpers ---
-
-    // Toggle a "guided drop" on the sword's rigidbody: freeze X/Z position AND rotation so it falls
-    // straight down and stays tip-down, with no bounce and gentle depenetration - so a contact with
-    // the rack makes it rest, not fly off. Restores the originals when turned off.
-    private void ConfigureGuidedDrop(bool on)
-    {
-        if (item == null) return;
-        Rigidbody rb = item.GetComponent<Rigidbody>();
-        Collider col = item.GetComponent<Collider>();
-
-        if (on)
-        {
-            if (guidedDropActive) return;
-            guidedDropActive = true;
-
-            if (dropMaterial == null)
-            {
-                dropMaterial = new PhysicsMaterial("SwordDrop")
-                {
-                    bounciness = 0f,
-                    dynamicFriction = 0.9f,
-                    staticFriction = 0.9f,
-                    bounceCombine = PhysicsMaterialCombine.Minimum,
-                    frictionCombine = PhysicsMaterialCombine.Maximum
-                };
-            }
-
-            if (rb != null)
-            {
-                savedConstraints = rb.constraints;
-                savedMaxDepen = rb.maxDepenetrationVelocity;
-                savedMaxAngVel = rb.maxAngularVelocity;
-                rb.constraints = RigidbodyConstraints.FreezePositionX
-                                 | RigidbodyConstraints.FreezePositionZ
-                                 | RigidbodyConstraints.FreezeRotation;
-                rb.maxDepenetrationVelocity = 0.5f;
-                rb.maxAngularVelocity = 2.5f;
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-            }
-            if (col != null)
-            {
-                savedMaterial = col.sharedMaterial;
-                col.sharedMaterial = dropMaterial;
-            }
-        }
-        else
-        {
-            if (!guidedDropActive) return;
-            guidedDropActive = false;
-
-            if (rb != null)
-            {
-                rb.constraints = savedConstraints;
-                rb.maxDepenetrationVelocity = savedMaxDepen;
-                rb.maxAngularVelocity = savedMaxAngVel;
-            }
-            if (col != null) col.sharedMaterial = savedMaterial;
-        }
-    }
 
     private void SetItemPhysics(bool loose)
     {
@@ -380,7 +319,8 @@ public class SwordHangMinigame : ItemDepositMinigame
 
     private void AbortToHand()
     {
-        ConfigureGuidedDrop(false);
+        dropHandle?.End();
+        dropHandle = null;
         if (item != null && player != null) item.AttachToHand(player.RightHandSocket);
         RestorePlayerControl();
         base.CancelMinigame();
@@ -388,7 +328,8 @@ public class SwordHangMinigame : ItemDepositMinigame
 
     private void FinishFail()
     {
-        ConfigureGuidedDrop(false);
+        dropHandle?.End();
+        dropHandle = null;
         RestorePlayerControl();
         Destroy(gameObject);
     }
@@ -406,6 +347,7 @@ public class SwordHangMinigame : ItemDepositMinigame
 
     void OnDestroy()
     {
-        if (dropMaterial != null) Destroy(dropMaterial);
+        dropHandle?.End();
+        dropHandle = null;
     }
 }

@@ -6,6 +6,11 @@ using UnityEngine;
 /// it falls - so the player doesn't have to release dead-centre.
 ///
 /// Consolidates the copy of ConfigureGuidedDrop(bool) in SwordHangMinigame and ChestDepositMinigame.
+/// The two originals differ in one deliberate way: the sword freezes X/Z position outright for a
+/// dead-straight vertical drop into the rack notches, while the chest leaves X/Z free so its funnel
+/// can steer the item sideways onto the target slot column. <see cref="Settings.freezeHorizontalPosition"/>
+/// carries that distinction explicitly - both behaviours are preserved, not unified.
+///
 /// Usage:
 /// <code>
 ///   _drop = GuidedDrop.Begin(rb, col, new GuidedDrop.Settings { funnelSpeed = 3f });
@@ -26,15 +31,22 @@ public static class GuidedDrop
         public float maxDepenetrationVelocity;
         [Tooltip("Also lock rotation entirely (tip-down items).")]
         public bool freezeRotation;
+        [Tooltip("Also lock X/Z position outright, for a dead-straight vertical drop (sword rack notches). " +
+                 "Leave false to let X/Z stay free so Funnel() can steer it horizontally (chest drop).")]
+        public bool freezeHorizontalPosition;
         [Tooltip("Horizontal correction toward the target slot, m/s. 0 = fall straight down.")]
         public float funnelSpeed;
+        [Tooltip("Name for the transient no-bounce PhysicsMaterial (cosmetic - shows in the Inspector while active).")]
+        public string materialName;
 
         public static Settings Default => new Settings
         {
             maxAngularVelocity = 2.5f,
             maxDepenetrationVelocity = 0.5f,
             freezeRotation = true,
-            funnelSpeed = 0f
+            freezeHorizontalPosition = false,
+            funnelSpeed = 0f,
+            materialName = "GuidedDrop"
         };
     }
 
@@ -90,9 +102,12 @@ public static class GuidedDrop
             h.savedMaxAngVel = rb.maxAngularVelocity;
             h.savedMaxDepen = rb.maxDepenetrationVelocity;
 
-            rb.constraints = settings.freezeRotation
-                ? rb.constraints | RigidbodyConstraints.FreezeRotation
-                : rb.constraints;
+            // freezeHorizontalPosition forces a literal X/Z-position + full-rotation freeze (sword);
+            // otherwise only rotation is (optionally) OR'd onto whatever constraints were already set,
+            // leaving X/Z free for Funnel() to drive (chest).
+            rb.constraints = settings.freezeHorizontalPosition
+                ? RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation
+                : (settings.freezeRotation ? rb.constraints | RigidbodyConstraints.FreezeRotation : rb.constraints);
             rb.maxAngularVelocity = settings.maxAngularVelocity;
             rb.maxDepenetrationVelocity = settings.maxDepenetrationVelocity;
             rb.linearVelocity = Vector3.zero;
@@ -102,7 +117,7 @@ public static class GuidedDrop
         if (col != null)
         {
             h.savedMaterial = col.sharedMaterial;
-            h.dropMaterial = new PhysicsMaterial("GuidedDrop")
+            h.dropMaterial = new PhysicsMaterial(string.IsNullOrEmpty(settings.materialName) ? "GuidedDrop" : settings.materialName)
             {
                 bounciness = 0f,
                 dynamicFriction = 0.9f,

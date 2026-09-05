@@ -14,6 +14,10 @@ using UnityEngine;
 /// Hold RIGHT-CLICK + move the mouse to look around; a quick right-click tap cancels (before the
 /// item is released). Launched by TaskDepositStation when its Deposit Minigame Prefab carries this
 /// component. Extends ItemDepositMinigame so success advances the DepositItemStep.
+///
+/// The falling-item physics (no-bounce, funnelled drop) and the "has it touched the chest yet" check
+/// are the GuidedDrop / StationContactProbe capabilities in Assets/Scripts/Minigames/Capabilities -
+/// shared with SwordHangMinigame. See ARCHITECTURE.md P1.
 /// </summary>
 public class ChestDepositMinigame : ItemDepositMinigame
 {
@@ -86,12 +90,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
     private bool wasMenuPaused;
     private Vector3 walkAnchor;
 
-    private RigidbodyConstraints savedConstraints;
-    private float savedMaxDepen;
-    private float savedMaxAngVel;
-    private PhysicsMaterial savedMaterial;
-    private PhysicsMaterial dropMaterial;
-    private bool guidedDropActive;
+    private GuidedDrop.Handle dropHandle;
     private Collider[] passableChestColliders;
     private float savedPlayerRadius = -1f;
 
@@ -150,7 +149,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
             if (playerCC != null && !isMesh) Physics.IgnoreCollision(playerCC, c, passable);
             // Falling item: while the funnel is on, pass through ALL of the chest's colliders so it
             // can't snag on the rim or an inner wall - the drop is steered straight onto the target
-            // slot instead, and the deposit still registers off RaycastTouchingChest() / the slot
+            // slot instead, and the deposit still registers off StationContactProbe.Resting() / the slot
             // arrival. With the funnel off (dropFunnelSpeed 0) leave the chest solid to the item.
             if (itemCol != null && (!passable || dropFunnelSpeed > 0f))
                 Physics.IgnoreCollision(itemCol, c, passable);
@@ -341,7 +340,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
         }
 
         // Record the moment the falling item physically touches the chest.
-        if (!touchedChest && RaycastTouchingChest()) touchedChest = true;
+        if (!touchedChest && StationContactProbe.Resting(item.transform, chest.transform)) touchedChest = true;
 
         // Register once it's lined up on a free slot: either after physically touching the chest, or -
         // when the funnel is steering it down a slot column - as soon as it drops to the slot's lip.
@@ -352,16 +351,6 @@ public class ChestDepositMinigame : ItemDepositMinigame
         Rigidbody rb = item.GetComponent<Rigidbody>();
         bool moving = rb != null && !rb.isKinematic && rb.linearVelocity.sqrMagnitude > 0.04f;
         if (settleTimer <= 0f && !moving) ResolveDrop();
-    }
-
-    // True when the item's pivot is physically resting on the chest - a short ray straight down finds
-    // a chest collider within a few centimetres.
-    private bool RaycastTouchingChest()
-    {
-        if (!Physics.Raycast(item.transform.position + Vector3.up * 0.03f, Vector3.down,
-                             out RaycastHit h, 0.12f, ~0, QueryTriggerInteraction.Ignore)) return false;
-        return h.collider.GetComponentInParent<TaskDepositStation>() == chest
-               || h.collider.transform.IsChildOf(chest.transform);
     }
 
     private void ResolveDrop()
@@ -394,7 +383,8 @@ public class ChestDepositMinigame : ItemDepositMinigame
         if (slot < 0) return false;
 
         resolving = true;
-        ConfigureGuidedDrop(false);
+        dropHandle?.End();
+        dropHandle = null;
         chest.DepositIntoSlot(item, slot, player);
         if (debugMinigame) Debug.Log($"[ChestDeposit] seated in slot {slot} via {via} (dist {best:F2}). WIN");
 
@@ -417,11 +407,23 @@ public class ChestDepositMinigame : ItemDepositMinigame
         player.hangReachActive = false;
         player.ClearHeldItem();
         item.DropInPlace();
-        ConfigureGuidedDrop(true);
+
+        // No tumble, no bounce, gentle depenetration; X/Z stays free so the funnel (below) can steer
+        // it onto dropTargetSlot's column as it falls. (GuidedDrop capability.)
+        Rigidbody rb = item.GetComponent<Rigidbody>();
+        Collider c = item.GetComponent<Collider>();
+        dropHandle = GuidedDrop.Begin(rb, c, new GuidedDrop.Settings
+        {
+            maxAngularVelocity = 2.5f,
+            maxDepenetrationVelocity = 0.5f,
+            freezeRotation = true,
+            freezeHorizontalPosition = false,
+            funnelSpeed = dropFunnelSpeed,
+            materialName = "ChestDrop"
+        });
 
         // The item's collider was just re-enabled by DropInPlace, which can drop the ignore pairs set
         // while it was disabled - re-assert pass-through with the chest and the player here.
-        Collider c = item.GetComponent<Collider>();
         if (c != null)
         {
             if (player.CharController != null) Physics.IgnoreCollision(c, player.CharController, true);
@@ -454,24 +456,15 @@ public class ChestDepositMinigame : ItemDepositMinigame
     void FixedUpdate()
     {
         if (phase != Phase.AimItem || !itemReleased || resolving || awaitingRetry) return;
-        if (item == null || dropTargetSlot == null || dropFunnelSpeed <= 0f) return;
+        if (item == null || dropTargetSlot == null) return;
 
-        Rigidbody rb = item.GetComponent<Rigidbody>();
-        if (rb == null || rb.isKinematic) return;
-
-        Vector3 pos = rb.position;
-        Vector3 toColumn = new Vector3(dropTargetSlot.position.x - pos.x, 0f, dropTargetSlot.position.z - pos.z);
-        Vector3 wantHoriz = Vector3.ClampMagnitude(toColumn / Time.fixedDeltaTime, dropFunnelSpeed);
-
-        Vector3 v = rb.linearVelocity;
-        v.x = wantHoriz.x;
-        v.z = wantHoriz.z;
-        rb.linearVelocity = v;
+        dropHandle?.Funnel(dropTargetSlot.position);
     }
 
     private void RestartAim()
     {
-        ConfigureGuidedDrop(false);
+        dropHandle?.End();
+        dropHandle = null;
         itemReleased = false;
         resolving = false;
         awaitingRetry = false;
@@ -483,64 +476,6 @@ public class ChestDepositMinigame : ItemDepositMinigame
         MoveItemToHand(rightHand, true);
         player.hangReachActive = true;
         player.hangReachRotWeight = 0f;
-    }
-
-    // --- guided drop: fall straight down, no spin, gentle depenetration ---
-    private void ConfigureGuidedDrop(bool on)
-    {
-        if (item == null) return;
-        Rigidbody rb = item.GetComponent<Rigidbody>();
-        Collider col = item.GetComponent<Collider>();
-
-        if (on)
-        {
-            if (guidedDropActive) return;
-            guidedDropActive = true;
-
-            if (dropMaterial == null)
-            {
-                dropMaterial = new PhysicsMaterial("ChestDrop")
-                {
-                    bounciness = 0f,
-                    dynamicFriction = 0.9f,
-                    staticFriction = 0.9f,
-                    bounceCombine = PhysicsMaterialCombine.Minimum,
-                    frictionCombine = PhysicsMaterialCombine.Maximum
-                };
-            }
-
-            if (rb != null)
-            {
-                savedConstraints = rb.constraints;
-                savedMaxDepen = rb.maxDepenetrationVelocity;
-                savedMaxAngVel = rb.maxAngularVelocity;
-                // Rotation is locked (no tumbling), but X/Z stay free so FixedUpdate can steer the
-                // item horizontally onto the target slot as it falls.
-                rb.constraints = savedConstraints | RigidbodyConstraints.FreezeRotation;
-                rb.maxDepenetrationVelocity = 0.5f;
-                rb.maxAngularVelocity = 2.5f;
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
-            }
-            if (col != null)
-            {
-                savedMaterial = col.sharedMaterial;
-                col.sharedMaterial = dropMaterial;
-            }
-        }
-        else
-        {
-            if (!guidedDropActive) return;
-            guidedDropActive = false;
-
-            if (rb != null)
-            {
-                rb.constraints = savedConstraints;
-                rb.maxDepenetrationVelocity = savedMaxDepen;
-                rb.maxAngularVelocity = savedMaxAngVel;
-            }
-            if (col != null) col.sharedMaterial = savedMaterial;
-        }
     }
 
     private void RestorePlayerControl()
@@ -557,7 +492,8 @@ public class ChestDepositMinigame : ItemDepositMinigame
 
     private void FinishFail()
     {
-        ConfigureGuidedDrop(false);
+        dropHandle?.End();
+        dropHandle = null;
         RestorePlayerControl();
         Destroy(gameObject);
     }
@@ -570,7 +506,8 @@ public class ChestDepositMinigame : ItemDepositMinigame
 
     public override void CancelMinigame()
     {
-        ConfigureGuidedDrop(false);
+        dropHandle?.End();
+        dropHandle = null;
         if (lid != null) lid.localRotation = lidClosedLocalRot;
         if (!itemReleased && item != null && player != null)
             item.AttachToHand(player.RightHandSocket); // give the item back as a normal held item
@@ -583,6 +520,7 @@ public class ChestDepositMinigame : ItemDepositMinigame
         SetChestPassable(false); // re-enable player <-> chest collision
         if (savedPlayerRadius > 0f && player != null && player.CharController != null)
             player.CharController.radius = savedPlayerRadius;
-        if (dropMaterial != null) Destroy(dropMaterial);
+        dropHandle?.End();
+        dropHandle = null;
     }
 }
