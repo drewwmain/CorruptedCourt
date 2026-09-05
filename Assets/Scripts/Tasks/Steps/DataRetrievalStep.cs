@@ -60,14 +60,22 @@ namespace CorruptedCourt.Tasks
             }
             else
             {
-                // Part 2: Inputting the code
+                // Part 2: Inputting the code. Reaching the station opens the code-entry panel; the step
+                // is NOT complete until the player submits the correct code (UIManager.SubmitDataCode
+                // calls CompleteActiveStep). Signal the view the same way part 1 does - flag the runtime,
+                // then let the tasks-changed broadcast open the panel. The step never touches the UI.
                 if (loc.locationID == inputStationID)
                 {
-                    // Unlock the mouse so they can click the keypad UI
+                    runtime.DataInputPending = true;
+
+                    // Free the cursor so they can type into the panel.
                     Cursor.lockState = CursorLockMode.None;
                     Cursor.visible = true;
 
-                    return true; // Step fully completed!
+                    // Raises LocalTasksChanged -> the view opens the code-entry panel.
+                    player.TaskBook.RefreshLocalWaypoints();
+
+                    return false; // Not complete yet - a correct code entry finishes the step.
                 }
             }
 

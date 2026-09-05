@@ -27,6 +27,15 @@ namespace CorruptedCourt.Tasks
         /// </summary>
         public bool CodeRevealPending;
 
+        /// <summary>
+        /// Set by <see cref="DataRetrievalStep"/> when the player reaches the input station in part 2; the
+        /// view clears it once it has opened the code-entry panel. Same mechanism as
+        /// <see cref="CodeRevealPending"/> - the step flags the runtime and the tasks-changed signal does
+        /// the rest, so the step never references the UI. One-shot. The step is NOT complete when this is
+        /// set; it finishes later, when a correct code entry drives <c>TaskInstance.CompleteActiveStep</c>.
+        /// </summary>
+        public bool DataInputPending;
+
         public TaskStepRuntime(TaskStep template)
         {
             Template = template;

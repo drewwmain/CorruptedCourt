@@ -131,17 +131,25 @@ namespace CorruptedCourt.UI
 
             UpdatePlayerTaskList(player, player.TaskBook.allAssignedTasks, player.TaskBook.activeTasks, player.Vitals.currentRole);
 
-            // One-shot: a DataRetrievalStep that just generated its code flags the runtime for the popup.
+            // One-shot signals from a DataRetrievalStep: part 1 flags the runtime for the "memorize"
+            // popup, part 2 flags it to open the code-entry panel. The step never calls us directly.
             if (player.TaskBook.activeTasks != null)
             {
                 foreach (TaskInstance task in player.TaskBook.activeTasks)
                 {
                     if (task == null) continue;
                     TaskStepRuntime rt = task.CurrentStepRuntime;
-                    if (rt != null && rt.CodeRevealPending && task.GetCurrentStep() is DataRetrievalStep)
+                    if (rt == null || !(task.GetCurrentStep() is DataRetrievalStep)) continue;
+
+                    if (rt.CodeRevealPending)
                     {
                         rt.CodeRevealPending = false;
                         ShowDataCodePopup(rt.GeneratedCode);
+                    }
+                    else if (rt.DataInputPending)
+                    {
+                        rt.DataInputPending = false;
+                        OpenDataInputPanel(player, task);
                     }
                 }
             }
