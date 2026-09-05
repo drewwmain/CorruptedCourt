@@ -1,0 +1,21 @@
+{
+    "name": "CorruptedCourt.EditorTools",
+    "rootNamespace": "CorruptedCourt.EditorTools",
+    "references": [
+        "CorruptedCourt.Core",
+        "CorruptedCourt.Items",
+        "CorruptedCourt.Gameplay",
+        "CorruptedCourt.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

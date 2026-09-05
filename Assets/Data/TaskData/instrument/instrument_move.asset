@@ -28,14 +28,14 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 5911507332722851845
-      type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
+      type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 0}
         requiredState: 0
         legacyRequiredItemName: Instrument
     - rid: 5911507332722851846
-      type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
+      type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 0}

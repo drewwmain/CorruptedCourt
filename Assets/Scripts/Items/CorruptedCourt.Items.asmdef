@@ -1,0 +1,16 @@
+{
+    "name": "CorruptedCourt.Items",
+    "rootNamespace": "CorruptedCourt.Items",
+    "references": [
+        "CorruptedCourt.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

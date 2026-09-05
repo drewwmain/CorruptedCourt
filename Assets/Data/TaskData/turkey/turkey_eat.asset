@@ -28,14 +28,14 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 5911507330253979762
-      type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
+      type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 0}
         requiredState: 0
         legacyRequiredItemName: "\u2060TurkeyLeg\u2060"
     - rid: 5911507330253979763
-      type: {class: ConsumeItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
+      type: {class: ConsumeItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         requiredItem: {fileID: 0}

@@ -31,7 +31,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 5911507283734429780
-      type: {class: ProcessItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
+      type: {class: ProcessItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
         targetStationID: 
@@ -39,14 +39,14 @@ MonoBehaviour:
         targetItemState: 0
         legacyTargetStationOrItemName: 
     - rid: 5911507283734429781
-      type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
+      type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 11400000, guid: be1b9bbd508b2c746801437da260cc15, type: 2}
         requiredState: 0
         legacyRequiredItemName: 
     - rid: 5911507283734429782
-      type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: Assembly-CSharp}
+      type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 11400000, guid: be1b9bbd508b2c746801437da260cc15, type: 2}
