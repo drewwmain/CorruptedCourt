@@ -16,6 +16,7 @@ MonoBehaviour:
   taskName: Sample the Dessert
   taskDescription: Grab a plate of cake and eat it.
   isSabotage: 0
+  taskTier: 1
   allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
