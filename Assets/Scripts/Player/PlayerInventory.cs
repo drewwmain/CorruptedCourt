@@ -3,7 +3,7 @@ using UnityEngine;
 // Owns what the player is holding: the two hand slots (currentlyHeldItem / leftHeldItem), the hand
 // sockets those items attach to, equip/haul/swap-hands logic, and the drop-vs-throw charge system.
 // Extracted from PlayerController - see PlayerController.cs for the thin forwarders TaskDepositStation,
-// PickupItem, ConcreteTaskSteps, and the minigames all still call (EquipItem, GetHeldItem,
+// PickupItem, the task step types (Tasks/Steps/), and the minigames all still call (EquipItem, GetHeldItem,
 // ClearHeldItem, GetLeftHeldItem, ClearLeftHeldItem, IsHoldingItem, RightHandSocket, LeftHandSocket).
 //
 // Must live on the same GameObject as PlayerController (back-reference below resolves via

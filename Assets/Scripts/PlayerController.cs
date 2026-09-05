@@ -419,7 +419,7 @@ public class PlayerController : MonoBehaviour
 
     // EquipItem, GetHeldItem/ClearHeldItem, GetLeftHeldItem/ClearLeftHeldItem, IsHoldingItem, and
     // IsHoldingHeavyItem now live on PlayerInventory - these forwarders are what TaskDepositStation,
-    // PickupItem, ConcreteTaskSteps, and the minigames all still call.
+    // PickupItem, the task step types (Tasks/Steps/), and the minigames all still call.
     public void EquipItem(PickupItem newItem) => inventory.EquipItem(newItem);
     public PickupItem GetHeldItem() => inventory.GetHeldItem();
     public void ClearHeldItem() => inventory.ClearHeldItem();

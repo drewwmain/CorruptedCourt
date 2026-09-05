@@ -6,7 +6,8 @@ using System.Collections.Generic;
 // that used to be copy-pasted across PlayerController's interaction paths.
 // Extracted from PlayerController - see PlayerController.cs for player.TaskBook, the single access
 // point external code now uses (RoleManager, TaskManager, MatchManager, TaskDepositStation,
-// ConcreteTaskSteps, WaypointManager, UIManager, TaskInstance, and PlayerInventory all go through it).
+// the task step types (Tasks/Steps/), WaypointManager, UIManager, TaskInstance, and PlayerInventory
+// all go through it).
 [RequireComponent(typeof(PlayerController))]
 public class PlayerTaskBook : MonoBehaviour
 {
