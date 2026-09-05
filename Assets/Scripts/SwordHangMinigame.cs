@@ -173,7 +173,10 @@ public class SwordHangMinigame : ItemDepositMinigame
         // The hand reaches to exactly where the mouse points - no assist. The player has to
         // physically line the sword up over a notch gap and be close enough to reach it.
         Hand.ReachToward(MouseWorld());
-        player.hangReachRotWeight = 0f;
+        // weight 0 = keep the held pose (no rotation target to align to) - routed through
+        // MinigameHandRig like Hand.ReachToward above, instead of poking player.hangReachRotWeight
+        // directly as a second path.
+        Hand.SetHandRotation(Quaternion.identity, 0f);
     }
 
     // Runs after the animator/IK have posed the hand: force the sword's orientation so the tip

@@ -186,6 +186,7 @@ GameObject:
   - component: {fileID: 1817573232352279913}
   - component: {fileID: 6479238678288258100}
   - component: {fileID: 2247152661447351038}
+  - component: {fileID: 3637050314189887541}
   - component: {fileID: 8140029421252044161}
   m_Layer: 7
   m_Name: Player
@@ -282,28 +283,8 @@ MonoBehaviour:
   motor: {fileID: 0}
   playerCamera: {fileID: 791990344525845302}
   look: {fileID: 0}
-  rightHandBone: {fileID: 0}
   inventory: {fileID: 0}
-  minigameHandGrip: 1
-  rightHandFingerBones: []
-  rightHandThumbBone: {fileID: 0}
-  fingerCurlDegrees: 60
-  thumbCurlDegrees: 35
-  fingerCurlAxisOverride: {x: 0, y: 0, z: 0}
-  handGripSpeed: 16
-  handGripPulseTime: 0.18
-  hangReachActive: 0
-  hangReachPos: {x: 0, y: 0, z: 0}
-  hangReachRot: {x: 0, y: 0, z: 0, w: 1}
-  hangReachRotWeight: 0
-  haulActive: 0
-  haulLeftHandPos: {x: 0, y: 0, z: 0}
-  haulRightHandPos: {x: 0, y: 0, z: 0}
-  haulLeftElbowPos: {x: 0, y: 0, z: 0}
-  haulRightElbowPos: {x: 0, y: 0, z: 0}
-  haulLeftHandRot: {x: 0, y: 0, z: 0, w: 1}
-  haulRightHandRot: {x: 0, y: 0, z: 0, w: 1}
-  haulUseRotation: 0
+  ikRig: {fileID: 0}
   currentItemIndex: 0
   interactionRange: 4
   depositProximityRange: 2.5
@@ -364,9 +345,6 @@ MonoBehaviour:
   isMinigameLooking: 0
   activeMinigameTarget: {fileID: 0}
   currentMinigameTargetType: 3
-  minigameIKDepth: 0.6
-  ikBlendSpeed: 8
-  rightHandRotationOffset: {x: 0, y: 0, z: -90}
   leanSpineBone: {fileID: 0}
 --- !u!114 &1817573232352279913
 MonoBehaviour:
@@ -425,6 +403,43 @@ MonoBehaviour:
   baseThrowForce: 25
   dropTapMaxDuration: 0.2
   itemSwappedToLeftHand: 0
+--- !u!114 &3637050314189887541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2979434807370161209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c78380e9cfce07d439dc8a70741d3aba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rightHandBone: {fileID: 0}
+  minigameHandGrip: 1
+  rightHandFingerBones: []
+  rightHandThumbBone: {fileID: 0}
+  fingerCurlDegrees: 60
+  thumbCurlDegrees: 35
+  fingerCurlAxisOverride: {x: 0, y: 0, z: 0}
+  handGripSpeed: 16
+  handGripPulseTime: 0.18
+  hangReachActive: 0
+  hangReachPos: {x: 0, y: 0, z: 0}
+  hangReachRot: {x: 0, y: 0, z: 0, w: 1}
+  hangReachRotWeight: 0
+  hangReachWeight: 0
+  haulActive: 0
+  haulLeftHandPos: {x: 0, y: 0, z: 0}
+  haulRightHandPos: {x: 0, y: 0, z: 0}
+  haulLeftElbowPos: {x: 0, y: 0, z: 0}
+  haulRightElbowPos: {x: 0, y: 0, z: 0}
+  haulLeftHandRot: {x: 0, y: 0, z: 0, w: 1}
+  haulRightHandRot: {x: 0, y: 0, z: 0, w: 1}
+  haulUseRotation: 0
+  minigameIKDepth: 0.6
+  ikBlendSpeed: 8
+  rightHandRotationOffset: {x: 0, y: 0, z: -90}
 --- !u!114 &8140029421252044161
 MonoBehaviour:
   m_ObjectHideFlags: 0
