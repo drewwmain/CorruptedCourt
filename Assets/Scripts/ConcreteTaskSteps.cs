@@ -5,6 +5,7 @@ using UnityEngine.Serialization;
 // ---------------------------------------------------
 // 1. ACQUIRE ITEM (Standard or Heavy)
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class AcquireItemStep : TaskStep
 {
@@ -41,6 +42,7 @@ public class AcquireItemStep : TaskStep
 // ---------------------------------------------------
 // 2. NAVIGATE TO ZONE
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class NavigateStep : TaskStep
 {
@@ -61,6 +63,7 @@ public class NavigateStep : TaskStep
 // ---------------------------------------------------
 // 3. TASK STATION INTERACTION (Standard & Group)
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class StationInteractStep : TaskStep
 {
@@ -113,6 +116,7 @@ public class StationInteractStep : TaskStep
 // ---------------------------------------------------
 // 4. PLAYER INTERACTION
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class PlayerInteractStep : TaskStep
 {
@@ -163,6 +167,7 @@ public class PlayerInteractStep : TaskStep
 // ---------------------------------------------------
 // 5. DATA RETRIEVAL (Generate & Input)
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class DataRetrievalStep : TaskStep
 {
@@ -234,6 +239,7 @@ public class DataRetrievalStep : TaskStep
 // ---------------------------------------------------
 // 6. DEPOSIT ITEM
 // ---------------------------------------------------
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class DepositItemStep : TaskStep
 {
@@ -298,7 +304,7 @@ public class DepositItemStep : TaskStep
 // ---------------------------------------------------
 // 7. CONSUME ITEM (Eat / Drink - destroys item)
 // ---------------------------------------------------
-[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/ConsumeItemStep")]
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class ConsumeItemStep : TaskStep
 {
@@ -344,7 +350,7 @@ public class ConsumeItemStep : TaskStep
 // ---------------------------------------------------
 // 8. PROCESS ITEM (Cut, Polish, Light)
 // ---------------------------------------------------
-[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/ProcessItemStep")]
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class ProcessItemStep : TaskStep
 {
@@ -402,7 +408,7 @@ public class ProcessItemStep : TaskStep
 // ---------------------------------------------------
 // 9. EQUIP CLOTHING STEP
 // ---------------------------------------------------
-[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/EquipClothingStep")]
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class EquipClothingStep : TaskStep
 {
@@ -424,7 +430,7 @@ public class EquipClothingStep : TaskStep
 // ---------------------------------------------------
 // 10. MUTUAL PLAYER INTERACT (Duels, Jousts)
 // ---------------------------------------------------
-[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/MutualPlayerInteractStep")]
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class MutualPlayerInteractStep : TaskStep
 {
@@ -485,7 +491,7 @@ public class MutualPlayerInteractStep : TaskStep
 // ---------------------------------------------------
 // 11. GROUP NAVIGATE (Bedding Ceremony)
 // ---------------------------------------------------
-[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: "DepositItemStep/GroupNavigateStep")]
+[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
 [System.Serializable]
 public class GroupNavigateStep : TaskStep
 {
