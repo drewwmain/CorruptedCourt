@@ -25,6 +25,9 @@ namespace CorruptedCourt.UI
         [Tooltip("Optional. Shows the body-report line (who found whom, and where) for a meeting opened " +
                  "from a corpse report. Hidden again when the next action stage begins.")]
         public TextMeshProUGUI meetingAnnouncementText;
+        [Tooltip("Optional. Shows the meeting verdict and the full vote breakdown (confirm / deny / " +
+                 "abstained) after a tally. Cleared when a fresh meeting or action stage begins.")]
+        public TextMeshProUGUI meetingResultText;
 
         [Header("Voting UI")]
         public GameObject openVoteButton; // NEW: The button in the top right to open the panel
@@ -92,11 +95,13 @@ namespace CorruptedCourt.UI
             GameEvents.MatchStateChanged   += OnMatchStateChanged;
             GameEvents.AbsentPlayersChanged += OnAbsentPlayersChanged;
             GameEvents.MeetingAnnouncement  += OnMeetingAnnouncement;
+            GameEvents.MeetingResult        += OnMeetingResult;
             GameEvents.CorruptedInventoryChanged += UpdateCorruptedInventory;
             GameEvents.CorruptedSlotHighlighted  += HighlightSlot;
             GameEvents.TransitionTimerTicked     += UpdateTransitionTimer;
             GameEvents.GameOverShown             += ShowGameOverScreen;
             GameEvents.GameOverHidden            += HideGameOverScreen;
+            GameEvents.NominationPhaseStarted    += EnableVotingPhase;
             GameEvents.VotingPhaseStarted        += EnableVotingPhase;
             GameEvents.VotingPanelHidden         += HideVotingPanel;
 
@@ -119,11 +124,13 @@ namespace CorruptedCourt.UI
             GameEvents.MatchStateChanged   -= OnMatchStateChanged;
             GameEvents.AbsentPlayersChanged -= OnAbsentPlayersChanged;
             GameEvents.MeetingAnnouncement  -= OnMeetingAnnouncement;
+            GameEvents.MeetingResult        -= OnMeetingResult;
             GameEvents.CorruptedInventoryChanged -= UpdateCorruptedInventory;
             GameEvents.CorruptedSlotHighlighted  -= HighlightSlot;
             GameEvents.TransitionTimerTicked     -= UpdateTransitionTimer;
             GameEvents.GameOverShown             -= ShowGameOverScreen;
             GameEvents.GameOverHidden            -= HideGameOverScreen;
+            GameEvents.NominationPhaseStarted    -= EnableVotingPhase;
             GameEvents.VotingPhaseStarted        -= EnableVotingPhase;
             GameEvents.VotingPanelHidden         -= HideVotingPanel;
         }
@@ -173,6 +180,16 @@ namespace CorruptedCourt.UI
                 meetingAnnouncementText.text = "";
                 meetingAnnouncementText.gameObject.SetActive(false);
             }
+
+            // The tally is computed at meeting-end, right before the next action stage - so the
+            // breakdown stays up through that action stage and only clears when the NEXT meeting's
+            // transition begins (or the match resets).
+            if (meetingResultText != null
+                && (state == MatchManager.MatchState.TransitionToMeeting || state == MatchManager.MatchState.Initialization))
+            {
+                meetingResultText.text = "";
+                meetingResultText.gameObject.SetActive(false);
+            }
         }
 
         // A meeting was opened by a corpse report - show who found the body and where.
@@ -181,6 +198,14 @@ namespace CorruptedCourt.UI
             if (meetingAnnouncementText == null) return;
             meetingAnnouncementText.gameObject.SetActive(true);
             meetingAnnouncementText.text = $"<color=#E74C3C><b>{announcement}</b></color>";
+        }
+
+        // A meeting resolved - show the verdict and the full confirm / deny / abstained breakdown.
+        private void OnMeetingResult(string summary)
+        {
+            if (meetingResultText == null) return;
+            meetingResultText.gameObject.SetActive(true);
+            meetingResultText.text = summary;
         }
 
         void Update()
@@ -313,17 +338,24 @@ namespace CorruptedCourt.UI
 
         // --- VOTING UI LOGIC ---
 
-        // NEW: Called by the VotingManager when the meeting phase officially begins
+        // Called when the meeting opens for input - either the inquest nomination phase
+        // (NominationPhaseStarted) or a trial vote (VotingPhaseStarted).
         public void EnableVotingPhase()
         {
             if (openVoteButton != null) openVoteButton.SetActive(true);
+
+            // If the panel is already open (e.g. a nomination phase just resolved into the trial vote),
+            // rebuild its contents for the phase we are now in.
+            if (votingPanel != null && votingPanel.activeSelf) ShowVotingPanel();
         }
 
-        // CHANGED: This is now triggered manually by the player clicking the Top-Right button
+        // CHANGED: This is now triggered manually by the player clicking the Top-Right button. The panel
+        // contents depend on the meeting's current phase: nominate a suspect, or cast a trial vote.
         public void ShowVotingPanel()
         {
-            votingPanel.SetActive(true);
+            if (votingPanel == null || votingButtonContainer == null) return;
 
+            votingPanel.SetActive(true);
             if (openVoteButton != null) openVoteButton.SetActive(false);
 
             foreach (Transform child in votingButtonContainer)
@@ -331,34 +363,65 @@ namespace CorruptedCourt.UI
                 Destroy(child.gameObject);
             }
 
-            // NEW: The Trial Voting Options
-            CreateVoteButton("Confirm Execution", "Confirm");
-            CreateVoteButton("Deny Execution", "Deny");
-            CreateVoteButton("Skip Vote", "Skip");
+            VotingManager vm = VotingManager.Instance;
+            if (vm != null && vm.AwaitingNominations)
+            {
+                // Inquest nomination phase: one button per living court member.
+                if (RoleManager.Instance != null)
+                {
+                    foreach (PlayerController p in RoleManager.Instance.allPlayers)
+                    {
+                        if (p == null || p.Vitals == null || p.Vitals.isGhost) continue;
+                        PlayerController nominee = p; // capture per-iteration for the closure
+                        CreateVoteButton($"Nominate {p.gameObject.name}", () =>
+                        {
+                            PlayerController local = LocalPlayer;
+                            if (VotingManager.Instance != null && local != null)
+                                VotingManager.Instance.CastNomination(local, nominee);
+                        });
+                    }
+                }
+            }
+            else if (vm != null && LocalPlayer != null && LocalPlayer == vm.condemnedPlayer)
+            {
+                // The defendant cannot vote in their own trial - say so instead of offering the options.
+                CreateVoteButton("You are the defendant - you cannot vote", null);
+            }
+            else
+            {
+                // Trial vote: Gallows trial, or an inquest that has reached a defendant.
+                CreateVoteButton("Confirm Execution", () => CastLocalVote(VotingManager.VoteConfirm));
+                CreateVoteButton("Deny Execution",    () => CastLocalVote(VotingManager.VoteDeny));
+                CreateVoteButton("Skip (abstain)",    () => CastLocalVote(VotingManager.VoteSkip));
+            }
         }
 
         public void HideVotingPanel()
         {
-            votingPanel.SetActive(false);
+            if (votingPanel != null) votingPanel.SetActive(false);
             if (openVoteButton != null) openVoteButton.SetActive(false); // Ensure this hides when the meeting ends
         }
 
-        private void CreateVoteButton(string buttonText, string voteOption)
+        private void CastLocalVote(string voteOption)
+        {
+            PlayerController local = LocalPlayer;
+            if (VotingManager.Instance != null && local != null)
+                VotingManager.Instance.CastVote(local, voteOption);
+        }
+
+        private void CreateVoteButton(string buttonText, System.Action onClick)
         {
             GameObject newBtnObj = Instantiate(votingButtonPrefab, votingButtonContainer);
             Button btn = newBtnObj.GetComponent<Button>();
             TextMeshProUGUI tmpText = newBtnObj.GetComponentInChildren<TextMeshProUGUI>();
 
             if (tmpText != null) tmpText.text = buttonText;
+            if (btn == null) return;
 
             btn.onClick.AddListener(() =>
             {
-                PlayerController local = LocalPlayer;
-                if (VotingManager.Instance != null && local != null)
-                {
-                    VotingManager.Instance.CastVote(local, voteOption);
-                    btn.image.color = Color.gray;
-                }
+                onClick?.Invoke();
+                btn.image.color = Color.gray;
             });
         }
 

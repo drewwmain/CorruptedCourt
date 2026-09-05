@@ -51,10 +51,21 @@ namespace CorruptedCourt.Gameplay
 
         /// <summary>A meeting was opened by a body report. Carries a ready-to-display line naming the
         /// reporter, the victim and the death zone, for the meeting UI. Raised from
-        /// <c>MatchManager.TriggerReportedBodyMeeting</c>. G2.2 will replace this with a structured
-        /// reported-body meeting type.</summary>
+        /// <c>MatchManager.TriggerReportedBodyMeeting</c>.</summary>
         public static event Action<string> MeetingAnnouncement;
         public static void RaiseMeetingAnnouncement(string announcement) => MeetingAnnouncement?.Invoke(announcement);
+
+        /// <summary>An inquest opened and is taking nominations for a defendant. The meeting UI should
+        /// offer the nominate affordance instead of the trial-vote options. Raised from
+        /// <c>VotingManager.StartMeeting</c>.</summary>
+        public static event Action NominationPhaseStarted;
+        public static void RaiseNominationPhaseStarted() => NominationPhaseStarted?.Invoke();
+
+        /// <summary>A meeting resolved. Carries a ready-to-display summary: the verdict plus the full
+        /// vote breakdown (confirm / deny / abstained). Raised from <c>VotingManager</c> after a tally
+        /// or an inquest that reached no defendant.</summary>
+        public static event Action<string> MeetingResult;
+        public static void RaiseMeetingResult(string summary) => MeetingResult?.Invoke(summary);
 
         /// <summary>A player entered or left a <see cref="TaskZone"/> (their currentZoneID just changed).
         /// Carries that player. Lets managers track room occupancy off events instead of polling every frame.</summary>
@@ -134,6 +145,8 @@ namespace CorruptedCourt.Gameplay
             MatchStateChanged = null;
             AbsentPlayersChanged = null;
             MeetingAnnouncement = null;
+            NominationPhaseStarted = null;
+            MeetingResult = null;
             PlayerZoneChanged = null;
             PlayerGhosted = null;
             StationReceivedDeposit = null;

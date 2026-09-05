@@ -70,12 +70,15 @@ namespace CorruptedCourt.Gameplay
 
         // --- Most recent body report (Corpse.OnInteract -> TriggerReportedBodyMeeting). A report has no
         //     condemned defendant, so this is separate from VotingManager.condemnedPlayer. Recorded for
-        //     the meeting flow / UI; G2.2 turns this into a proper reported-body meeting type. Cleared
-        //     when a fresh action stage begins. ---
+        //     the meeting flow / UI. Cleared when a fresh action stage begins. ---
         public PlayerController LastBodyReportReporter { get; private set; }
         public PlayerController LastBodyReportVictim { get; private set; }
         public string LastBodyReportZoneID { get; private set; }
         public bool HasPendingBodyReport { get; private set; }
+
+        // Which kind of meeting the current transition is heading into. Set by whichever trigger fired,
+        // read once when MeetingPhase opens and handed to VotingManager.StartMeeting.
+        private VotingManager.MeetingKind pendingMeetingKind = VotingManager.MeetingKind.GallowsTrial;
 
         void Awake()
         {
@@ -191,7 +194,7 @@ namespace CorruptedCourt.Gameplay
                     RebuildAbsentSet();
 
                     // 3. Trigger the meeting flow; the absent list goes out as an event for the view.
-                    if (VotingManager.Instance != null) VotingManager.Instance.StartMeeting();
+                    if (VotingManager.Instance != null) VotingManager.Instance.StartMeeting(pendingMeetingKind);
                     BroadcastAbsentPlayers();
                     break;
 
@@ -243,6 +246,7 @@ namespace CorruptedCourt.Gameplay
             if (currentState == MatchState.ActionStage)
             {
                 Log.Game("<color=#F1C40F>--- THE KING HAS CALLED FOR AN EXECUTION! ---</color>");
+                pendingMeetingKind = VotingManager.MeetingKind.GallowsTrial;
                 ChangeState(MatchState.TransitionToMeeting);
             }
         }
@@ -273,10 +277,9 @@ namespace CorruptedCourt.Gameplay
         }
 
         // Entry point for a corpse report (Corpse.OnInteract). Unlike TriggerGallowsMeeting there is no
-        // condemned defendant yet - a report just opens a meeting. Records who reported whom and where,
-        // raises the meeting-open announcement, then reuses the existing pre-meeting flow. Returns false
-        // (and does nothing) if a meeting is already under way, so the body stays reportable. G2.2
-        // splits this into a real reported-body meeting type.
+        // condemned defendant yet - it opens an Inquest, which nominates one. Records who reported whom
+        // and where, raises the meeting-open announcement, then reuses the existing pre-meeting flow.
+        // Returns false (and does nothing) if a meeting is already under way, so the body stays reportable.
         public bool TriggerReportedBodyMeeting(PlayerController reporter, PlayerController victim, string deathZoneID)
         {
             if (currentState != MatchState.ActionStage) return false;
@@ -292,6 +295,7 @@ namespace CorruptedCourt.Gameplay
 
             Log.Game($"<color=#E74C3C>--- BODY REPORTED: {reporterName} found {victimName} in {zoneName}! ---</color>");
 
+            pendingMeetingKind = VotingManager.MeetingKind.Inquest;
             ChangeState(MatchState.TransitionToMeeting);
 
             // Raised after the state change so the view has already reset its meeting panels for the
