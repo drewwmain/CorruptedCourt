@@ -1,58 +1,61 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class MainMenuManager : MonoBehaviour
+namespace CorruptedCourt.UI
 {
-    [Header("UI Panels")]
-    public GameObject mainMenuPanel;
-    public GameObject characterAppearancePanel;
-    public GameObject settingsPanel;
-
-    [Header("Scene Settings")]
-    [Tooltip("Type the exact name of your main gameplay scene here")]
-    public string gameSceneName = "GameScene"; 
-
-    void Start()
+    public class MainMenuManager : MonoBehaviour
     {
-        // Ensure only the main menu is active when the game boots up
-        ShowMainMenu();
-        
-        // Unlock the cursor so the player can click the buttons
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-    }
+        [Header("UI Panels")]
+        public GameObject mainMenuPanel;
+        public GameObject characterAppearancePanel;
+        public GameObject settingsPanel;
 
-    public void PlayGame()
-    {
-        Debug.Log("Loading the Game...");
-        SceneManager.LoadScene(gameSceneName);
-    }
+        [Header("Scene Settings")]
+        [Tooltip("Type the exact name of your main gameplay scene here")]
+        public string gameSceneName = "GameScene";
 
-    public void OpenCharacterAppearance()
-    {
-        mainMenuPanel.SetActive(false);
-        characterAppearancePanel.SetActive(true);
-        settingsPanel.SetActive(false);
-    }
+        void Start()
+        {
+            // Ensure only the main menu is active when the game boots up
+            ShowMainMenu();
 
-    public void OpenSettings()
-    {
-        mainMenuPanel.SetActive(false);
-        characterAppearancePanel.SetActive(false);
-        settingsPanel.SetActive(true);
-    }
+            // Unlock the cursor so the player can click the buttons
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
 
-    public void ShowMainMenu()
-    {
-        mainMenuPanel.SetActive(true);
-        
-        if (characterAppearancePanel != null) characterAppearancePanel.SetActive(false);
-        if (settingsPanel != null) settingsPanel.SetActive(false);
-    }
+        public void PlayGame()
+        {
+            Debug.Log("Loading the Game...");
+            SceneManager.LoadScene(gameSceneName);
+        }
 
-    public void QuitGame()
-    {
-        Debug.Log("Quitting the Game...");
-        Application.Quit();
+        public void OpenCharacterAppearance()
+        {
+            mainMenuPanel.SetActive(false);
+            characterAppearancePanel.SetActive(true);
+            settingsPanel.SetActive(false);
+        }
+
+        public void OpenSettings()
+        {
+            mainMenuPanel.SetActive(false);
+            characterAppearancePanel.SetActive(false);
+            settingsPanel.SetActive(true);
+        }
+
+        public void ShowMainMenu()
+        {
+            mainMenuPanel.SetActive(true);
+
+            if (characterAppearancePanel != null) characterAppearancePanel.SetActive(false);
+            if (settingsPanel != null) settingsPanel.SetActive(false);
+        }
+
+        public void QuitGame()
+        {
+            Debug.Log("Quitting the Game...");
+            Application.Quit();
+        }
     }
 }

@@ -1,24 +1,29 @@
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
+using CorruptedCourt.Gameplay;
+using CorruptedCourt.Items;
 
-// ---------------------------------------------------
-// 9. EQUIP CLOTHING STEP
-// ---------------------------------------------------
-[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
-[System.Serializable]
-public class EquipClothingStep : TaskStep
+namespace CorruptedCourt.Tasks
 {
-    // NOTE: clothing has no ItemDefinition today, so this is the one step still matching on a
-    // GameObject name. Migrate it when clothing gets typed identities (out of scope for phase 3b).
-    public string clothingName;
-
-    public override string GetObjectiveText()
+    // ---------------------------------------------------
+    // 9. EQUIP CLOTHING STEP
+    // ---------------------------------------------------
+    [MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
+    [System.Serializable]
+    public class EquipClothingStep : TaskStep
     {
-        return $"Put on the <color=#5DADE2>{clothingName}</color>";
-    }
+        // NOTE: clothing has no ItemDefinition today, so this is the one step still matching on a
+        // GameObject name. Migrate it when clothing gets typed identities (out of scope for phase 3b).
+        public string clothingName;
 
-    public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
-    {
-        return targetInteractable != null && targetInteractable.name.Contains(clothingName);
+        public override string GetObjectiveText()
+        {
+            return $"Put on the <color=#5DADE2>{clothingName}</color>";
+        }
+
+        public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
+        {
+            return targetInteractable != null && targetInteractable.name.Contains(clothingName);
+        }
     }
 }

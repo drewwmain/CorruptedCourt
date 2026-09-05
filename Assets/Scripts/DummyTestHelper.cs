@@ -1,27 +1,31 @@
 using UnityEngine;
+using CorruptedCourt.Items;
 
-// This script is strictly for Editor testing and can be removed before final build
-[RequireComponent(typeof(PlayerController))]
-public class DummyTestHelper : MonoBehaviour
+namespace CorruptedCourt.Gameplay
 {
-    [Header("Test State Injection")]
-    [Tooltip("Drag the item prefab here that you want the dummy to hold on start.")]
-    public PickupItem itemToEquip;
-
-    void Start()
+    // This script is strictly for Editor testing and can be removed before final build
+    [RequireComponent(typeof(PlayerController))]
+    public class DummyTestHelper : MonoBehaviour
     {
-        if (itemToEquip != null)
+        [Header("Test State Injection")]
+        [Tooltip("Drag the item prefab here that you want the dummy to hold on start.")]
+        public PickupItem itemToEquip;
+
+        void Start()
         {
-            PlayerController player = GetComponent<PlayerController>();
-            
-            // 1. Create a fresh physical copy of the item in the world (identity rides on 'definition',
-            //    which Instantiate copies - no name fix-up needed for matching).
-            PickupItem clone = Instantiate(itemToEquip);
+            if (itemToEquip != null)
+            {
+                PlayerController player = GetComponent<PlayerController>();
 
-            // 2. Force the dummy player to equip it using your existing public method
-            player.EquipItem(clone);
+                // 1. Create a fresh physical copy of the item in the world (identity rides on 'definition',
+                //    which Instantiate copies - no name fix-up needed for matching).
+                PickupItem clone = Instantiate(itemToEquip);
 
-            Debug.Log($"[Test Harness] Forced {gameObject.name} to equip {clone.DisplayName}");
+                // 2. Force the dummy player to equip it using your existing public method
+                player.EquipItem(clone);
+
+                Debug.Log($"[Test Harness] Forced {gameObject.name} to equip {clone.DisplayName}");
+            }
         }
     }
 }

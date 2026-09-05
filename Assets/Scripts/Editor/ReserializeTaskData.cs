@@ -1,23 +1,27 @@
 using UnityEditor;
 using UnityEngine;
+using CorruptedCourt.Tasks;
 
-/// <summary>
-/// One-shot utility: rewrites every TaskData .asset to the current serialization form so a
-/// [MovedFrom] managed-reference type remap gets baked to disk. Safe to delete after use.
-/// </summary>
-public static class ReserializeTaskData
+namespace CorruptedCourt.EditorTools
 {
-    [MenuItem("Corrupted Court/Reserialize TaskData Assets")]
-    public static void Run()
+    /// <summary>
+    /// One-shot utility: rewrites every TaskData .asset to the current serialization form so a
+    /// [MovedFrom] managed-reference type remap gets baked to disk. Safe to delete after use.
+    /// </summary>
+    public static class ReserializeTaskData
     {
-        string[] guids = AssetDatabase.FindAssets("t:TaskData");
-        var paths = new string[guids.Length];
-        for (int i = 0; i < guids.Length; i++)
-            paths[i] = AssetDatabase.GUIDToAssetPath(guids[i]);
+        [MenuItem("Corrupted Court/Reserialize TaskData Assets")]
+        public static void Run()
+        {
+            string[] guids = AssetDatabase.FindAssets("t:TaskData");
+            var paths = new string[guids.Length];
+            for (int i = 0; i < guids.Length; i++)
+                paths[i] = AssetDatabase.GUIDToAssetPath(guids[i]);
 
-        AssetDatabase.ForceReserializeAssets(paths);
-        AssetDatabase.SaveAssets();
+            AssetDatabase.ForceReserializeAssets(paths);
+            AssetDatabase.SaveAssets();
 
-        Debug.Log($"[ReserializeTaskData] Reserialized {paths.Length} TaskData assets.");
+            Debug.Log($"[ReserializeTaskData] Reserialized {paths.Length} TaskData assets.");
+        }
     }
 }

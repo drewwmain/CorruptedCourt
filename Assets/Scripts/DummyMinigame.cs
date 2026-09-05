@@ -1,11 +1,14 @@
 using UnityEngine;
 
-public class DummyMinigame : MinigameBase
+namespace CorruptedCourt.Minigames
 {
-    // We will link this to a UI Button in the Inspector
-    public void OnClickWinButton()
+    public class DummyMinigame : MinigameBase
     {
-        Debug.Log("Minigame Won! Sending signal back to Player...");
-        CompleteMinigame(); // This calls the base method we wrote in Phase 2
+        // We will link this to a UI Button in the Inspector
+        public void OnClickWinButton()
+        {
+            Debug.Log("Minigame Won! Sending signal back to Player...");
+            CompleteMinigame(); // This calls the base method we wrote in Phase 2
+        }
     }
 }

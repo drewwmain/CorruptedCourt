@@ -1,41 +1,45 @@
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
+using CorruptedCourt.Gameplay;
 
-// ---------------------------------------------------
-// 11. GROUP NAVIGATE (Bedding Ceremony)
-// ---------------------------------------------------
-[MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
-[System.Serializable]
-public class GroupNavigateStep : TaskStep
+namespace CorruptedCourt.Tasks
 {
-    [Tooltip("The ID of the room the crowd must gather in.")]
-    public string targetZoneID;
-
-    [Tooltip("How many total players must be in the room to complete the step.")]
-    public int requiredPlayerCount;
-
-    public override string GetObjectiveText()
+    // ---------------------------------------------------
+    // 11. GROUP NAVIGATE (Bedding Ceremony)
+    // ---------------------------------------------------
+    [MovedFrom(true, sourceNamespace: null, sourceAssembly: "Assembly-CSharp", sourceClassName: null)]
+    [System.Serializable]
+    public class GroupNavigateStep : TaskStep
     {
-        return $"Gather {requiredPlayerCount} members of the court in the <color=#F4D03F>{targetZoneID}</color>";
-    }
+        [Tooltip("The ID of the room the crowd must gather in.")]
+        public string targetZoneID;
 
-    public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
-    {
-        if (player.Vitals.currentZoneID != targetZoneID) return false;
+        [Tooltip("How many total players must be in the room to complete the step.")]
+        public int requiredPlayerCount;
 
-        int playersInRoom = 0;
-
-        if (RoleManager.Instance != null)
+        public override string GetObjectiveText()
         {
-            foreach (PlayerController p in RoleManager.Instance.allPlayers)
-            {
-                if (!p.Vitals.isGhost && p.Vitals.currentZoneID == targetZoneID)
-                {
-                    playersInRoom++;
-                }
-            }
+            return $"Gather {requiredPlayerCount} members of the court in the <color=#F4D03F>{targetZoneID}</color>";
         }
 
-        return playersInRoom >= requiredPlayerCount;
+        public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
+        {
+            if (player.Vitals.currentZoneID != targetZoneID) return false;
+
+            int playersInRoom = 0;
+
+            if (RoleManager.Instance != null)
+            {
+                foreach (PlayerController p in RoleManager.Instance.allPlayers)
+                {
+                    if (!p.Vitals.isGhost && p.Vitals.currentZoneID == targetZoneID)
+                    {
+                        playersInRoom++;
+                    }
+                }
+            }
+
+            return playersInRoom >= requiredPlayerCount;
+        }
     }
 }

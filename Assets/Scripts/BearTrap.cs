@@ -1,31 +1,34 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Collider))]
-public class BearTrap : MonoBehaviour
+namespace CorruptedCourt.Gameplay
 {
-    [Tooltip("How long the player is frozen for.")]
-    public float stunDuration = 5f;
-
-    void Awake()
+    [RequireComponent(typeof(Collider))]
+    public class BearTrap : MonoBehaviour
     {
-        // Failsafe: Ensure the collider is a trigger so players don't physically bump into it
-        GetComponent<Collider>().isTrigger = true;
-    }
+        [Tooltip("How long the player is frozen for.")]
+        public float stunDuration = 5f;
 
-    void OnTriggerEnter(Collider other)
-    {
-        PlayerController player = other.GetComponent<PlayerController>();
-
-        if (player != null)
+        void Awake()
         {
-            // Only trigger if the player is alive AND they are NOT a Corrupted!
-            if (!player.Vitals.isGhost && player.Vitals.currentRole != PlayerRole.Corrupted)
+            // Failsafe: Ensure the collider is a trigger so players don't physically bump into it
+            GetComponent<Collider>().isTrigger = true;
+        }
+
+        void OnTriggerEnter(Collider other)
+        {
+            PlayerController player = other.GetComponent<PlayerController>();
+
+            if (player != null)
             {
-                player.Vitals.ApplyStun(stunDuration);
-                
-                // Snap the trap shut, play a sound, and destroy it
-                Debug.Log($"Trap sprung on {player.gameObject.name}!");
-                Destroy(gameObject);
+                // Only trigger if the player is alive AND they are NOT a Corrupted!
+                if (!player.Vitals.isGhost && player.Vitals.currentRole != PlayerRole.Corrupted)
+                {
+                    player.Vitals.ApplyStun(stunDuration);
+
+                    // Snap the trap shut, play a sound, and destroy it
+                    Debug.Log($"Trap sprung on {player.gameObject.name}!");
+                    Destroy(gameObject);
+                }
             }
         }
     }
