@@ -185,6 +185,7 @@ GameObject:
   - component: {fileID: 7311803123414329397}
   - component: {fileID: 1817573232352279913}
   - component: {fileID: 6479238678288258100}
+  - component: {fileID: 2247152661447351038}
   - component: {fileID: 8140029421252044161}
   m_Layer: 7
   m_Name: Player
@@ -281,9 +282,8 @@ MonoBehaviour:
   motor: {fileID: 0}
   playerCamera: {fileID: 791990344525845302}
   look: {fileID: 0}
-  rightHandSocket: {fileID: 7537152673229127564}
-  leftHandSocket: {fileID: 8180897982276795324}
   rightHandBone: {fileID: 0}
+  inventory: {fileID: 0}
   minigameHandGrip: 1
   rightHandFingerBones: []
   rightHandThumbBone: {fileID: 0}
@@ -359,9 +359,6 @@ MonoBehaviour:
   powerUpHoldPoint: {fileID: 7537152673229127564}
   activeSlotIndex: -1
   scrollCooldown: 0.15
-  maxThrowChargeTime: 2
-  baseThrowForce: 25
-  dropTapMaxDuration: 0.2
   trapPrefab: {fileID: 9106271627260861250, guid: f35682178cd67fb4a8e5081648f12ab7, type: 3}
   illusionPrefab: {fileID: 0}
   isMinigameLooking: 0
@@ -410,6 +407,24 @@ MonoBehaviour:
   leanHipLocalY: -0.1
   leanViewPitch: -5
   leanMinigameForwardFactor: 0.2
+--- !u!114 &2247152661447351038
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2979434807370161209}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 434bb35710af6d143ae04dab160edcd2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rightHandSocket: {fileID: 7537152673229127564}
+  leftHandSocket: {fileID: 8180897982276795324}
+  maxThrowChargeTime: 2
+  baseThrowForce: 25
+  dropTapMaxDuration: 0.2
+  itemSwappedToLeftHand: 0
 --- !u!114 &8140029421252044161
 MonoBehaviour:
   m_ObjectHideFlags: 0

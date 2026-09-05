@@ -53,13 +53,19 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private PlayerLook look;
 
     [Header("Equipment Settings")]
-    [SerializeField] private Transform rightHandSocket;
-    [SerializeField] private Transform leftHandSocket; // The future rig bone attachment point
     [SerializeField] private Transform rightHandBone;  // The actual rig hand bone (Hand_R) - items glued here follow the animated / IK'd arm
-    public Transform RightHandSocket => rightHandSocket;
-    public Transform LeftHandSocket => leftHandSocket;
+    public Transform RightHandSocket => inventory.RightHandSocket;
+    public Transform LeftHandSocket => inventory.LeftHandSocket;
     public Transform RightHandBone => rightHandBone != null ? rightHandBone
         : (animator != null && animator.isHuman ? animator.GetBoneTransform(HumanBodyBones.RightHand) : null);
+    /// <summary>Exposed for PlayerInventory.AttachHaulItem's debug log.</summary>
+    public Animator PlayerAnimator => animator;
+
+    [Header("Inventory")]
+    [Tooltip("Owns held items (both hands), hand sockets, equip/haul/swap-hands logic, and the " +
+             "drop-vs-throw charge system. Must live on this same GameObject. Resolved automatically " +
+             "via GetComponent if left unassigned.")]
+    [SerializeField] private PlayerInventory inventory;
 
     [Header("Minigame Hand Grip")]
     [Tooltip("While a minigame is open, curl the right-hand fingers into a grab while the LEFT MOUSE BUTTON is held and open them when it's released - a visual 'reach in and place / grab' gesture.")]
@@ -104,8 +110,7 @@ public class PlayerController : MonoBehaviour
     [HideInInspector] public Quaternion haulLeftHandRot = Quaternion.identity, haulRightHandRot = Quaternion.identity;
     [HideInInspector] public bool haulUseRotation;
     private float haulIKWeight;
-    private PickupItem currentlyHeldItem; // RIGHT hand: the "active" hand used for throwing, processing, minigames, and partner tasks
-    private PickupItem leftHeldItem;      // LEFT hand: the off-hand. Carries a second item; press SwapHands to move it into the active hand
+    // currentlyHeldItem / leftHeldItem now live on PlayerInventory.
     public int currentItemIndex = 0;
 
     [Header("Social Deduction Settings")]
@@ -226,15 +231,8 @@ public class PlayerController : MonoBehaviour
     public float scrollCooldown = 0.15f; 
     private float lastScrollTime = 0f;
 
-    [Header("Throwing Mechanics")]
-    public float maxThrowChargeTime = 2.0f; // Maximum seconds the button can be held
-    public float baseThrowForce = 25f;      // The baseline force before weight is applied
-    [Tooltip("Hold [Q] up to this long = a tap: drop the item in place. Longer = charge and throw.")]
-    public float dropTapMaxDuration = 0.2f;
-
-    private float currentThrowCharge = 0f;
-    private bool isChargingThrow = false;
-    private float dropPressTime = 0f;
+    // The drop/throw charge system (maxThrowChargeTime, baseThrowForce, dropTapMaxDuration,
+    // isChargingThrow, currentThrowCharge, dropPressTime) now lives on PlayerInventory.
 
     [Header("Power-Up Prefabs & Status")]
     public GameObject trapPrefab;
@@ -255,7 +253,7 @@ public class PlayerController : MonoBehaviour
     private Transform activeMinigameStation;
     public GameObject activeMinigameTarget;
     public TaskInstance activeMinigameTask; // The task the open minigame belongs to (its waypoint is hidden while playing)
-    private bool itemSwappedToLeftHand = false;
+    // itemSwappedToLeftHand now lives on PlayerInventory (see ReturnSwappedItem).
     // --- NEW: Tracks the current target for IK logic ---
     public MinigameTargetType currentMinigameTargetType = MinigameTargetType.None;
     // minigameLookLimit, currentMinigameYaw, and the camera snap anchors (minigameStartBodyRotation /
@@ -301,6 +299,7 @@ public class PlayerController : MonoBehaviour
 
         if (motor == null) motor = GetComponent<PlayerMotor>();
         if (look == null) look = GetComponent<PlayerLook>();
+        if (inventory == null) inventory = GetComponent<PlayerInventory>();
         playerInput = GetComponent<PlayerInput>();
         // Grab the Animator from the child CharacterVisuals model
         animator = GetComponentInChildren<Animator>();
@@ -356,11 +355,7 @@ public class PlayerController : MonoBehaviour
                 CheckForInteractable();
 
                 // --- NEW: THROW CHARGING TIMER ---
-                if (isChargingThrow)
-                {
-                    currentThrowCharge += Time.deltaTime;
-                    currentThrowCharge = Mathf.Clamp(currentThrowCharge, 0f, maxThrowChargeTime);
-                }
+                inventory.TickThrowCharge();
             }
             else
             {
@@ -497,7 +492,7 @@ public class PlayerController : MonoBehaviour
             }
 
             if (isPlayingMinigame) return;
-            if (currentlyHeldItem == null && leftHeldItem == null)
+            if (GetHeldItem() == null && GetLeftHeldItem() == null)
             {
                 Debug.Log("Nothing to drop.");
                 return;
@@ -505,43 +500,24 @@ public class PlayerController : MonoBehaviour
 
             // Start of press: begin charging a potential throw. If it turns out to be a tap we
             // just drop instead on release.
-            dropPressTime = Time.time;
-            isChargingThrow = true;
-            currentThrowCharge = 0f;
+            inventory.StartCharging();
         }
         else
         {
-            if (!isChargingThrow) return; // press was consumed (pardon / nothing held / minigame)
-            isChargingThrow = false;
+            if (!inventory.IsChargingThrow) return; // press was consumed (pardon / nothing held / minigame)
+            inventory.StopCharging();
 
-            bool wasTap = (Time.time - dropPressTime) <= dropTapMaxDuration;
+            bool wasTap = inventory.WasTap;
 
             // Ghosts and taps just drop in place; a real hold throws the active-hand item.
-            if (isGhost || wasTap || currentlyHeldItem == null)
-                DropHeldItemInPlace();
+            if (isGhost || wasTap || GetHeldItem() == null)
+                inventory.DropHeldItemInPlace();
             else
-                ExecuteThrow();
+                inventory.ExecuteThrow();
         }
     }
 
-    // Drops the active-hand item where the player stands; if the active hand is empty, drops the off-hand item.
-    private void DropHeldItemInPlace()
-    {
-        PickupItem toDrop = currentlyHeldItem != null ? currentlyHeldItem : leftHeldItem;
-        if (toDrop == null)
-        {
-            Debug.Log("Nothing to drop.");
-            return;
-        }
-
-        toDrop.DetachFromHand();
-        if (toDrop == currentlyHeldItem) currentlyHeldItem = null;
-        else leftHeldItem = null;
-
-        Debug.Log($"Dropped {toDrop.DisplayName}.");
-        foreach (TaskInstance task in activeTasks) task.CheckForTaskRegression(this);
-        RefreshLocalWaypoints();
-    }
+    // DropHeldItemInPlace now lives on PlayerInventory (inventory.DropHeldItemInPlace).
 
     // Triggered by the 'R' key (SwapHands action). Moves items between the left and right hands.
     public void OnSwapHands(InputValue value)
@@ -552,23 +528,15 @@ public class PlayerController : MonoBehaviour
         if (isPlayingMinigame || isArrested) return;
 
         // A two-handed haul item occupies both hands - nothing to swap.
-        if (currentlyHeldItem != null && currentlyHeldItem.haulWithBothHands) return;
+        if (GetHeldItem() != null && GetHeldItem().haulWithBothHands) return;
 
-        if (currentlyHeldItem == null && leftHeldItem == null)
+        if (GetHeldItem() == null && GetLeftHeldItem() == null)
         {
             Debug.Log("Nothing to swap between hands.");
             return;
         }
 
-        PickupItem temp = currentlyHeldItem;
-        currentlyHeldItem = leftHeldItem;
-        leftHeldItem = temp;
-
-        // Re-seat whatever ended up in each hand on the matching socket.
-        if (currentlyHeldItem != null) currentlyHeldItem.AttachToHand(rightHandSocket);
-        if (leftHeldItem != null) leftHeldItem.AttachToHand(leftHandSocket);
-
-        Debug.Log($"Swapped hands. Active: {(currentlyHeldItem != null ? currentlyHeldItem.DisplayName : "empty")} | Off-hand: {(leftHeldItem != null ? leftHeldItem.DisplayName : "empty")}");
+        inventory.SwapHands();
 
         RefreshLocalWaypoints();
     }
@@ -579,9 +547,9 @@ public class PlayerController : MonoBehaviour
         if (!value.isPressed || isGhost) return;
 
         // --- If we are holding an item, don't punch (a Royal can still raise it to block). ---
-        if (currentlyHeldItem != null)
+        if (GetHeldItem() != null)
         {
-            if (currentlyHeldItem is RoyalWeapon royalWeapon)
+            if (GetHeldItem() is RoyalWeapon royalWeapon)
             {
                 StartCoroutine(RoyalWeaponBlockRoutine(royalWeapon));
             }
@@ -633,7 +601,7 @@ public class PlayerController : MonoBehaviour
         {
             if (value.isPressed)
             {
-                if (currentlyHeldItem != null || leftHeldItem != null || activePowerUpVisual != null)
+                if (GetHeldItem() != null || GetLeftHeldItem() != null || activePowerUpVisual != null)
                 {
                     Debug.Log("You cannot strangle someone while holding an item or power-up!");
                     return;
@@ -746,7 +714,7 @@ public class PlayerController : MonoBehaviour
         while (strangleButtonHeld && targetVictim == null)
         {
             if (isGhost || isStunned || isArrested || isBeingPushed) break;
-            if (currentlyHeldItem != null || leftHeldItem != null || activePowerUpVisual != null) break;
+            if (GetHeldItem() != null || GetLeftHeldItem() != null || activePowerUpVisual != null) break;
 
             // Grabs only when we've actually closed to arm's length in front of a valid victim.
             targetVictim = FindStrangleVictim();
@@ -1022,12 +990,12 @@ public class PlayerController : MonoBehaviour
     // elbow-hint positions. Hands are auto-assigned by which side of the player each grip is on.
     private void UpdateHaulIKTarget()
     {
-        bool hauling = currentlyHeldItem != null && currentlyHeldItem.haulWithBothHands;
+        bool hauling = GetHeldItem() != null && GetHeldItem().haulWithBothHands;
         haulActive = hauling;
         if (!hauling) return;
 
-        PickupItem hi = currentlyHeldItem;
-        PoseHaulItem();
+        PickupItem hi = GetHeldItem();
+        inventory.PoseHaulItem();
 
         Transform gpA = hi.leftGripPoint;
         Transform gpB = hi.rightGripPoint;
@@ -1149,61 +1117,7 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void ExecuteThrow()
-    {
-        isChargingThrow = false;
-        
-        if (currentlyHeldItem == null) return;
-
-        // 1. Calculate the final force 
-        // (Charge % * Base Force) / Item Weight
-        float chargePercentage = currentThrowCharge / maxThrowChargeTime;
-        
-        // Failsafe: Ensure a quick tap still applies a tiny bit of force (10% minimum) so it doesn't just drop at their feet
-        chargePercentage = Mathf.Max(chargePercentage, 0.1f); 
-        
-        float finalForce = (chargePercentage * baseThrowForce) / currentlyHeldItem.itemWeight;
-
-        // 2. Detach and clear the item from the player's inventory
-        PickupItem itemToThrow = currentlyHeldItem;
-        itemToThrow.DetachFromHand();
-        ClearHeldItem(); 
-
-        foreach (TaskInstance task in activeTasks)
-        {
-            task.CheckForTaskRegression(this);
-        }
-
-        // 3. Awaken the Physics components
-        Rigidbody rb = itemToThrow.GetComponent<Rigidbody>();
-        Collider col = itemToThrow.GetComponent<Collider>();
-
-        if (col != null) col.enabled = true;
-        if (rb != null)
-        {
-            rb.isKinematic = false;
-            rb.useGravity = true;
-
-            // 4. Apply the impulse force
-            // We add a tiny bit to the Y axis (Vector3.up * 0.1f) to give the throw a natural arc
-            Vector3 throwDirection = playerCamera.forward + (Vector3.up * 0.1f);
-            rb.AddForce(throwDirection.normalized * finalForce, ForceMode.Impulse);
-            
-            // Optional Polish: Add some random tumbling spin to the item while it flies
-            rb.AddTorque(UnityEngine.Random.insideUnitSphere * (finalForce * 0.5f), ForceMode.Impulse);
-        }
-
-        Debug.Log($"Threw {itemToThrow.DisplayName} with force {finalForce}. (Charge: {chargePercentage * 100}%, Weight: {itemToThrow.itemWeight})");
-
-        // --- NEW: PROJECTILE IMPACT SETUP ---
-        // Dynamically add the impact script to the item in the air
-        ThrownProjectile projectile = itemToThrow.gameObject.AddComponent<ThrownProjectile>();
-        
-        // Pass the player, the starting coordinates, the charge %, and the max punch force
-        projectile.Initialize(this, transform.position, chargePercentage, pushbackForce);
-        
-        RefreshLocalWaypoints();
-    }
+    // ExecuteThrow now lives on PlayerInventory (inventory.ExecuteThrow).
 
     public void OnUsePowerUp1(InputValue value) { if (value.isPressed) EquipCorruptedSlot(0); }
     public void OnUsePowerUp2(InputValue value) { if (value.isPressed) EquipCorruptedSlot(1); }
@@ -1291,15 +1205,15 @@ public class PlayerController : MonoBehaviour
         }
 
         // 5. We are equipping a VALID power-up!
-        if (currentlyHeldItem != null)
+        if (GetHeldItem() != null)
         {
             Debug.Log("Dropped standard item to pull out power-up!");
-            currentlyHeldItem = null;
+            ClearHeldItem();
         }
-        if (leftHeldItem != null)
+        if (GetLeftHeldItem() != null)
         {
             Debug.Log("Dropped off-hand item to pull out power-up!");
-            leftHeldItem = null;
+            ClearLeftHeldItem();
         }
 
         // Spawn the physical 3D model into their hand
@@ -1737,17 +1651,17 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"<color=#E74C3C>You are under arrest by {captor.gameObject.name}!</color>");
 
         // 1. Force drop whatever is in their hands (both hands)
-        if (currentlyHeldItem != null)
+        if (GetHeldItem() != null)
         {
             Debug.Log("You dropped your task item!");
-            currentlyHeldItem = null;
+            ClearHeldItem();
         }
-        if (leftHeldItem != null)
+        if (GetLeftHeldItem() != null)
         {
             Debug.Log("You dropped your off-hand item!");
-            leftHeldItem = null;
+            ClearLeftHeldItem();
         }
-        
+
         // 2. Force Corrupted to unequip any active power-ups
         if (activeSlotIndex != -1)
         {
@@ -2151,9 +2065,9 @@ public class PlayerController : MonoBehaviour
                         List<string> prompts = new List<string>();
 
                         // 1. MULTIPLAYER TASK (Available to Court, Corrupted, King, & Kingsguard)
-                        if (currentlyHeldItem != null && currentlyHeldItem.requiresPartner)
+                        if (GetHeldItem() != null && GetHeldItem().requiresPartner)
                         {
-                            prompts.Add($"Press <color=#F4D03F>[E]</color> to use <color=#5DADE2>{currentlyHeldItem.DisplayName}</color> with <color=#58D68D>{otherPlayer.gameObject.name}</color>");
+                            prompts.Add($"Press <color=#F4D03F>[E]</color> to use <color=#5DADE2>{GetHeldItem().DisplayName}</color> with <color=#58D68D>{otherPlayer.gameObject.name}</color>");
                         }
                         else
                         {
@@ -2201,21 +2115,21 @@ public class PlayerController : MonoBehaviour
            
             if (crosshair != null) crosshair.color = normalCrosshairColor;
 
-            if (currentlyHeldItem != null || leftHeldItem != null)
+            if (GetHeldItem() != null || GetLeftHeldItem() != null)
             {
                 if (interactionUI != null)
                 {
                     List<string> heldPrompts = new List<string>();
 
-                    if (currentlyHeldItem != null)
+                    if (GetHeldItem() != null)
                     {
                         // UPDATED: E is now explicitly for using, Q is for dropping
-                        heldPrompts.Add($"Press <color=#F4D03F>[E]</color> to use or <color=#F4D03F>[Q]</color> to drop <color=#5DADE2>{currentlyHeldItem.DisplayName}</color>");
+                        heldPrompts.Add($"Press <color=#F4D03F>[E]</color> to use or <color=#F4D03F>[Q]</color> to drop <color=#5DADE2>{GetHeldItem().DisplayName}</color>");
                     }
 
-                    if (leftHeldItem != null)
+                    if (GetLeftHeldItem() != null)
                     {
-                        heldPrompts.Add($"Press <color=#F4D03F>[R]</color> to swap in <color=#5DADE2>{leftHeldItem.DisplayName}</color> (off-hand)");
+                        heldPrompts.Add($"Press <color=#F4D03F>[R]</color> to swap in <color=#5DADE2>{GetLeftHeldItem().DisplayName}</color> (off-hand)");
                     }
 
                     interactionUI.text = string.Join("\n", heldPrompts);
@@ -2234,7 +2148,7 @@ public class PlayerController : MonoBehaviour
         // 0. Holding a depositable item near its deposit station: drop it off without needing to aim
         //    at the station (you often can't see past a hauled chest). Skipped when you're already
         //    aiming right at a deposit station - that one takes priority.
-        if (currentlyHeldItem != null && !(currentTarget is TaskDepositStation) && TryProximityDeposit())
+        if (GetHeldItem() != null && !(currentTarget is TaskDepositStation) && TryProximityDeposit())
             return;
 
         // 1. If we are looking at something interactable (Stations, items on the floor), interact with it
@@ -2340,20 +2254,20 @@ public class PlayerController : MonoBehaviour
             HandlePlayerInteraction(targetPlayer);
         }
         // 3. If we are looking at empty space, but holding an item, try to USE it
-        else if (currentlyHeldItem != null)
+        else if (GetHeldItem() != null)
         {
             // A spent item (e.g. an emptied plate) does nothing on [E] - just carry or drop it.
-            if (currentlyHeldItem.Has(ItemState.Spent))
+            if (GetHeldItem().Has(ItemState.Spent))
             {
-                Debug.Log($"Nothing left to do with the {currentlyHeldItem.DisplayName}.");
+                Debug.Log($"Nothing left to do with the {GetHeldItem().DisplayName}.");
                 return;
             }
 
             // A held item that carries its own minigame ALWAYS launches it on [E].
             // Independent of role, of any related task, or of whether that task was already done.
-            if (currentlyHeldItem.processMinigamePrefab != null)
+            if (GetHeldItem().processMinigamePrefab != null)
             {
-                StartMinigame(currentlyHeldItem.processMinigamePrefab, null, currentlyHeldItem.gameObject);
+                StartMinigame(GetHeldItem().processMinigamePrefab, null, GetHeldItem().gameObject);
                 return;
             }
 
@@ -2364,12 +2278,12 @@ public class PlayerController : MonoBehaviour
             {
                 TaskInstance task = activeTasks[i];
                 // Pass the held item as the target
-                if (task.EvaluateCurrentStep(this, currentlyHeldItem.gameObject)) 
+                if (task.EvaluateCurrentStep(this, GetHeldItem().gameObject))
                 {
                     if (TaskManager.Instance != null) TaskManager.Instance.CompleteTask(this, task);
                     taskCompleted = true;
                 }
-                
+
                 // NEW: Stop checking other tasks if a minigame was launched!
                 if (isPlayingMinigame) break;
             }
@@ -2382,7 +2296,7 @@ public class PlayerController : MonoBehaviour
             // ARE meant to be worked on with [E] carry a Process Minigame Prefab, which was launched
             // above.
             if (!taskCompleted)
-                Debug.Log($"Nothing to do with the {currentlyHeldItem.DisplayName} here - carry it where it needs to go.");
+                Debug.Log($"Nothing to do with the {GetHeldItem().DisplayName} here - carry it where it needs to go.");
         }
         else
         {
@@ -2395,7 +2309,7 @@ public class PlayerController : MonoBehaviour
     // satisfies, mirroring the aimed-interaction path).
     private bool TryProximityDeposit()
     {
-        if (currentlyHeldItem == null || TaskLocation.AllLocations == null) return false;
+        if (GetHeldItem() == null || TaskLocation.AllLocations == null) return false;
 
         TaskDepositStation best = null;
         float bestDist = depositProximityRange;
@@ -2404,7 +2318,7 @@ public class PlayerController : MonoBehaviour
         {
             if (loc == null) continue;
             TaskDepositStation st = loc.GetComponent<TaskDepositStation>();
-            if (st == null || !st.HasFreeSlot() || !st.AcceptsItem(currentlyHeldItem)) continue;
+            if (st == null || !st.HasFreeSlot() || !st.AcceptsItem(GetHeldItem())) continue;
 
             float d = Vector3.Distance(transform.position, loc.transform.position);
             if (d <= bestDist) { bestDist = d; best = st; }
@@ -2436,110 +2350,26 @@ public class PlayerController : MonoBehaviour
         Debug.Log($"Switched to item slot: {currentItemIndex}");
     }
 
-    public void EquipItem(PickupItem newItem)
-    {
-        if (newItem == null) return;
-
-        // Two-handed haul items: carried in front of the torso, both hands IK-locked to grip points.
-        if (newItem.haulWithBothHands)
-        {
-            if (currentlyHeldItem != null) currentlyHeldItem.DetachFromHand();
-            if (leftHeldItem != null) { leftHeldItem.DetachFromHand(); leftHeldItem = null; }
-            currentlyHeldItem = newItem;
-            AttachHaulItem(newItem);
-            Debug.Log($"Hauling {newItem.DisplayName}");
-            return;
-        }
-
-        // Heavy items are effectively two-handed: you can't dual-wield with one involved.
-        // If either the new item or anything already held is heavy, fall back to single-hand
-        // behaviour (drop the active-hand item, take the new one in the active hand).
-        bool heavyInvolved = newItem.isHeavy || IsHoldingHeavyItem();
-
-        if (!heavyInvolved && currentlyHeldItem != null && leftHeldItem == null)
-        {
-            // Active hand is full but the off-hand is free: carry the new item there.
-            leftHeldItem = newItem;
-            leftHeldItem.AttachToHand(leftHandSocket);
-            Debug.Log($"Equipped {leftHeldItem.DisplayName} in the off-hand");
-            return;
-        }
-
-        // Otherwise the new item goes into the active (right) hand.
-        // Drop whatever is already in the active hand first.
-        if (currentlyHeldItem != null)
-        {
-            currentlyHeldItem.DetachFromHand();
-        }
-
-        currentlyHeldItem = newItem;
-        currentlyHeldItem.AttachToHand(rightHandSocket);
-
-        Debug.Log($"Equipped {currentlyHeldItem.DisplayName}");
-    }
-
-    // Attaches a haul item; PoseHaulItem() then keeps it in front of the torso each frame and
-    // ApplyHaulIK takes the hands.
-    private void AttachHaulItem(PickupItem item)
-    {
-        item.PrepareForHaul();
-        item.transform.SetParent(transform, true); // parent so it survives a menu pause; pose drives the rest
-        haulActive = true;
-        PoseHaulItem();
-
-        Debug.Log($"[Haul] Carrying {item.DisplayName}. leftGrip={(item.leftGripPoint != null)} " +
-                  $"rightGrip={(item.rightGripPoint != null)} ikBlendSpeed={ikBlendSpeed} " +
-                  $"animatorHuman={(animator != null && animator.isHuman)}");
-    }
-
-    // Places the hauled item in front of the body at a height measured down from the eyes, facing
-    // the player's forward. Camera-anchored so it lands at hip/chest height on any rig.
-    private void PoseHaulItem()
-    {
-        if (currentlyHeldItem == null || !currentlyHeldItem.haulWithBothHands) return;
-        PickupItem hi = currentlyHeldItem;
-
-        Vector3 flatFwd = transform.forward;
-        flatFwd.y = 0f;
-        if (flatFwd.sqrMagnitude < 0.0001f) flatFwd = Vector3.forward;
-        flatFwd.Normalize();
-
-        float eyeY = playerCamera != null ? playerCamera.position.y : transform.position.y + 1.6f;
-        Vector3 pos = new Vector3(transform.position.x, eyeY, transform.position.z)
-                      + flatFwd * hi.haulForward
-                      + Vector3.up * hi.haulHeightBelowEye;
-
-        hi.transform.SetPositionAndRotation(
-            pos,
-            Quaternion.LookRotation(flatFwd, Vector3.up) * Quaternion.Euler(hi.haulLocalEuler));
-    }
+    // EquipItem, AttachHaulItem, and PoseHaulItem now live on PlayerInventory - this forwarder is the
+    // one TaskDepositStation, PickupItem, ConcreteTaskSteps, and the minigames all still call.
+    public void EquipItem(PickupItem newItem) => inventory.EquipItem(newItem);
 
     // Add these public helpers so external stations can take the item
-    public PickupItem GetHeldItem() { return currentlyHeldItem; }
+    public PickupItem GetHeldItem() => inventory.GetHeldItem();
 
-    public void ClearHeldItem() { currentlyHeldItem = null; }
+    public void ClearHeldItem() => inventory.ClearHeldItem();
 
     // --- NEW: DUAL-WIELD HELPERS ---
-    public PickupItem GetLeftHeldItem() { return leftHeldItem; }
+    public PickupItem GetLeftHeldItem() => inventory.GetLeftHeldItem();
 
-    public void ClearLeftHeldItem() { leftHeldItem = null; }
+    public void ClearLeftHeldItem() => inventory.ClearLeftHeldItem();
 
     // True if an item of this identity - carrying every flag in requiredState - is held in EITHER hand.
     public bool IsHoldingItem(ItemDefinition definition, ItemState requiredState = ItemState.None)
-    {
-        if (definition == null) return false;
-        if (currentlyHeldItem != null && currentlyHeldItem.Matches(definition, requiredState)) return true;
-        if (leftHeldItem != null && leftHeldItem.Matches(definition, requiredState)) return true;
-        return false;
-    }
+        => inventory.IsHoldingItem(definition, requiredState);
 
     // True if either hand is holding a heavy item.
-    public bool IsHoldingHeavyItem()
-    {
-        return (currentlyHeldItem != null && currentlyHeldItem.isHeavy)
-            || (leftHeldItem != null && leftHeldItem.isHeavy);
-    }
-
+    public bool IsHoldingHeavyItem() => inventory.IsHoldingHeavyItem();
 
     // 2. Add this public method anywhere inside the class
     public void AssignRole(PlayerRole newRole)
@@ -2572,7 +2402,7 @@ public class PlayerController : MonoBehaviour
         moveInput = Vector2.zero;
         lookInput = Vector2.zero;
         motor.CancelSprint();
-        isChargingThrow = false;
+        inventory.StopCharging();
         strangleButtonHeld = false;
         motor.CancelLeanInput(); // legacy Ctrl read in Update() still drives the lean while locked
 
@@ -2645,15 +2475,17 @@ public class PlayerController : MonoBehaviour
         isGhost = true;
 
         // 1. Force drop any item they are currently holding (both hands)
-        if (currentlyHeldItem != null)
+        PickupItem heldItem = GetHeldItem();
+        if (heldItem != null)
         {
-            currentlyHeldItem.DetachFromHand();
-            currentlyHeldItem = null;
+            heldItem.DetachFromHand();
+            ClearHeldItem();
         }
-        if (leftHeldItem != null)
+        PickupItem leftItem = GetLeftHeldItem();
+        if (leftItem != null)
         {
-            leftHeldItem.DetachFromHand();
-            leftHeldItem = null;
+            leftItem.DetachFromHand();
+            ClearLeftHeldItem();
         }
 
         // 2. Change the player's layer to "Ghost" (we will set this up in Unity)
@@ -2739,14 +2571,14 @@ public class PlayerController : MonoBehaviour
         }
 
         // 2. Perform the physical action regardless of tasks! (Allows faking)
-        if (currentlyHeldItem != null && currentlyHeldItem.requiresPartner)
+        if (GetHeldItem() != null && GetHeldItem().requiresPartner)
         {
-            Debug.Log($"Used {currentlyHeldItem.DisplayName} with {target.gameObject.name}!" + (taskCompleted ? " (Task Completed)" : " (Faked Task)"));
-            GameObject initiatorItemObj = currentlyHeldItem.gameObject;
-            this.ClearHeldItem(); 
+            Debug.Log($"Used {GetHeldItem().DisplayName} with {target.gameObject.name}!" + (taskCompleted ? " (Task Completed)" : " (Faked Task)"));
+            GameObject initiatorItemObj = GetHeldItem().gameObject;
+            this.ClearHeldItem();
             Destroy(initiatorItemObj);
         }
-        else if (currentlyHeldItem == null)
+        else if (GetHeldItem() == null)
         {
             Debug.Log($"Interacted with {target.gameObject.name}!" + (taskCompleted ? " (Task Completed)" : " (Faked Task)"));
         }
@@ -2762,7 +2594,7 @@ public class PlayerController : MonoBehaviour
 
         activeMinigameTarget = targetInteractable;
         activeMinigameTask = task; // So the waypoint for this task can be hidden while the minigame is open
-        itemSwappedToLeftHand = false; // Reset flag
+        inventory.itemSwappedToLeftHand = false; // Reset flag
         
         // --- DYNAMIC CAMERA & POSITION SNAPPING ---
         if (targetInteractable != null)
@@ -2788,47 +2620,47 @@ public class PlayerController : MonoBehaviour
             else if (targetInteractable.GetComponent<PickupItem>() != null)
             {
                 currentMinigameTargetType = MinigameTargetType.Item;
-                activeMinigameStation = leftHandSocket;
+                activeMinigameStation = LeftHandSocket;
 
                 PickupItem targetItem = targetInteractable.GetComponent<PickupItem>();
 
                 // Pick which item to raise into the left hand for the animation:
                 // the targeted instance if we're already holding it, else whatever is in the active hand.
-                PickupItem itemToRaise = (targetItem == leftHeldItem || targetItem == currentlyHeldItem)
+                PickupItem itemToRaise = (targetItem == GetLeftHeldItem() || targetItem == GetHeldItem())
                     ? targetItem
-                    : currentlyHeldItem;
+                    : GetHeldItem();
 
-                if (itemToRaise != null && itemToRaise == leftHeldItem)
+                if (itemToRaise != null && itemToRaise == GetLeftHeldItem())
                 {
                     // Already sitting in the left hand: just orient the socket, no swap, no return needed.
-                    if (leftHandSocket != null)
-                        leftHandSocket.localRotation = Quaternion.Euler(itemToRaise.leftHandSocketRotation);
+                    if (LeftHandSocket != null)
+                        LeftHandSocket.localRotation = Quaternion.Euler(itemToRaise.leftHandSocketRotation);
                 }
                 else if (itemToRaise != null)
                 {
                     // The minigame borrows the left hand. If the off-hand holds something else, drop it.
-                    if (leftHeldItem != null)
+                    if (GetLeftHeldItem() != null)
                     {
-                        Debug.Log($"Dropped off-hand {leftHeldItem.DisplayName} to free the left hand for the minigame.");
-                        leftHeldItem.DetachFromHand();
-                        leftHeldItem = null;
+                        Debug.Log($"Dropped off-hand {GetLeftHeldItem().DisplayName} to free the left hand for the minigame.");
+                        GetLeftHeldItem().DetachFromHand();
+                        ClearLeftHeldItem();
                         foreach (TaskInstance regressionTask in activeTasks)
                         {
                             regressionTask.CheckForTaskRegression(this);
                         }
                     }
 
-                    if (leftHandSocket != null)
-                        leftHandSocket.localRotation = Quaternion.Euler(itemToRaise.leftHandSocketRotation);
+                    if (LeftHandSocket != null)
+                        LeftHandSocket.localRotation = Quaternion.Euler(itemToRaise.leftHandSocketRotation);
 
-                    itemToRaise.AttachToHand(leftHandSocket);
-                    itemSwappedToLeftHand = true; // ReturnSwappedItem() puts currentlyHeldItem back afterwards
+                    itemToRaise.AttachToHand(LeftHandSocket);
+                    inventory.itemSwappedToLeftHand = true; // ReturnSwappedItem() puts currentlyHeldItem back afterwards
                 }
 
                 // Camera PITCH only — look down at the hands. Body rotation and position are left alone.
-                if (leftHandSocket != null)
+                if (LeftHandSocket != null)
                 {
-                    Vector3 lookDir = leftHandSocket.position - playerCamera.position;
+                    Vector3 lookDir = LeftHandSocket.position - playerCamera.position;
                     float targetPitch = Quaternion.LookRotation(lookDir).eulerAngles.x;
                     if (targetPitch > 180f) targetPitch -= 360f;
                     look.SnapPitch(targetPitch);
@@ -2905,7 +2737,7 @@ public class PlayerController : MonoBehaviour
         currentMinigameTargetType = MinigameTargetType.None;
         activeMinigameStation = null;
 
-        ReturnSwappedItem(); // --- NEW: Snap item back to right hand ---
+        inventory.ReturnSwappedItem(); // --- NEW: Snap item back to right hand ---
 
         // Re-lock the mouse cursor for FPS gameplay
         Cursor.lockState = CursorLockMode.Locked;
@@ -2949,7 +2781,7 @@ public class PlayerController : MonoBehaviour
     {
         // The item may already have been consumed by the minigame, so fall back to the target the
         // minigame was launched against.
-        GameObject evalTarget = currentlyHeldItem != null ? currentlyHeldItem.gameObject : activeMinigameTarget;
+        GameObject evalTarget = GetHeldItem() != null ? GetHeldItem().gameObject : activeMinigameTarget;
 
         for (int i = activeTasks.Count - 1; i >= 0; i--)
         {
@@ -2960,9 +2792,9 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        if (currentlyHeldItem != null && !currentlyHeldItem.Has(ItemState.Processed))
+        if (GetHeldItem() != null && !GetHeldItem().Has(ItemState.Processed))
         {
-            currentlyHeldItem.ProcessItem();
+            GetHeldItem().ProcessItem();
         }
     }
 
@@ -2977,7 +2809,7 @@ public class PlayerController : MonoBehaviour
         currentMinigameTargetType = MinigameTargetType.None;
         activeMinigameStation = null;
 
-        ReturnSwappedItem(); // --- NEW: Snap item back to right hand ---
+        inventory.ReturnSwappedItem(); // --- NEW: Snap item back to right hand ---
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -3028,15 +2860,15 @@ public class PlayerController : MonoBehaviour
             else if (currentMinigameTargetType == MinigameTargetType.Item)
             {
                 // SCENARIO 2: ITEM - Raise left hand to hold the item in the center of the screen
-                if (leftHandSocket != null)
+                if (LeftHandSocket != null)
                 {
                     animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, currentIKWeight);
                     animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, currentIKWeight); // Turn on rotation!
-                    
-                    animator.SetIKPosition(AvatarIKGoal.LeftHand, leftHandSocket.position);
-                    
+
+                    animator.SetIKPosition(AvatarIKGoal.LeftHand, LeftHandSocket.position);
+
                     // Match the hand bone rotation to the socket's rotation so you can fix weird wrist twists!
-                    animator.SetIKRotation(AvatarIKGoal.LeftHand, leftHandSocket.rotation);
+                    animator.SetIKRotation(AvatarIKGoal.LeftHand, LeftHandSocket.rotation);
                 }
             }
             else 
@@ -3069,13 +2901,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    private void ReturnSwappedItem()
-    {
-        if (itemSwappedToLeftHand && currentlyHeldItem != null)
-        {
-            currentlyHeldItem.AttachToHand(rightHandSocket);
-            itemSwappedToLeftHand = false;
-        }
-    }
+    // ReturnSwappedItem now lives on PlayerInventory (inventory.ReturnSwappedItem).
     #endregion
 }
