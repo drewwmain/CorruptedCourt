@@ -21,8 +21,8 @@ namespace CorruptedCourt.Gameplay
 
             if (player != null)
             {
-                // Only trigger if the player is alive AND they are NOT a Corrupted!
-                if (!player.Vitals.isGhost && player.Vitals.currentRole != PlayerRole.Corrupted)
+                // Only trigger if the player is alive AND they are NOT Corrupted-aligned!
+                if (!player.Vitals.isGhost && player.Vitals.faction != Faction.Corrupted)
                 {
                     player.Vitals.ApplyStun(stunDuration);
 

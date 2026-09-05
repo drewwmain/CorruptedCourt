@@ -106,6 +106,10 @@ namespace CorruptedCourt.Gameplay
 
                     if (RoleManager.Instance != null) RoleManager.Instance.AssignAllRoles();
 
+                    // Roles are set - size the Court meter to the lobby now, once per match, before any
+                    // win check can run in a non-Initialization state.
+                    if (TaskManager.Instance != null) TaskManager.Instance.InitializeCourtMeter();
+
                     GameEvents.RaiseVotingPanelHidden();
                     GameEvents.RaiseGameOverHidden();
 
@@ -319,7 +323,9 @@ namespace CorruptedCourt.Gameplay
 
                     if (!player.Vitals.isGhost)
                     {
-                        if (player.Vitals.currentRole == PlayerRole.Corrupted)
+                        // Population win conditions count strictly by Faction. A Corrupted player who
+                        // was appointed Kingsguard still counts here as Corrupted.
+                        if (player.Vitals.faction == Faction.Corrupted)
                             aliveCorrupted++;
                         else
                             aliveCourt++;

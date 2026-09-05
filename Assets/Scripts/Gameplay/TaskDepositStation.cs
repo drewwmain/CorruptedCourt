@@ -313,7 +313,7 @@ namespace CorruptedCourt.Gameplay
             PlayerController player = interactor.GetComponent<PlayerController>();
             if (player == null) return;
 
-            if (isSabotaged && player.Vitals.currentRole != PlayerRole.Corrupted)
+            if (isSabotaged && player.Vitals.faction != Faction.Corrupted)
             {
                 Log.Game("Station was sabotaged! You are stunned!");
                 player.Vitals.ApplyStun(3f);

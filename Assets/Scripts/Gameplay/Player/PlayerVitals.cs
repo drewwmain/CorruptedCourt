@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using CorruptedCourt.Core;
 using CorruptedCourt.Items;
 
@@ -17,7 +18,17 @@ namespace CorruptedCourt.Gameplay
     public class PlayerVitals : MonoBehaviour
     {
         [Header("Role Settings")]
-        public PlayerRole currentRole = PlayerRole.None;
+        [Tooltip("Which side this player fights for. Assigned once at match start by RoleManager and " +
+                 "immutable for the rest of the match - an appointment or demotion must never change it. " +
+                 "Governs kill abilities, power-up access, whether a completed task credits the global " +
+                 "meter, and both population win conditions.")]
+        [FormerlySerializedAs("currentRole")]
+        public Faction faction = Faction.Court;
+
+        [Tooltip("The court office this player currently holds, independent of Faction. Mutable: set by " +
+                 "royal appointment or succession. Governs arrest authority, appointment authority, " +
+                 "royal-weapon eligibility, the royal bonus HP, and whether this player receives tasks.")]
+        public CourtTitle courtTitle = CourtTitle.None;
 
         [Header("Status")]
         public int currentHealth = 1;
@@ -89,14 +100,25 @@ namespace CorruptedCourt.Gameplay
             powerUps = GetComponent<PlayerPowerUps>();
         }
 
-        // 2. Add this public method anywhere inside the class
-        public void AssignRole(PlayerRole newRole)
+        // Sets which side this player fights for. Called exactly once per player at match start by
+        // RoleManager; nothing in the appointment path may call it. Does NOT touch health - the
+        // royal bonus HP is a title perk, handled by AssignTitle.
+        public void AssignFaction(Faction newFaction)
         {
-            currentRole = newRole;
+            faction = newFaction;
+            Log.Game($"[Role Assignment] {gameObject.name} faction is now: {faction}");
+        }
 
-            // --- NEW: ROYAL RESILIENCE (HEALTH SYSTEM) ---
-            // The King gets extra HP to represent broadsword/shield mitigation
-            if (currentRole == PlayerRole.King)
+        // Sets the court office this player holds. Called by RoleManager at match start and by every
+        // appointment / demotion. Independent of Faction. Owns the royal-resilience HP rule.
+        public void AssignTitle(CourtTitle newTitle)
+        {
+            courtTitle = newTitle;
+
+            // --- ROYAL RESILIENCE (HEALTH SYSTEM) ---
+            // Only the reigning King carries extra HP (broadsword/shield mitigation). Any other
+            // title - or losing a title on demotion - drops back to the standard 1 HP.
+            if (courtTitle == CourtTitle.King)
             {
                 maxHealth = 3;
                 currentHealth = 3;
@@ -107,7 +129,7 @@ namespace CorruptedCourt.Gameplay
                 currentHealth = 1;
             }
 
-            Log.Game($"[Role Assignment] {gameObject.name} is now: {currentRole} with {currentHealth} HP");
+            Log.Game($"[Role Assignment] {gameObject.name} title is now: {courtTitle} with {currentHealth} HP");
         }
 
         // --- NEW: COMBAT DAMAGE SYSTEM ---
@@ -302,7 +324,7 @@ namespace CorruptedCourt.Gameplay
         // pardon was performed (caller should stop, not start a drop/throw charge). ---
         public bool TryPardon()
         {
-            if (isGhost || !(currentRole == PlayerRole.King || currentRole == PlayerRole.Kingsguard)
+            if (isGhost || !(courtTitle == CourtTitle.King || courtTitle == CourtTitle.Kingsguard)
                 || !isDraggingPrisoner || currentPrisoner == null)
                 return false;
 
@@ -327,7 +349,7 @@ namespace CorruptedCourt.Gameplay
         public void HandleArrestInput(bool isPressed)
         {
             if (isGhost || !isPressed) return;
-            if (currentRole != PlayerRole.King && currentRole != PlayerRole.Kingsguard) return;
+            if (courtTitle != CourtTitle.King && courtTitle != CourtTitle.Kingsguard) return;
 
             if (isDraggingPrisoner)
             {
@@ -354,7 +376,7 @@ namespace CorruptedCourt.Gameplay
                     if (c == null) continue;
 
                     PlayerController p = c.GetComponent<PlayerController>();
-                    if (p != null && p != player && !p.Vitals.isGhost && (p.Vitals.currentRole == PlayerRole.King || p.Vitals.currentRole == PlayerRole.Kingsguard))
+                    if (p != null && p != player && !p.Vitals.isGhost && (p.Vitals.courtTitle == CourtTitle.King || p.Vitals.courtTitle == CourtTitle.Kingsguard))
                     {
                         nearRoyal = true;
                         nearbyRoyal = p;

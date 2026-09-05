@@ -130,7 +130,7 @@ namespace CorruptedCourt.Gameplay
                     if (c == null) continue;
 
                     PlayerController p = c.GetComponent<PlayerController>();
-                    if (p != null && p != player && !p.Vitals.isGhost && (p.Vitals.currentRole == PlayerRole.King || p.Vitals.currentRole == PlayerRole.Kingsguard))
+                    if (p != null && p != player && !p.Vitals.isGhost && (p.Vitals.courtTitle == CourtTitle.King || p.Vitals.courtTitle == CourtTitle.Kingsguard))
                     {
                         nearRoyal = true;
                         nearbyRoyal = p;
@@ -248,7 +248,7 @@ namespace CorruptedCourt.Gameplay
                     {
                         if (powerUp != null && interactionUI != null)
                         {
-                            if (player.Vitals.currentRole == PlayerRole.Corrupted)
+                            if (player.Vitals.faction == Faction.Corrupted)
                                 interactionUI.text = $"Press <color=#F4D03F>[E]</color> to pick up <color=#E74C3C>{powerUp.powerUpData.powerUpName}</color>";
                             else
                                 interactionUI.text = $"Press <color=#F4D03F>[E]</color> to examine strange object";
@@ -291,13 +291,13 @@ namespace CorruptedCourt.Gameplay
                             }
 
                             // 2. KING SPECIFIC
-                            if (player.Vitals.currentRole == PlayerRole.King && !player.Vitals.isGhost)
+                            if (player.Vitals.courtTitle == CourtTitle.King && !player.Vitals.isGhost)
                             {
                                 prompts.Add($"Press <color=#F4D03F>[F]</color> to appoint <color=#58D68D>{otherPlayer.gameObject.name}</color> as Kingsguard");
                             }
 
                             // 3. ARREST MECHANICS (King & Kingsguard)
-                            if ((player.Vitals.currentRole == PlayerRole.King || player.Vitals.currentRole == PlayerRole.Kingsguard) && !player.Vitals.isGhost)
+                            if ((player.Vitals.courtTitle == CourtTitle.King || player.Vitals.courtTitle == CourtTitle.Kingsguard) && !player.Vitals.isGhost)
                             {
                                 if (otherPlayer.Vitals.isArrested)
                                     prompts.Add($"Press <color=#F4D03F>[Right Click]</color> to grab <color=#58D68D>{otherPlayer.gameObject.name}</color>'s leash");
@@ -307,7 +307,7 @@ namespace CorruptedCourt.Gameplay
 
                             // 4. CORRUPTED MECHANICS (Corrupted)
                             // We check to ensure the target is alive and NOT a fellow Corrupted player
-                            if (player.Vitals.currentRole == PlayerRole.Corrupted && !player.Vitals.isGhost && !otherPlayer.Vitals.isGhost && otherPlayer.Vitals.currentRole != PlayerRole.Corrupted)
+                            if (player.Vitals.faction == Faction.Corrupted && !player.Vitals.isGhost && !otherPlayer.Vitals.isGhost && otherPlayer.Vitals.faction != Faction.Corrupted)
                             {
                                 prompts.Add($"Hold <color=#F4D03F>[Right Click]</color> to strangle <color=#E74C3C>{otherPlayer.gameObject.name}</color>");
                             }
@@ -375,7 +375,7 @@ namespace CorruptedCourt.Gameplay
                 if (powerUp != null)
                 {
                     if (player.Vitals.isGhost) return; // Ghosts cannot pick up power-ups
-                    if (player.Vitals.currentRole == PlayerRole.Corrupted)
+                    if (player.Vitals.faction == Faction.Corrupted)
                     {
                         // Find the first empty slot in the array
                         int emptySlotIndex = -1;
@@ -420,7 +420,7 @@ namespace CorruptedCourt.Gameplay
                 if (royalWeapon != null)
                 {
                     if (player.Vitals.isGhost) return; // Ghosts cannot pick up weapons
-                    if (player.Vitals.currentRole != royalWeapon.restrictedRole)
+                    if (player.Vitals.courtTitle != royalWeapon.restrictedRole)
                     {
                         Log.Game($"[Denied] Only the {royalWeapon.restrictedRole} may wield this weapon!");
                         return; // Stop here so they cannot pick it up

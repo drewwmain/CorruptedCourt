@@ -56,7 +56,7 @@ namespace CorruptedCourt.Gameplay
         // --- DEDICATED USE POWER-UP MECHANIC (F Key) --- (routed from PlayerController.OnUseItem)
         public void HandleUsePowerUp(bool isPressed)
         {
-            if (!isPressed || vitals.isGhost || vitals.currentRole != PlayerRole.Corrupted) return;
+            if (!isPressed || vitals.isGhost || vitals.faction != Faction.Corrupted) return;
 
             // Are they visibly holding a Power-Up?
             if (activeSlotIndex != -1 && corruptedInventory[activeSlotIndex] != null)
@@ -86,7 +86,7 @@ namespace CorruptedCourt.Gameplay
         // Routed from PlayerController.OnScrollWheel.
         public void HandleScrollWheel(float scrollY)
         {
-            if (vitals.currentRole != PlayerRole.Corrupted || vitals.isGhost) return;
+            if (vitals.faction != Faction.Corrupted || vitals.isGhost) return;
 
             if (Mathf.Abs(scrollY) < 0.1f) return;
 
@@ -136,7 +136,7 @@ namespace CorruptedCourt.Gameplay
 
         public void EquipCorruptedSlot(int index)
         {
-            if (vitals.currentRole != PlayerRole.Corrupted || vitals.isGhost) return;
+            if (vitals.faction != Faction.Corrupted || vitals.isGhost) return;
 
             // 1. Clean up the currently held visual
             if (activePowerUpVisual != null)
@@ -283,7 +283,7 @@ namespace CorruptedCourt.Gameplay
                         if (hitC == null) continue;
 
                         PlayerController victim = hitC.GetComponent<PlayerController>();
-                        if (victim != null && victim != player && !victim.Vitals.isGhost && victim.Vitals.currentRole != PlayerRole.Corrupted)
+                        if (victim != null && victim != player && !victim.Vitals.isGhost && victim.Vitals.faction != Faction.Corrupted)
                         {
                             victim.Vitals.ApplyBlindness(5f);
                             blindedCount++;
@@ -323,10 +323,10 @@ namespace CorruptedCourt.Gameplay
             {
                 PlayerController victim = hit.collider.GetComponent<PlayerController>();
 
-                if (victim != null && victim != player && !victim.Vitals.isGhost && victim.Vitals.currentRole != PlayerRole.Corrupted)
+                if (victim != null && victim != player && !victim.Vitals.isGhost && victim.Vitals.faction != Faction.Corrupted)
                 {
-                    // 3. CHECK FOR THE ROYAL BLOCK
-                    if ((victim.Vitals.currentRole == PlayerRole.King || victim.Vitals.currentRole == PlayerRole.Kingsguard) && victim.Vitals.isBlocking)
+                    // 3. CHECK FOR THE ROYAL BLOCK (a royal weapon is title-gated, so gate the deflect on title)
+                    if ((victim.Vitals.courtTitle == CourtTitle.King || victim.Vitals.courtTitle == CourtTitle.Kingsguard) && victim.Vitals.isBlocking)
                     {
                         Log.Game($"<color=#F1C40F>Blocked! {victim.gameObject.name} deflected the assassination attempt!</color>");
                         hitConnected = true;
@@ -378,7 +378,7 @@ namespace CorruptedCourt.Gameplay
                 {
                     if (p == null) continue;
 
-                    if (!p.Vitals.isGhost && p.Vitals.currentRole != PlayerRole.Corrupted && p != player)
+                    if (!p.Vitals.isGhost && p.Vitals.faction != Faction.Corrupted && p != player)
                         innocents.Add(p);
                 }
             }

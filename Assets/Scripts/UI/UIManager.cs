@@ -129,7 +129,7 @@ namespace CorruptedCourt.UI
         {
             if (player == null) return;
 
-            UpdatePlayerTaskList(player, player.TaskBook.allAssignedTasks, player.TaskBook.activeTasks, player.Vitals.currentRole);
+            UpdatePlayerTaskList(player, player.TaskBook.allAssignedTasks, player.TaskBook.activeTasks, player.Vitals.courtTitle);
 
             // One-shot signals from a DataRetrievalStep: part 1 flags the runtime for the "memorize"
             // popup, part 2 flags it to open the code-entry panel. The step never calls us directly.
@@ -182,11 +182,11 @@ namespace CorruptedCourt.UI
             }
         }
 
-        public void UpdatePlayerTaskList(PlayerController player, List<TaskInstance> allTasks, List<TaskInstance> activeTasks, PlayerRole role)
+        public void UpdatePlayerTaskList(PlayerController player, List<TaskInstance> allTasks, List<TaskInstance> activeTasks, CourtTitle title)
         {
             if (taskListText == null) return;
 
-            if (role == PlayerRole.King)
+            if (title == CourtTitle.King)
             {
                 taskListText.text = "<b><color=#F4D03F>ROLE: KING</color></b>\n<size=80%><color=#D5D8DC>Rule the kingdom and stay alive.</color></size>";
                 return;

@@ -12,8 +12,20 @@ namespace CorruptedCourt.Tasks
 
         [Header("Global Court Meter")]
         public float currentCourtProgress = 0f;
-        public float maxCourtProgress = 100f;
-        public float pointsPerTask = 5f; // How much % the meter fills per completed task
+
+        // Sized once at match start by InitializeCourtMeter() from lobby size, task tiers and
+        // targetStages - it is NOT an authored value. The 100f is only a pre-match fallback so the
+        // win check never compares against 0 before Initialization has run.
+        [System.NonSerialized] public float maxCourtProgress = 100f;
+
+        [Tooltip("Points a completed task adds to the Court meter, indexed by (taskTier - 1): " +
+                 "element 0 = tier 1, element 1 = tier 2, element 2 = tier 3. A tier with no weight " +
+                 "authored falls back to 1.")]
+        public float[] tierWeights = { 1f, 2f, 4f };
+
+        [Tooltip("How many full stages of assignments the Court is expected to finish to fill the " +
+                 "meter. Used once at match start to size the target; never recomputed when players die.")]
+        public int targetStages = 3;
 
         [Header("Task Generation")]
         public int tasksPerStage = 3;
@@ -30,6 +42,78 @@ namespace CorruptedCourt.Tasks
             else Destroy(gameObject);
         }
 
+        // Called once by MatchManager at match start (Initialization), AFTER RoleManager has assigned
+        // factions/titles. Resets progress to 0 and sizes the Court meter to the lobby:
+        //   target = eligibleCourtCount * tasksPerStage * averageTierWeight * targetStages
+        // eligibleCourtCount = players who can receive tasks (not a ghost, not the King) - it mirrors
+        // the test in AssignTasksForNewStage. The target is frozen here and deliberately NOT
+        // recomputed when players die, so a shrinking Court has to work harder rather than less.
+        public void InitializeCourtMeter()
+        {
+            currentCourtProgress = 0f;
+
+            if (RoleManager.Instance == null)
+            {
+                Log.Warn($"[TaskManager] InitializeCourtMeter: no RoleManager - keeping fallback maxCourtProgress={maxCourtProgress}.");
+                GameEvents.RaiseCourtProgressChanged(currentCourtProgress, maxCourtProgress);
+                return;
+            }
+
+            int eligibleCourtCount = 0;
+            foreach (PlayerController player in RoleManager.Instance.allPlayers)
+            {
+                if (player == null) continue;
+                // Same "receives tasks" rule as AssignTasksForNewStage: ghosts and the King are out.
+                // Corrupted players are counted here - they are handed tasks (to blend in) even though
+                // their completions never credit the meter.
+                if (player.Vitals.isGhost || player.Vitals.courtTitle == CourtTitle.King) continue;
+                eligibleCourtCount++;
+            }
+
+            float averageTierWeight = TierWeightAverage();
+
+            if (eligibleCourtCount <= 0 || tasksPerStage <= 0 || targetStages <= 0 || averageTierWeight <= 0f)
+            {
+                Log.Warn($"[TaskManager] InitializeCourtMeter: cannot size the meter (eligibleCourtCount={eligibleCourtCount}, " +
+                         $"tasksPerStage={tasksPerStage}, targetStages={targetStages}, avgTierWeight={averageTierWeight}). " +
+                         $"Keeping fallback maxCourtProgress={maxCourtProgress}.");
+                GameEvents.RaiseCourtProgressChanged(currentCourtProgress, maxCourtProgress);
+                return;
+            }
+
+            float perStageTheoreticalMax = eligibleCourtCount * tasksPerStage * averageTierWeight;
+            maxCourtProgress = Mathf.Ceil(perStageTheoreticalMax * targetStages);
+
+            Log.Game($"--- COURT METER SIZED: target {maxCourtProgress} " +
+                     $"(eligibleCourt {eligibleCourtCount} x tasksPerStage {tasksPerStage} x avgTierWeight {averageTierWeight:0.###} x targetStages {targetStages}); " +
+                     $"per-stage theoretical max {perStageTheoreticalMax:0.###} ---");
+
+            GameEvents.RaiseCourtProgressChanged(currentCourtProgress, maxCourtProgress);
+        }
+
+        // Points for one completed task, from its tier. An unset/legacy tier (0) or an out-of-range
+        // value is clamped into 1..3; a tier with no weight authored falls back to 1.
+        private float TierWeight(TaskData definition)
+        {
+            int tier = Mathf.Clamp(definition != null ? definition.taskTier : 1, 1, 3);
+            if (tierWeights == null || tierWeights.Length < tier)
+            {
+                Log.Warn($"[TaskManager] tierWeights has no entry for tier {tier} (length {(tierWeights != null ? tierWeights.Length : 0)}). Using weight 1.");
+                return 1f;
+            }
+            return tierWeights[tier - 1];
+        }
+
+        // Mean weight across the authored tiers (1..3), used to size the meter target at match start.
+        private float TierWeightAverage()
+        {
+            if (tierWeights == null || tierWeights.Length == 0) return 1f;
+            int n = Mathf.Min(tierWeights.Length, 3); // only tiers 1..3 exist
+            float sum = 0f;
+            for (int i = 0; i < n; i++) sum += tierWeights[i];
+            return sum / n;
+        }
+
         // Called by the MatchManager at the start of EVERY Action Stage
         public void AssignTasksForNewStage()
         {
@@ -43,8 +127,9 @@ namespace CorruptedCourt.Tasks
             {
                 if (player == null) continue;
 
-                // Ghosts and the King do not receive tasks
-                if (player.Vitals.isGhost || player.Vitals.currentRole == PlayerRole.King)
+                // Ghosts and the King do not receive tasks (whether the player receives tasks is a title
+                // concern - a Corrupted Kingsguard still gets tasks, they just don't credit the meter).
+                if (player.Vitals.isGhost || player.Vitals.courtTitle == CourtTitle.King)
                 {
                     player.TaskBook.AssignTasks(new List<TaskInstance>()); // Empty list
                     continue;
@@ -170,16 +255,17 @@ namespace CorruptedCourt.Tasks
             player.TaskBook.RemoveCompletedTask(task);
 
             // NOTE: Corrupted players can "do" tasks to blend in, but they DO NOT fill the meter!
-            if (player.Vitals.currentRole == PlayerRole.Corrupted)
+            // Meter credit is a faction concern, so a Corrupted-aligned Kingsguard is filtered here too.
+            if (player.Vitals.faction == Faction.Corrupted)
             {
                 Log.Game($"{player.gameObject.name} (Corrupted) faked task: {(definition != null ? definition.taskName : "<unknown>")}. Meter unchanged.");
                 return;
             }
 
-            // Add progress for Court and Kingsguard players
-            currentCourtProgress += pointsPerTask;
+            // Add progress for every Court-faction player, weighted by the completed task's tier
+            currentCourtProgress += TierWeight(definition);
 
-            // Clamp the progress so it doesn't exceed 100%
+            // Clamp the progress so it never exceeds the computed target
             currentCourtProgress = Mathf.Clamp(currentCourtProgress, 0f, maxCourtProgress);
 
             // Add to history so future rounds know it was completed! History holds the shared asset
@@ -192,7 +278,7 @@ namespace CorruptedCourt.Tasks
             // Announce the new progress - the court meter is a view that subscribes to this.
             GameEvents.RaiseCourtProgressChanged(currentCourtProgress, maxCourtProgress);
 
-            Log.Game($"Court Task Completed: {(definition != null ? definition.taskName : "<unknown>")}! Global Meter: {currentCourtProgress}% / {maxCourtProgress}%");
+            Log.Game($"Court Task Completed: {(definition != null ? definition.taskName : "<unknown>")}! Global Meter: {currentCourtProgress} / {maxCourtProgress}");
         }
     }
 }

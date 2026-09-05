@@ -23,6 +23,12 @@ namespace CorruptedCourt.Tasks
         [Header("Task Settings")]
         public bool isSabotage = false;
 
+        [Tooltip("Difficulty / value tier (1-3). Higher tiers cost more effort and are worth more " +
+                 "toward the Court meter - TaskManager.tierWeights maps tier -> points. Legacy assets " +
+                 "with no tier authored are treated as tier 1.")]
+        [Range(1, 3)]
+        public int taskTier = 1;
+
         [Header("Stage & Prerequisites")]
         [Tooltip("Which rounds/stages this task is allowed to spawn in (e.g., 1, 2, 3)")]
         public List<int> allowedStages = new List<int> { 1, 2, 3 };

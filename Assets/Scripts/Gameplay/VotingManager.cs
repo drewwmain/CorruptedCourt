@@ -83,7 +83,7 @@ namespace CorruptedCourt.Gameplay
                     // --- NEW: THE KING'S CURSE EVALUATION ---
                     if (RoleManager.Instance != null && RoleManager.Instance.currentKing != null)
                     {
-                        if (condemnedPlayer.Vitals.currentRole == PlayerRole.Corrupted)
+                        if (condemnedPlayer.Vitals.faction == Faction.Corrupted)
                         {
                             Log.Game("The King successfully executed a Corrupted player!");
                             RoleManager.Instance.ResetKingTimer();

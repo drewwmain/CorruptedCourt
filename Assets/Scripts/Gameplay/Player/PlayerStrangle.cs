@@ -73,7 +73,7 @@ namespace CorruptedCourt.Gameplay
         // interception. The Royal arrest branch on the same button lives in PlayerVitals.HandleArrestInput. ---
         public void HandleStrangleInput(bool isPressed, PickupItem heldItem, PickupItem leftHeldItem)
         {
-            if (vitals.isGhost || vitals.currentRole != PlayerRole.Corrupted) return;
+            if (vitals.isGhost || vitals.faction != Faction.Corrupted) return;
 
             if (isPressed)
             {
@@ -163,7 +163,7 @@ namespace CorruptedCourt.Gameplay
             if (timer >= strangleHoldTime && strangleVictim != null && !strangleVictim.Vitals.isGhost)
             {
                 // Court members can grab and hold someone, but their strangle never kills.
-                if (vitals.currentRole == PlayerRole.Court)
+                if (vitals.faction == Faction.Court)
                 {
                     Log.Game($"{gameObject.name} strangled {strangleVictim.gameObject.name} - but Court members deal no damage.");
                 }
@@ -190,7 +190,7 @@ namespace CorruptedCourt.Gameplay
         private PlayerController FindStrangleVictim()
         {
             PlayerController v = player.Interactor.TargetPlayer;
-            if (v == null || v == player || v.Vitals.isGhost || v.Vitals.currentRole == PlayerRole.Corrupted) return null;
+            if (v == null || v == player || v.Vitals.isGhost || v.Vitals.faction == Faction.Corrupted) return null;
 
             Vector3 flat = v.transform.position - transform.position;
             flat.y = 0f;

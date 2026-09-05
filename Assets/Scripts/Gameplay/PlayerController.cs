@@ -282,7 +282,7 @@ namespace CorruptedCourt.Gameplay
         {
             if (!value.isPressed || vitals.isGhost) return;
 
-            if (vitals.currentRole == PlayerRole.King && interactor.TargetPlayer != null)
+            if (vitals.courtTitle == CourtTitle.King && interactor.TargetPlayer != null)
             {
                 if (RoleManager.Instance != null)
                 {

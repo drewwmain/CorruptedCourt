@@ -25,7 +25,9 @@ namespace CorruptedCourt.Gameplay
         public float corruptedPercentage = 0.3f;
 
         [Header("Testing")]
-        [Tooltip("Force the local 'Player' to spawn as this role. Set to 'None' for normal random distribution.")]
+        [Tooltip("Force the local player's starting role. 'None' = normal random distribution. This is the " +
+                 "legacy combined knob: each value is mapped onto a Faction + CourtTitle pair at match start " +
+                 "(King/Kingsguard/Court are all Court-aligned; only Corrupted sets the Corrupted faction).")]
         public PlayerRole forceTestRole = PlayerRole.None;
 
         void Awake()
@@ -87,12 +89,21 @@ namespace CorruptedCourt.Gameplay
             int corruptedSlotsToFill = actualCorruptedCount;
             bool kingAssigned = false;
 
-            // --- NEW: INSPECTOR TESTING OVERRIDE LOGIC ---
+            // --- INSPECTOR TESTING OVERRIDE LOGIC ---
             if (localPlayer != null && forceTestRole != PlayerRole.None)
             {
-                localPlayer.Vitals.AssignRole(forceTestRole);
+                // Map the legacy combined value onto the two orthogonal axes. Only "Corrupted" is a
+                // non-Court faction; "King"/"Kingsguard" are Court-aligned officers.
+                Faction forcedFaction = forceTestRole == PlayerRole.Corrupted ? Faction.Corrupted : Faction.Court;
+                CourtTitle forcedTitle =
+                    forceTestRole == PlayerRole.King ? CourtTitle.King :
+                    forceTestRole == PlayerRole.Kingsguard ? CourtTitle.Kingsguard :
+                    CourtTitle.None;
+
+                localPlayer.Vitals.AssignFaction(forcedFaction);
+                localPlayer.Vitals.AssignTitle(forcedTitle);
                 remainingPlayers.Remove(localPlayer);
-                Log.Game($"[TESTING] Forced {localPlayer.gameObject.name} to be {forceTestRole}.");
+                Log.Game($"[TESTING] Forced {localPlayer.gameObject.name} to be {forceTestRole} (Faction={forcedFaction}, Title={forcedTitle}).");
 
                 // Adjust the remaining pools so we don't accidentally double-assign unique roles
                 if (forceTestRole == PlayerRole.King)
@@ -109,29 +120,32 @@ namespace CorruptedCourt.Gameplay
 
             ShuffleList(remainingPlayers);
 
-            // 1. Assign King (if they weren't forced in the test block)
+            // 1. Assign King (if they weren't forced in the test block). Court faction + King title.
             if (!kingAssigned)
             {
                 currentKing = remainingPlayers[0];
-                currentKing.Vitals.AssignRole(PlayerRole.King);
+                currentKing.Vitals.AssignFaction(Faction.Court);
+                currentKing.Vitals.AssignTitle(CourtTitle.King);
                 remainingPlayers.RemoveAt(0);
             }
 
-            // 2. Assign Corrupted
+            // 2. Assign Corrupted. Corrupted faction, no court title.
             int playerIndex = 0;
             for (int i = 0; i < corruptedSlotsToFill; i++)
             {
                 if (playerIndex < remainingPlayers.Count)
                 {
-                    remainingPlayers[playerIndex].Vitals.AssignRole(PlayerRole.Corrupted);
+                    remainingPlayers[playerIndex].Vitals.AssignFaction(Faction.Corrupted);
+                    remainingPlayers[playerIndex].Vitals.AssignTitle(CourtTitle.None);
                     playerIndex++;
                 }
             }
 
-            // 3. Assign Court (everyone leftover gets this)
+            // 3. Assign Court (everyone leftover gets this). Court faction, no court title.
             while (playerIndex < remainingPlayers.Count)
             {
-                remainingPlayers[playerIndex].Vitals.AssignRole(PlayerRole.Court);
+                remainingPlayers[playerIndex].Vitals.AssignFaction(Faction.Court);
+                remainingPlayers[playerIndex].Vitals.AssignTitle(CourtTitle.None);
                 playerIndex++;
             }
 
@@ -152,19 +166,22 @@ namespace CorruptedCourt.Gameplay
             }
         }
 
-        // Called by the King's PlayerController
+        // Called by the King's PlayerController. Appointment writes ONLY the court title - a player's
+        // Faction is fixed for the match, so appointing a Corrupted player as Kingsguard leaves them
+        // Corrupted (they keep their kill ability, still don't credit the meter, still count as
+        // Corrupted for parity).
         public void SetKingsguard(PlayerController newGuard)
         {
-            // 1. If someone is already the Kingsguard, demote them back to Court
+            // 1. If someone is already the Kingsguard, strip their title (NOT their faction).
             if (currentKingsguard != null && currentKingsguard != newGuard)
             {
-                currentKingsguard.Vitals.AssignRole(PlayerRole.Court);
+                currentKingsguard.Vitals.AssignTitle(CourtTitle.None);
                 Log.Game($"[RoleManager] {currentKingsguard.gameObject.name} was demoted from Kingsguard.");
             }
 
-            // 2. Assign the new Kingsguard
+            // 2. Give the new Kingsguard the title, leaving their faction untouched.
             currentKingsguard = newGuard;
-            currentKingsguard.Vitals.AssignRole(PlayerRole.Kingsguard);
+            currentKingsguard.Vitals.AssignTitle(CourtTitle.Kingsguard);
 
             Log.Game($"--- THE KING HAS APPOINTED {currentKingsguard.gameObject.name} AS THE NEW KINGSGUARD ---");
         }
@@ -190,8 +207,8 @@ namespace CorruptedCourt.Gameplay
             Log.Game($"<color=#8E44AD>THE KING'S CURSE HAS STRUCK! {currentKing.gameObject.name} has been stripped of their crown!</color>");
             isKingCursed = true;
 
-            // Demote the King to standard Court (your AssignRole method natively strips the bonus HP when assigning Court!)
-            currentKing.Vitals.AssignRole(PlayerRole.Court);
+            // Strip the King's title (NOT their faction). AssignTitle(None) also drops the royal bonus HP.
+            currentKing.Vitals.AssignTitle(CourtTitle.None);
 
             currentKing = null;
         }
