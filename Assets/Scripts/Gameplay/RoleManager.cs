@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using CorruptedCourt.Core;
 
 namespace CorruptedCourt.Gameplay
@@ -17,8 +18,23 @@ namespace CorruptedCourt.Gameplay
         public PlayerController currentKingsguard { get; private set; }
 
         [Header("King's Curse")]
-        public float kingCurseTimer = 300f; // 5 minutes to execute a Corrupted
+        [Tooltip("Seconds a reigning King has to execute a Corrupted before the curse strikes. Also the " +
+                 "value the countdown is reset to on succession and after a successful Corrupted execution.")]
+        [FormerlySerializedAs("kingCurseTimer")]
+        public float kingCurseDuration = 300f;
+
+        [Tooltip("How many times the crown may pass by curse-succession in one match. 0 = unlimited. " +
+                 "Once the limit is hit, a curse strips the King with no heir (the realm collapses).")]
+        public int maxSuccessions = 0;
+
         public bool isKingCursed = false;
+
+        // Runtime countdown to the next curse. Reset to kingCurseDuration at match start, on succession,
+        // and when the King executes a Corrupted. Pure runtime state - never serialised.
+        [System.NonSerialized] public float curseTimeRemaining;
+
+        // Times the crown has passed by curse-succession this match (see maxSuccessions).
+        private int successionCount;
 
         [Header("Balance Settings")]
         [Tooltip("Percentage of players that will be Corrupted (Default is 30% or 0.3f).")]
@@ -67,7 +83,8 @@ namespace CorruptedCourt.Gameplay
             // Strip out empty or destroyed entries before anything touches them
             allPlayers.RemoveAll(p => p == null);
             isKingCursed = false;
-            kingCurseTimer = 300f;
+            curseTimeRemaining = kingCurseDuration;
+            successionCount = 0;
             if (allPlayers.Count == 0)
             {
                 Log.Warn("No players found in the RoleManager list!");
@@ -190,9 +207,9 @@ namespace CorruptedCourt.Gameplay
             // Only run the timer if we have a living King who isn't already cursed
             if (currentKing != null && !currentKing.Vitals.isGhost && !isKingCursed)
             {
-                kingCurseTimer -= Time.deltaTime;
+                curseTimeRemaining -= Time.deltaTime;
 
-                if (kingCurseTimer <= 0f)
+                if (curseTimeRemaining <= 0f)
                 {
                     Log.Game("<color=#8E44AD>The King failed to act in time!</color>");
                     CurseTheKing();
@@ -200,22 +217,97 @@ namespace CorruptedCourt.Gameplay
             }
         }
 
+        // Curse timer expired. Instead of dead-ending the match (no King => nobody can arrest => no
+        // meeting can ever be called => the timerless action stage runs forever), the crown passes:
+        //   - to a living Court-faction Kingsguard if one exists,
+        //   - otherwise to a random living Court-faction player,
+        //   - and if no living Court-faction player remains, to nobody (parity is already met, so the
+        //     population win conditions should be resolving the match).
         public void CurseTheKing()
         {
             if (currentKing == null || isKingCursed) return;
 
-            Log.Game($"<color=#8E44AD>THE KING'S CURSE HAS STRUCK! {currentKing.gameObject.name} has been stripped of their crown!</color>");
-            isKingCursed = true;
+            PlayerController cursedKing = currentKing;
+            Log.Game($"<color=#8E44AD>THE KING'S CURSE HAS STRUCK! {cursedKing.gameObject.name} has been stripped of their crown!</color>");
 
-            // Strip the King's title (NOT their faction). AssignTitle(None) also drops the royal bonus HP.
-            currentKing.Vitals.AssignTitle(CourtTitle.None);
-
+            // The cursed King loses only the title (AssignTitle(None) also drops the royal bonus HP);
+            // their Faction is fixed for the match.
+            cursedKing.Vitals.AssignTitle(CourtTitle.None);
             currentKing = null;
+
+            // Opt-in "the realm collapses after N cursed kings" variant. 0 = unlimited (never collapses).
+            if (maxSuccessions > 0 && successionCount >= maxSuccessions)
+            {
+                isKingCursed = true;
+                Log.Game($"<color=#8E44AD>The realm collapses - {successionCount} succession(s) spent, the throne stays empty.</color>");
+                return;
+            }
+
+            PlayerController heir = ChooseHeir(cursedKing);
+            if (heir == null)
+            {
+                isKingCursed = true;
+                Log.Game("<color=#8E44AD>No living Court remains to take the throne. The monarchy has fallen.</color>");
+                return;
+            }
+
+            CrownHeir(heir);
+        }
+
+        // Succession pick. Never returns a ghost, the just-cursed King, or a Corrupted-faction player.
+        private PlayerController ChooseHeir(PlayerController cursedKing)
+        {
+            // 1. A living Kingsguard whose Faction is Court.
+            if (currentKingsguard != null
+                && currentKingsguard != cursedKing
+                && !currentKingsguard.Vitals.isGhost
+                && currentKingsguard.Vitals.faction == Faction.Court)
+            {
+                return currentKingsguard;
+            }
+
+            // 2. A random living Court-faction player.
+            List<PlayerController> candidates = new List<PlayerController>();
+            foreach (PlayerController p in allPlayers)
+            {
+                if (p == null || p == cursedKing || p.Vitals.isGhost) continue;
+                if (p.Vitals.faction != Faction.Court) continue; // never crown a Corrupted-faction player
+                candidates.Add(p);
+            }
+
+            return candidates.Count > 0 ? candidates[Random.Range(0, candidates.Count)] : null;
+        }
+
+        // Crowns the heir: King title, curse timer reset, Kingsguard slot vacated. Faction is left
+        // untouched. The crowning is hard-guarded so a Corrupted-faction player can never take the throne.
+        private void CrownHeir(PlayerController heir)
+        {
+            if (heir == null || heir.Vitals.isGhost || heir.Vitals.faction != Faction.Court)
+            {
+                isKingCursed = true;
+                Log.Warn("[RoleManager] CrownHeir rejected an ineligible heir - the throne stays empty.");
+                return;
+            }
+
+            // Clear the previous Kingsguard's title (they may be the very player being crowned).
+            if (currentKingsguard != null)
+            {
+                if (currentKingsguard != heir) currentKingsguard.Vitals.AssignTitle(CourtTitle.None);
+                currentKingsguard = null;
+            }
+
+            currentKing = heir;
+            heir.Vitals.AssignTitle(CourtTitle.King);
+
+            successionCount++;
+            curseTimeRemaining = kingCurseDuration;
+
+            Log.Game($"<color=#F1C40F>--- SUCCESSION: {heir.gameObject.name} is crowned King (succession {successionCount}); the curse timer resets to {kingCurseDuration:0}s. ---</color>");
         }
 
         public void ResetKingTimer()
         {
-            kingCurseTimer = 300f; // Reset back to 5 minutes
+            curseTimeRemaining = kingCurseDuration;
             Log.Game("<color=#F1C40F>The King's Curse timer has been reset!</color>");
         }
     }
