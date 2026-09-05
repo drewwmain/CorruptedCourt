@@ -39,22 +39,18 @@ public class PlayerController : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStatics() => Local = null;
 
-    [Header("Movement Settings")]
-    [SerializeField] private float walkSpeed = 5f;
-    [SerializeField] private float sprintSpeed = 8f;
-    [SerializeField] private float crouchSpeed = 2.5f;
-    [SerializeField] private float gravity = -9.81f;
-    [SerializeField] private float jumpHeight = 1.5f;
-    
+    [Header("Locomotion")]
+    [Tooltip("Owns movement, gravity, jump, sprint, crouch, lean-blend and teleport. Must live on " +
+             "this same GameObject (PlayerInput SendMessage relies on that). Resolved automatically " +
+             "via GetComponent if left unassigned.")]
+    [SerializeField] private PlayerMotor motor;
+
     [Header("Look Settings")]
     [SerializeField] private Transform playerCamera;
     [SerializeField] private float mouseSensitivity = 0.1f;
     [SerializeField] private float upperLookLimit = 80f;
     [SerializeField] private float lowerLookLimit = -80f;
 
-    [Header("Smooth Crouch Settings")]
-    [SerializeField] private float crouchTransitionSpeed = 10f;
-    
     [Header("Equipment Settings")]
     [SerializeField] private Transform rightHandSocket;
     [SerializeField] private Transform leftHandSocket; // The future rig bone attachment point
@@ -110,10 +106,6 @@ public class PlayerController : MonoBehaviour
     private PickupItem currentlyHeldItem; // RIGHT hand: the "active" hand used for throwing, processing, minigames, and partner tasks
     private PickupItem leftHeldItem;      // LEFT hand: the off-hand. Carries a second item; press SwapHands to move it into the active hand
     public int currentItemIndex = 0;
-    private float targetHeight;
-    private float targetCameraY;
-    private float standingCameraY = 0.8f;
-    private float crouchingCameraY = 0.5f;
 
     [Header("Social Deduction Settings")]
     [SerializeField] private float interactionRange = 3f;
@@ -125,7 +117,7 @@ public class PlayerController : MonoBehaviour
     public Transform PlayerCamera => playerCamera;
     public float InteractionRange => interactionRange;
     public LayerMask CharacterLayer => characterLayer;
-    public CharacterController CharController => characterController;
+    public CharacterController CharController => motor.CharController;
 
     [Header("UI Settings")]
     [SerializeField] private TextMeshProUGUI interactionUI; 
@@ -165,8 +157,10 @@ public class PlayerController : MonoBehaviour
     public float punchRadius = 0.5f;
     public float pushbackForce = 15f;
     public float pushbackDuration = 0.2f;
-    
+
     private bool isBeingPushed = false;
+    /// <summary>Exposed for PlayerMotor.HandleMovement, which locks movement speed to 0 while a pushback is in progress.</summary>
+    public bool IsBeingPushed => isBeingPushed;
 
     [Header("Corrupted Combat")]
     public float strangleCooldown = 4f;
@@ -245,6 +239,8 @@ public class PlayerController : MonoBehaviour
     public GameObject trapPrefab;
     public GameObject illusionPrefab;
     private bool isStunned = false;
+    /// <summary>Exposed for PlayerMotor.HandleMovement / UpdateLeanBlend, which lock movement and lean while stunned.</summary>
+    public bool IsStunned => isStunned;
     private Renderer[] playerRenderers;
 
     [Header("Minigame State")]
@@ -283,29 +279,16 @@ public class PlayerController : MonoBehaviour
     private Vector3 ikTargetPosition;
 
     // Internal State
-    private CharacterController characterController;
     private Animator animator; // NEW: Controls the 3D model's animations
     private PlayerInput playerInput;
     public bool controlsLocked { get; private set; } // true while a blocking UI (pause menu) is up
     private Vector2 moveInput;
     private Vector2 lookInput;
-    private Vector3 velocity;
     private float verticalRotation = 0f;
-    
-    // Input States
-    private bool isSprinting = false;
-    private bool isCrouching = false;
-    private bool isGrounded;
-    
-    // Original CharacterController constraints for crouching
-    private float originalHeight;
-    private float crouchHeight;
 
     [Header("Lean (hold Ctrl to bend forward at the hips - reach low stations)")]
     [Tooltip("Bend angle at the hips when fully leaned. The camera swings forward+down on this same arc.")]
     [SerializeField] private float leanAngle = 45f;
-    [Tooltip("How fast the lean blends in/out.")]
-    [SerializeField] private float leanSpeed = 8f;
     [Tooltip("Height of the hip pivot in the player's LOCAL space (the camera arcs around this point). Lower it if the camera doesn't move far enough forward.")]
     [SerializeField] private float leanHipLocalY = -0.1f;
     [Tooltip("How much the camera pitches while fully leaned, in degrees. Positive = look down, NEGATIVE = tilt UP (keeps your hands in frame while aiming in a minigame). Independent of the body-bend angle.")]
@@ -315,10 +298,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float leanMinigameForwardFactor = 0.2f;
     [Tooltip("The lower spine bone to bend forward while leaning (e.g. Spine_01). Empty = the avatar's Spine bone. The bend is SKIPPED while a minigame is driving the right hand, so the outstretched arm stays put for aiming.")]
     [SerializeField] private Transform leanSpineBone;
-    private bool isLeaning;
-    private float leanBlend;
-    private Vector3 camBaseLocalXZ;   // the camera's un-leaned local X/Z offset
-    private float camBaseY;           // the camera's un-leaned local Y (driven by the crouch lerp)
+    // isLeaning / leanBlend now live on PlayerMotor (see motor.LeanBlend) - the bend angle and camera
+    // arc tuning above stay here since ApplyLeanCameraArc / ApplyLeanSpineBend stay on PlayerController.
 
     void Awake()
     {
@@ -331,27 +312,14 @@ public class PlayerController : MonoBehaviour
         }
         RoleManager.Instance?.Register(this);
 
-        characterController = GetComponent<CharacterController>();
+        if (motor == null) motor = GetComponent<PlayerMotor>();
         playerInput = GetComponent<PlayerInput>();
         // Grab the Animator from the child CharacterVisuals model
         animator = GetComponentInChildren<Animator>();
         CollectHandGripBones();
-        originalHeight = characterController.height;
-        crouchHeight = originalHeight / 2f;
 
         // Cache all the meshes so the Invisibility Potion can turn them off
         playerRenderers = GetComponentsInChildren<Renderer>();
-
-        targetHeight = originalHeight;
-        targetCameraY = standingCameraY;
-
-        // Cache the camera's resting local offset so the lean arc can always be computed from a
-        // clean base (never from the already-arced position - that runs away).
-        if (playerCamera != null)
-        {
-            camBaseLocalXZ = new Vector3(playerCamera.localPosition.x, 0f, playerCamera.localPosition.z);
-            camBaseY = playerCamera.localPosition.y;
-        }
 
         // Lock cursor for FPS control
         Cursor.lockState = CursorLockMode.Locked;
@@ -380,66 +348,75 @@ public class PlayerController : MonoBehaviour
     {
         // Hip lean (hold Ctrl). Runs BEFORE the controls-locked / minigame gates and reads the key
         // directly, so you can still lean down to reach into a low chest during its minigame.
-        bool ctrlHeld = isLeaning || Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
-        bool wantLean = ctrlHeld && !isStrangling && !isArrested && !isStunned;
-        leanBlend = Mathf.MoveTowards(leanBlend, wantLean ? 1f : 0f, Time.deltaTime * leanSpeed);
+        motor.UpdateLeanBlend();
 
         // While a blocking UI (pause / settings menu) is up, the player is fully frozen so they can
         // use the menu with the mouse. No movement, look, interaction or animation updates.
-        if (controlsLocked) return;
-
-        // 1. ALWAYS update the IK tracking (so the hand follows the mouse)
-        UpdateMinigameIKTarget();
-        UpdateHaulIKTarget();
-
-        // 2. ONLY allow movement, camera rotation, and raycasting if NOT in a minigame
-        //    and NOT locked into a strangle (the strangle coroutine drives position/rotation itself).
-        if (!isPlayingMinigame && !isStrangling)
+        if (!controlsLocked)
         {
-            HandleRotation();
-            HandleMovement();
-            HandleCrouchTransition();
-            CheckForInteractable();
+            // 1. ALWAYS update the IK tracking (so the hand follows the mouse)
+            UpdateMinigameIKTarget();
+            UpdateHaulIKTarget();
 
-            // --- NEW: THROW CHARGING TIMER ---
-            if (isChargingThrow)
-            {
-                currentThrowCharge += Time.deltaTime;
-                currentThrowCharge = Mathf.Clamp(currentThrowCharge, 0f, maxThrowChargeTime);
-            }
-        }
-        else
-        {
-            // --- NEW: Allow camera rotation if holding RMB in a minigame ---
-            if (isPlayingMinigame && isMinigameLooking)
+            // 2. ONLY allow movement, camera rotation, and raycasting if NOT in a minigame
+            //    and NOT locked into a strangle (the strangle coroutine drives position/rotation itself).
+            if (!isPlayingMinigame && !isStrangling)
             {
                 HandleRotation();
-            }
-            // Force the target UI crosshair/prompts to fade away while the minigame or strangle is active
-            targetUIAlpha = 0f;
-        }
-        
-        // 3. Smoothly fade the UI text in or out every frame
-        if (interactionCanvasGroup != null)
-        {
-            interactionCanvasGroup.alpha = Mathf.Lerp(interactionCanvasGroup.alpha, targetUIAlpha, Time.deltaTime * uiFadeSpeed);
-        }
-        
-        // 4. SYNC ANIMATIONS WITH MOVEMENT
-        if (animator != null)
-        {
-            if (isStrangling)
-            {
-                // Locked onto a victim: freeze the legs (and the walk cycle that fights the hand IK).
-                animator.SetFloat("Speed", 0f);
+                motor.HandleMovement(moveInput);
+                motor.HandleCrouchTransition();
+                CheckForInteractable();
+
+                // --- NEW: THROW CHARGING TIMER ---
+                if (isChargingThrow)
+                {
+                    currentThrowCharge += Time.deltaTime;
+                    currentThrowCharge = Mathf.Clamp(currentThrowCharge, 0f, maxThrowChargeTime);
+                }
             }
             else
             {
-                // Normal locomotion - including while REACHING for a target, so the legs keep walking.
-                Vector3 horizontalVelocity = new Vector3(characterController.velocity.x, 0f, characterController.velocity.z);
-                animator.SetFloat("Speed", horizontalVelocity.magnitude, 0.1f, Time.deltaTime);
+                // --- NEW: Allow camera rotation if holding RMB in a minigame ---
+                if (isPlayingMinigame && isMinigameLooking)
+                {
+                    HandleRotation();
+                }
+                // Force the target UI crosshair/prompts to fade away while the minigame or strangle is active
+                targetUIAlpha = 0f;
+            }
+
+            // 3. Smoothly fade the UI text in or out every frame
+            if (interactionCanvasGroup != null)
+            {
+                interactionCanvasGroup.alpha = Mathf.Lerp(interactionCanvasGroup.alpha, targetUIAlpha, Time.deltaTime * uiFadeSpeed);
+            }
+
+            // 4. SYNC ANIMATIONS WITH MOVEMENT
+            if (animator != null)
+            {
+                if (isStrangling)
+                {
+                    // Locked onto a victim: freeze the legs (and the walk cycle that fights the hand IK).
+                    animator.SetFloat("Speed", 0f);
+                }
+                else
+                {
+                    // Normal locomotion - including while REACHING for a target, so the legs keep walking.
+                    Vector3 horizontalVelocity = new Vector3(CharController.velocity.x, 0f, CharController.velocity.z);
+                    animator.SetFloat("Speed", horizontalVelocity.magnitude, 0.1f, Time.deltaTime);
+                }
             }
         }
+
+        // Apply the lean camera arc HERE (end of Update, not LateUpdate) so the fully-leaned camera
+        // pose is already final before any other script's Update() runs its own logic against it -
+        // e.g. WaypointManager.Update() projects world -> screen via WorldToScreenPoint. It used to
+        // run in LateUpdate, one whole phase after WaypointManager reads the camera, so every marker
+        // was drawn from the PREVIOUS frame's lean pose and visibly detached from the world while
+        // leaning (snapping back once the lean fully released). Left unconditional (like
+        // motor.UpdateLeanBlend() above) so it keeps decaying the arc smoothly even while
+        // controlsLocked, matching its old always-runs-in-LateUpdate behaviour.
+        ApplyLeanCameraArc();
     }
 
     #region Input Action Callbacks 
@@ -466,46 +443,8 @@ public class PlayerController : MonoBehaviour
     // "ThrowItem" binding, if any remains, does nothing.
     public void OnThrowItem(InputValue value) { }
 
-    public void OnCrouch(InputValue value)
-    {
-        Debug.Log("Crouched");
-        if (!value.isPressed) return;
-
-        isCrouching = !isCrouching;
-
-        targetHeight = isCrouching ? crouchHeight : originalHeight;
-        targetCameraY = isCrouching ? crouchingCameraY : standingCameraY;
-    }
-
-    // [Ctrl]: hold to bend forward at the hips so you can reach a low deposit station.
-    public void OnLean(InputValue value)
-    {
-        isLeaning = value.isPressed;
-    }
-
-    private void HandleCrouchTransition()
-    {
-        characterController.height = Mathf.Lerp(characterController.height, targetHeight, Time.deltaTime * crouchTransitionSpeed);
-
-        // Drive the un-leaned base Y (crouch lerp), then set the camera to that clean base. The lean
-        // arc is layered on top in LateUpdate, computed from this base - so it can't accumulate.
-        camBaseY = Mathf.Lerp(camBaseY, targetCameraY, Time.deltaTime * crouchTransitionSpeed);
-        playerCamera.localPosition = new Vector3(camBaseLocalXZ.x, camBaseY, camBaseLocalXZ.z);
-    }
-
-    public void OnJump(InputValue value)
-    {
-        // --- NEW: Block jumping entirely if holding a heavy item (either hand) ---
-        if (IsHoldingHeavyItem())
-        {
-            if(value.isPressed) Debug.Log("Cannot jump while carrying a heavy item!");
-            return;
-        }
-        if (value.isPressed && isGrounded && !isCrouching)
-        {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-        }
-    }
+    // OnCrouch, OnLean, HandleCrouchTransition, and OnJump now live on PlayerMotor (it sits on this
+    // same GameObject, so PlayerInput's SendMessage calls them there directly).
 
     public void OnPrevious(InputValue value)
     {
@@ -519,14 +458,9 @@ public class PlayerController : MonoBehaviour
         CycleInventory(1);
     }
 
-    public void OnSprint(InputValue value)
-    {
-        // value.isPressed is true when you press and hold the key down
-        // value.isPressed becomes false the exact moment you let go of the key
-        isSprinting = value.isPressed;
-        if(value.isPressed) Debug.Log("Sprinting");
-        else Debug.Log("Walking");
-    }
+    // OnSprint now lives on PlayerMotor (it sits on this same GameObject, so PlayerInput's
+    // SendMessage calls it there directly).
+
     // Triggered by your 'F' key (or whatever you map it to in the Input System)
     public void OnNominate(InputValue value)
     {
@@ -957,11 +891,11 @@ public class PlayerController : MonoBehaviour
 
         // Ignore EVERY collider on the victim (capsule + any body/mesh colliders) so nothing stops
         // the strangler closing chest-to-chest.
-        if (characterController != null)
+        if (CharController != null)
         {
             strangleIgnoredColliders = victim.GetComponentsInChildren<Collider>();
             foreach (Collider col in strangleIgnoredColliders)
-                if (col != null && col.enabled) Physics.IgnoreCollision(characterController, col, true);
+                if (col != null && col.enabled) Physics.IgnoreCollision(CharController, col, true);
         }
 
         // Turn to face the victim immediately; the pull-in and orbit are handled every frame.
@@ -975,7 +909,7 @@ public class PlayerController : MonoBehaviour
     // Runs every frame of the struggle: slow side-to-side shuffle around the neck + face the victim.
     private void UpdateStrangleLock()
     {
-        if (strangleVictim == null || characterController == null) return;
+        if (strangleVictim == null || CharController == null) return;
 
         Vector3 neck = StrangleNeckPoint();
         Vector3 center = new Vector3(neck.x, transform.position.y, neck.z);
@@ -997,7 +931,7 @@ public class PlayerController : MonoBehaviour
         Vector3 delta = newPos - transform.position;
         delta.y = -2f * Time.deltaTime; // small downward bias to stay grounded
 
-        if (characterController.enabled) characterController.Move(delta);
+        if (CharController.enabled) CharController.Move(delta);
 
         // Keep facing the victim's neck
         Vector3 faceDir = center - transform.position;
@@ -1007,10 +941,10 @@ public class PlayerController : MonoBehaviour
 
     private void EndStrangleLock()
     {
-        if (characterController != null && strangleIgnoredColliders != null)
+        if (CharController != null && strangleIgnoredColliders != null)
         {
             foreach (Collider col in strangleIgnoredColliders)
-                if (col != null) Physics.IgnoreCollision(characterController, col, false);
+                if (col != null) Physics.IgnoreCollision(CharController, col, false);
         }
         strangleIgnoredColliders = null;
 
@@ -1078,7 +1012,7 @@ public class PlayerController : MonoBehaviour
     private bool warnedNoSpineBone;
     private void ApplyLeanSpineBend()
     {
-        if (leanBlend <= 0.001f || hangReachActive) return;
+        if (motor.LeanBlend <= 0.001f || hangReachActive) return;
 
         Transform sb = leanSpineBone;
         if (sb == null && animator != null && animator.isHuman)
@@ -1095,7 +1029,7 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        sb.rotation = Quaternion.AngleAxis(leanAngle * leanBlend, transform.right) * sb.rotation;
+        sb.rotation = Quaternion.AngleAxis(leanAngle * motor.LeanBlend, transform.right) * sb.rotation;
     }
 
     // Keeps haulActive in sync with what's held, re-poses the item, and refreshes the grip-point +
@@ -1684,7 +1618,7 @@ public class PlayerController : MonoBehaviour
             float currentForce = Mathf.Lerp(force, 0f, timer / duration);
             
             // Move the CharacterController along the X/Z axis
-            characterController.Move(direction * currentForce * Time.deltaTime);
+            CharController.Move(direction * currentForce * Time.deltaTime);
             
             timer += Time.deltaTime;
             yield return null; // Wait for next frame
@@ -1855,7 +1789,7 @@ public class PlayerController : MonoBehaviour
             
             // Move the CharacterController smoothly to that exact spot
             Vector3 moveDelta = targetPosition - transform.position;
-            characterController.Move(moveDelta);
+            CharController.Move(moveDelta);
             
             // Force the prisoner to face the same way as the Royal
             transform.rotation = currentCaptor.transform.rotation;
@@ -1895,50 +1829,7 @@ public class PlayerController : MonoBehaviour
     #endregion
 
     #region Core FPS Logic
-    private void HandleMovement()
-    {
-        isGrounded = characterController.isGrounded;
-        if (isGrounded && velocity.y < 0)
-        {
-            velocity.y = -2f; 
-        }
-
-        float currentSpeed = walkSpeed;
-
-        // --- NEW: OVERRIDE MOVEMENT SPEED FOR HEAVY ITEMS, STUNS, & ARRESTS ---
-        bool isHoldingHeavy = IsHoldingHeavyItem();
-
-        // 1. Highest Priority: Stuns, Pushbacks, and Arrests completely lock voluntary movement
-        if (isStunned || isBeingPushed || isArrested) 
-        {
-            currentSpeed = 0f;
-        }
-        // 2. Second Priority: Heavy items and Dragging Prisoners halve speed and disable sprint/crouch speeds
-        else if (isHoldingHeavy || isDraggingPrisoner) 
-        {
-            currentSpeed = walkSpeed * 0.5f;
-        }
-        // 3. Normal movement logic
-        else if (isCrouching) 
-        {
-            currentSpeed = crouchSpeed;
-        }
-        else if (isSprinting) 
-        {
-            currentSpeed = sprintSpeed;
-        }
-
-        // --- THE FIX: Combine movement and gravity into ONE vector ---
-        Vector3 moveDirection = transform.right * moveInput.x + transform.forward * moveInput.y;
-        Vector3 finalMovement = moveDirection * currentSpeed;
-
-        // Calculate gravity
-        velocity.y += gravity * Time.deltaTime;
-        finalMovement.y = velocity.y; // Add the Y velocity to the final movement
-
-        // Execute exactly ONE Move call so Unity calculates the velocity perfectly!
-        characterController.Move(finalMovement * Time.deltaTime);
-    }
+    // HandleMovement now lives on PlayerMotor (motor.HandleMovement, called from Update()).
 
     private void HandleRotation()
     {
@@ -1967,10 +1858,12 @@ public class PlayerController : MonoBehaviour
         playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
     }
 
-    // Runs after Update/crouch have set the base camera pose, so the lean arc isn't overwritten.
+    // ApplyLeanCameraArc moved to the end of Update() - see the comment there. These two stay in
+    // LateUpdate because they pose bones (spine / fingers) and must run AFTER the Animator has
+    // evaluated this frame's pose (which happens between Update and LateUpdate), or the Animator
+    // would immediately overwrite them.
     void LateUpdate()
     {
-        ApplyLeanCameraArc();
         ApplyLeanSpineBend();
         ApplyHandGripPose();
     }
@@ -2108,10 +2001,10 @@ public class PlayerController : MonoBehaviour
     // set by HandleCrouchTransition, never from the current position - so it can't run away.
     private void ApplyLeanCameraArc()
     {
-        if (leanBlend <= 0.001f || playerCamera == null) return;
+        if (motor.LeanBlend <= 0.001f || playerCamera == null) return;
 
-        float theta = leanAngle * leanBlend;
-        Vector3 baseLocal = new Vector3(camBaseLocalXZ.x, camBaseY, camBaseLocalXZ.z);
+        float theta = leanAngle * motor.LeanBlend;
+        Vector3 baseLocal = new Vector3(motor.CamBaseLocalXZ.x, motor.CamBaseY, motor.CamBaseLocalXZ.z);
         Vector3 pivot = new Vector3(baseLocal.x, leanHipLocalY, baseLocal.z);
 
         Vector3 arm = Quaternion.AngleAxis(theta, Vector3.right) * (baseLocal - pivot); // swing forward + down
@@ -2121,7 +2014,7 @@ public class PlayerController : MonoBehaviour
         playerCamera.localPosition = pivot + arm;
         // View pitch is its own tunable (can be negative = tilt up) so the hands stay in frame.
         playerCamera.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f)
-                                     * Quaternion.AngleAxis(leanViewPitch * leanBlend, Vector3.right);
+                                     * Quaternion.AngleAxis(leanViewPitch * motor.LeanBlend, Vector3.right);
     }
     #endregion
 
@@ -2736,10 +2629,10 @@ public class PlayerController : MonoBehaviour
         // Drop any input already latched so we don't keep moving/looking after the menu opens.
         moveInput = Vector2.zero;
         lookInput = Vector2.zero;
-        isSprinting = false;
+        motor.CancelSprint();
         isChargingThrow = false;
         strangleButtonHeld = false;
-        isLeaning = false; // legacy Ctrl read in Update() still drives the lean while locked
+        motor.CancelLeanInput(); // legacy Ctrl read in Update() still drives the lean while locked
 
         // Stop every input action callback from firing while the menu is up.
         if (playerInput != null) playerInput.enabled = !locked;
@@ -2752,32 +2645,7 @@ public class PlayerController : MonoBehaviour
     // because the minigame is driving it directly rather than the normal Update() path.
     public void MinigameWalk(Vector2 move, Vector3 anchor, float radius)
     {
-        if (characterController == null || !characterController.enabled) return;
-
-        isGrounded = characterController.isGrounded;
-        if (isGrounded && velocity.y < 0f) velocity.y = -2f;
-
-        Vector3 dir = transform.right * move.x + transform.forward * move.y;
-        if (dir.sqrMagnitude > 1f) dir.Normalize();
-
-        Vector3 step = dir * (walkSpeed * 0.5f);
-        velocity.y += gravity * Time.deltaTime;
-        step.y = velocity.y;
-        characterController.Move(step * Time.deltaTime);
-
-        if (radius > 0f)
-        {
-            Vector3 offset = transform.position - anchor;
-            offset.y = 0f;
-            if (offset.magnitude > radius)
-            {
-                Vector3 clamped = anchor + offset.normalized * radius;
-                clamped.y = transform.position.y;
-                characterController.enabled = false;
-                transform.position = clamped;
-                characterController.enabled = true;
-            }
-        }
+        motor.WalkConstrained(move, anchor, radius);
     }
 
     // Horizontal-only look for placement minigames. The minigame calls this while the player holds
@@ -2800,18 +2668,12 @@ public class PlayerController : MonoBehaviour
     // Add this helper method anywhere inside PlayerController
     public void TeleportTo(Transform targetTransform)
     {
-        TeleportTo(targetTransform.position, targetTransform.rotation);
+        motor.TeleportTo(targetTransform);
     }
 
     public void TeleportTo(Vector3 position, Quaternion rotation)
     {
-        // Must disable CharacterController to physically move the player
-        if (characterController != null) characterController.enabled = false;
-
-        transform.position = position;
-        transform.rotation = rotation;
-
-        if (characterController != null) characterController.enabled = true;
+        motor.TeleportTo(position, rotation);
     }
 
     // Aim the body + camera at a world point (used when a placement minigame starts).
@@ -2884,7 +2746,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // 4. (Optional) You can increase their movement speed here so ghosts can float around faster
-        walkSpeed *= 1.5f; 
+        motor.ScaleWalkSpeed(1.5f);
     }
 
     public void AssignTasks(List<TaskInstance> newTasks)
@@ -3051,13 +2913,13 @@ public class PlayerController : MonoBehaviour
                 if (standPoint != null)
                 {
                     Vector3 lockedFloorPosition = new Vector3(standPoint.position.x, transform.position.y, standPoint.position.z);
-                    if (characterController != null) characterController.enabled = false;
+                    if (CharController != null) CharController.enabled = false;
                     transform.position = lockedFloorPosition;
                     transform.rotation = standPoint.rotation;
-                    if (characterController != null) 
+                    if (CharController != null)
                     {
-                        characterController.enabled = true;
-                        characterController.Move(Vector3.down * 0.15f); // Prevent physics popping
+                        CharController.enabled = true;
+                        CharController.Move(Vector3.down * 0.15f); // Prevent physics popping
                     }
                 }
                 else

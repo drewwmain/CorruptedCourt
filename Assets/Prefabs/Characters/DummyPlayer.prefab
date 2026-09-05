@@ -153,6 +153,7 @@ GameObject:
   - component: {fileID: 4309804080507697953}
   - component: {fileID: 3961424763485113663}
   - component: {fileID: 4001409324923322614}
+  - component: {fileID: 7573359855154504944}
   - component: {fileID: 6668280575978724801}
   m_Layer: 7
   m_Name: DummyPlayer
@@ -245,20 +246,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 035d72bc02ed05f4c9ac6a486c91033d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkSpeed: 5
-  sprintSpeed: 8
-  crouchSpeed: 2.5
-  gravity: -9.81
-  jumpHeight: 1.5
+  isLocalPlayer: 1
+  motor: {fileID: 0}
   playerCamera: {fileID: 6875407516785058764}
   mouseSensitivity: 0.1
   upperLookLimit: 80
   lowerLookLimit: -80
-  crouchTransitionSpeed: 10
   rightHandSocket: {fileID: 2682449844836838116}
   leftHandSocket: {fileID: 2705351071062112603}
+  rightHandBone: {fileID: 0}
+  minigameHandGrip: 1
+  rightHandFingerBones: []
+  rightHandThumbBone: {fileID: 0}
+  fingerCurlDegrees: 60
+  thumbCurlDegrees: 35
+  fingerCurlAxisOverride: {x: 0, y: 0, z: 0}
+  handGripSpeed: 16
+  handGripPulseTime: 0.18
+  hangReachActive: 0
+  hangReachPos: {x: 0, y: 0, z: 0}
+  hangReachRot: {x: 0, y: 0, z: 0, w: 1}
+  hangReachRotWeight: 0
+  haulActive: 0
+  haulLeftHandPos: {x: 0, y: 0, z: 0}
+  haulRightHandPos: {x: 0, y: 0, z: 0}
+  haulLeftElbowPos: {x: 0, y: 0, z: 0}
+  haulRightElbowPos: {x: 0, y: 0, z: 0}
+  haulLeftHandRot: {x: 0, y: 0, z: 0, w: 1}
+  haulRightHandRot: {x: 0, y: 0, z: 0, w: 1}
+  haulUseRotation: 0
   currentItemIndex: 0
   interactionRange: 4
+  depositProximityRange: 2.5
   interactableLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -304,8 +323,6 @@ MonoBehaviour:
   strangleHandRoll: 90
   currentZoneID: 
   showWaypoints: 1
-  activeTasks: []
-  allAssignedTasks: []
   corruptedInventory:
   - {fileID: 0}
   - {fileID: 0}
@@ -315,17 +332,40 @@ MonoBehaviour:
   scrollCooldown: 0.15
   maxThrowChargeTime: 2
   baseThrowForce: 25
+  dropTapMaxDuration: 0.2
   trapPrefab: {fileID: 9106271627260861250, guid: f35682178cd67fb4a8e5081648f12ab7, type: 3}
   illusionPrefab: {fileID: 0}
-  isPlayingMinigame: 0
   isMinigameLooking: 0
   activeMinigameTarget: {fileID: 0}
-  activeMinigameTask: {fileID: 0}
   currentMinigameTargetType: 3
   minigameLookLimit: 90
   minigameIKDepth: 0.6
   ikBlendSpeed: 8
   rightHandRotationOffset: {x: 0, y: 0, z: -90}
+  leanAngle: 45
+  leanHipLocalY: -0.1
+  leanViewPitch: -5
+  leanMinigameForwardFactor: 0.2
+  leanSpineBone: {fileID: 0}
+--- !u!114 &7573359855154504944
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2874292650299591091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4884585f86ed27a4b88f9ace80ceeb08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  walkSpeed: 5
+  sprintSpeed: 8
+  crouchSpeed: 2.5
+  gravity: -9.81
+  jumpHeight: 1.5
+  crouchTransitionSpeed: 10
+  leanSpeed: 8
 --- !u!114 &6668280575978724801
 MonoBehaviour:
   m_ObjectHideFlags: 0
