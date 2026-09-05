@@ -17,6 +17,13 @@ public class TaskStepRuntime
     /// <summary>The code this player retrieved. Empty until <see cref="HasCode"/> is set.</summary>
     public string GeneratedCode = "";
 
+    /// <summary>
+    /// Set by <see cref="DataRetrievalStep"/> the instant it generates the code; the view clears it
+    /// once it has shown the "memorize this" popup. Lets the step hand the code to the UI without
+    /// referencing it - it just flags the runtime and the tasks-changed signal does the rest. One-shot.
+    /// </summary>
+    public bool CodeRevealPending;
+
     public TaskStepRuntime(TaskStep template)
     {
         Template = template;

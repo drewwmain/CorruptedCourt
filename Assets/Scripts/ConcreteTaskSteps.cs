@@ -204,16 +204,11 @@ public class DataRetrievalStep : TaskStep
             {
                 runtime.HasCode = true;
                 runtime.GeneratedCode = Random.Range(100, 999).ToString(); // Generate the code
+                runtime.CodeRevealPending = true; // the view shows the popup off the tasks-changed signal
 
                 Debug.Log($"[Task System] Code {runtime.GeneratedCode} acquired from {sourceStationID}!");
 
-                // Trigger the UI Popup
-                if (UIManager.Instance != null)
-                {
-                    UIManager.Instance.ShowDataCodePopup(runtime.GeneratedCode);
-                }
-
-                // Force the waypoints to update to the new destination
+                // Force the waypoints (and the code popup) to update to the new destination
                 player.RefreshLocalWaypoints();
 
                 return false; // Return false because the step isn't fully complete until they input it!

@@ -2894,56 +2894,28 @@ public class PlayerController : MonoBehaviour
         // No InitializeTask() call - each TaskInstance is constructed fresh (step index 0, steps
         // deep-copied and un-completed), so a new instance IS the initialization.
 
-        if (IsLocal && UIManager.Instance != null)
-        {
-            UIManager.Instance.UpdatePlayerTaskList(this, allAssignedTasks, activeTasks, currentRole);
-            RefreshLocalWaypoints();
-        }
+        RefreshLocalWaypoints(); // raises LocalTasksChanged; the HUD + waypoints react. No-op if not local.
     }
 
     // Called when the player successfully interacts with a task station
     public void RemoveCompletedTask(TaskInstance completedTask)
     {
-        if (activeTasks.Contains(completedTask)) 
+        if (activeTasks.Contains(completedTask))
         {
             // Remove it from active logic, but keep it in allAssignedTasks!
-            activeTasks.Remove(completedTask); 
-           
-            // Inside RemoveCompletedTask(...)
-            if (IsLocal && UIManager.Instance != null)
-            {
-                // Add 'this' as the first parameter
-                UIManager.Instance.UpdatePlayerTaskList(this, allAssignedTasks, activeTasks, currentRole);
-                RefreshLocalWaypoints();
-            }
+            activeTasks.Remove(completedTask);
+
+            RefreshLocalWaypoints();
         }
     }
 
-    // A centralized helper to refresh the UI markers dynamically
+    // Signals that the local player's task list / current step changed. The HUD text and the
+    // on-screen waypoints are views that subscribe to GameEvents.LocalTasksChanged - this method
+    // must NOT reference UIManager or WaypointManager.
     public void RefreshLocalWaypoints()
     {
-        if (IsLocal)
-        {
-            if (UIManager.Instance != null)
-            {
-                // Force the text to evaluate the new step
-                UIManager.Instance.UpdatePlayerTaskList(this, allAssignedTasks, activeTasks, currentRole);
-            }
-
-            if (WaypointManager.Instance != null)
-            {
-                if (showWaypoints)
-                {
-                    WaypointManager.Instance.playerCamera = this.playerCamera.GetComponent<Camera>();
-                    WaypointManager.Instance.UpdateWaypoints(this, allAssignedTasks);
-                }
-                else
-                {
-                    // Pass an empty list to clear out any active waypoints on the screen
-                    WaypointManager.Instance.UpdateWaypoints(this, new List<TaskInstance>());
-                }
-            }
-        }
+        if (!IsLocal) return;
+        GameEvents.RaiseLocalTasksChanged(this);
     }
     
     private void HandlePlayerInteraction(PlayerController target)

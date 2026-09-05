@@ -77,6 +77,62 @@ public class UIManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
+    void OnEnable()
+    {
+        GameEvents.LocalTasksChanged   += OnLocalTasksChanged;
+        GameEvents.CourtProgressChanged += UpdateGlobalMeter;
+        GameEvents.MatchStateChanged   += OnMatchStateChanged;
+        GameEvents.AbsentPlayersChanged += OnAbsentPlayersChanged;
+
+        // We may have missed raises that happened before this object was enabled - pull the
+        // current values so the view is correct on scene load and after a manual re-enable.
+        if (TaskManager.Instance != null)
+            UpdateGlobalMeter(TaskManager.Instance.currentCourtProgress, TaskManager.Instance.maxCourtProgress);
+        if (MatchManager.Instance != null)
+            OnMatchStateChanged(MatchManager.Instance.currentState);
+        if (PlayerController.Local != null)
+            OnLocalTasksChanged(PlayerController.Local);
+    }
+
+    void OnDisable()
+    {
+        GameEvents.LocalTasksChanged   -= OnLocalTasksChanged;
+        GameEvents.CourtProgressChanged -= UpdateGlobalMeter;
+        GameEvents.MatchStateChanged   -= OnMatchStateChanged;
+        GameEvents.AbsentPlayersChanged -= OnAbsentPlayersChanged;
+    }
+
+    // --- GAMEPLAY EVENT HANDLERS (views react; gameplay never calls us) ---
+
+    private void OnLocalTasksChanged(PlayerController player)
+    {
+        if (player == null) return;
+
+        UpdatePlayerTaskList(player, player.allAssignedTasks, player.activeTasks, player.currentRole);
+
+        // One-shot: a DataRetrievalStep that just generated its code flags the runtime for the popup.
+        if (player.activeTasks != null)
+        {
+            foreach (TaskInstance task in player.activeTasks)
+            {
+                if (task == null) continue;
+                TaskStepRuntime rt = task.CurrentStepRuntime;
+                if (rt != null && rt.CodeRevealPending && task.GetCurrentStep() is DataRetrievalStep)
+                {
+                    rt.CodeRevealPending = false;
+                    ShowDataCodePopup(rt.GeneratedCode);
+                }
+            }
+        }
+    }
+
+    private void OnMatchStateChanged(MatchManager.MatchState state)
+    {
+        // The 20s scramble panel is visible only during the transition-to-meeting state.
+        if (transitionPanel != null)
+            transitionPanel.SetActive(state == MatchManager.MatchState.TransitionToMeeting);
+    }
+
     void Update()
     {
         // Listen for the Escape key to open/close the in-game settings
@@ -153,11 +209,7 @@ public class UIManager : MonoBehaviour
     }
 
     // --- TRANSITION & ABSENT UI LOGIC ---
-
-    public void ShowTransitionWarning()
-    {
-        if (transitionPanel != null) transitionPanel.SetActive(true);
-    }
+    // transitionPanel show/hide is driven by OnMatchStateChanged. Absent list by OnAbsentPlayersChanged.
 
     public void UpdateTransitionTimer(float timeRemaining)
     {
@@ -168,21 +220,16 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    public void HideTransitionUI()
-    {
-        if (transitionPanel != null) transitionPanel.SetActive(false);
-    }
-
-    public void ShowAbsentMembers(List<string> absentPlayers)
+    private void OnAbsentPlayersChanged(IReadOnlyList<string> absentPlayers)
     {
         if (absentMembersText == null) return;
-        
+
         absentMembersText.gameObject.SetActive(true);
         StringBuilder sb = new StringBuilder();
 
         sb.AppendLine("<color=#E74C3C><b>Absent court members:</b></color>");
-        
-        if (absentPlayers.Count == 0)
+
+        if (absentPlayers == null || absentPlayers.Count == 0)
         {
             sb.AppendLine("<color=#BDC3C7>None (All members present)</color>");
         }

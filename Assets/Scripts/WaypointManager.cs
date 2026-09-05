@@ -39,10 +39,40 @@ public class WaypointManager : MonoBehaviour
         public float distance;
     }
 
+    // Shared empty list so the "clear all markers" path allocates nothing.
+    private static readonly List<TaskInstance> noTasks = new List<TaskInstance>();
+
     void Awake()
     {
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
+    }
+
+    void OnEnable()
+    {
+        GameEvents.LocalTasksChanged += OnLocalTasksChanged;
+    }
+
+    void OnDisable()
+    {
+        GameEvents.LocalTasksChanged -= OnLocalTasksChanged;
+    }
+
+    // The local player's task list / current step changed. Rebuild that player's on-screen markers -
+    // this is what PlayerController.RefreshLocalWaypoints used to call directly.
+    private void OnLocalTasksChanged(PlayerController player)
+    {
+        if (player == null) return;
+
+        if (player.showWaypoints)
+        {
+            if (player.PlayerCamera != null) playerCamera = player.PlayerCamera.GetComponent<Camera>();
+            UpdateWaypoints(player, player.allAssignedTasks);
+        }
+        else
+        {
+            UpdateWaypoints(player, noTasks); // clears any active markers
+        }
     }
 
     public void UpdateWaypoints(PlayerController localPlayer, List<TaskInstance> currentTasks)

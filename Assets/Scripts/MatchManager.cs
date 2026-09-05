@@ -58,35 +58,35 @@ public class MatchManager : MonoBehaviour
     {
         currentState = newState;
 
+        // Views (transition panel, etc.) subscribe to this - MatchManager no longer pokes them directly.
+        GameEvents.RaiseMatchStateChanged(currentState);
+
         switch (currentState)
         {
             case MatchState.Initialization:
                 Debug.Log("--- MATCH STARTING: Initialization Phase ---");
                 currentStage = 1;
-                
+
                 if (RoleManager.Instance != null) RoleManager.Instance.AssignAllRoles();
-                
-                if (UIManager.Instance != null) 
+
+                if (UIManager.Instance != null)
                 {
                     UIManager.Instance.HideVotingPanel();
                     UIManager.Instance.HideGameOverScreen();
-                    UIManager.Instance.HideTransitionUI();
                 }
-                
+
                 ChangeState(MatchState.ActionStage);
                 break;
 
             case MatchState.ActionStage:
                 Debug.Log($"--- STAGE {currentStage}: Action Stage Started! ---");
                 currentTimer = actionDuration;
-                
+
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
 
-                if (UIManager.Instance != null) UIManager.Instance.HideTransitionUI();
-                
                 // TELEPORT REMOVED: Players must now run from the meeting room to their tasks!
-                
+
                 if (TaskManager.Instance != null) TaskManager.Instance.AssignTasksForNewStage();
                 break;
 
@@ -94,11 +94,6 @@ public class MatchManager : MonoBehaviour
             case MatchState.TransitionToMeeting:
                 Debug.Log($"--- ROUND OVER: 20 Seconds to reach the {meetingZoneID}! ---");
                 currentTimer = transitionDuration;
-                
-                if (UIManager.Instance != null) 
-                {
-                    UIManager.Instance.ShowTransitionWarning();
-                }
 
                 // Tell the Waypoint Manager to draw a marker at the meeting room
                 if (WaypointManager.Instance != null && meetingRoomTransform != null)
@@ -111,9 +106,8 @@ public class MatchManager : MonoBehaviour
                 Debug.Log($"--- STAGE {currentStage}: Meeting Phase Started! ---");
                 currentTimer = meetingDuration;
                 
-                // 1. Turn off the waypoint and transition UI
+                // 1. Turn off the meeting waypoint (the transition panel hides off MatchStateChanged)
                 if (WaypointManager.Instance != null) WaypointManager.Instance.ClearMeetingWaypoint();
-                if (UIManager.Instance != null) UIManager.Instance.HideTransitionUI();
 
                 // 2. We do one final scan to lock in the absent players for the meeting phase
                 List<string> finalAbsentPlayers = new List<string>();
@@ -128,9 +122,9 @@ public class MatchManager : MonoBehaviour
                     }
                 }
 
-                // 3. Trigger the meeting UI and pass the absent list to the Voting Panel
+                // 3. Trigger the meeting flow; the absent list goes out as an event for the view.
                 if (VotingManager.Instance != null) VotingManager.Instance.StartMeeting();
-                if (UIManager.Instance != null) UIManager.Instance.ShowAbsentMembers(finalAbsentPlayers);
+                GameEvents.RaiseAbsentPlayersChanged(finalAbsentPlayers);
                 break;
 
             case MatchState.GameOver:
@@ -155,9 +149,11 @@ public class MatchManager : MonoBehaviour
             currentTimer -= Time.deltaTime;
 
             // Constantly update the UI timer AND the Absent List if we are in the transition scramble
-            if (currentState == MatchState.TransitionToMeeting && UIManager.Instance != null)
+            if (currentState == MatchState.TransitionToMeeting)
             {
-                UIManager.Instance.UpdateTransitionTimer(currentTimer);
+                // NOTE: still a direct UIManager call - out of scope for the GameEvents pass, which
+                // only covered ShowTransitionWarning / HideTransitionUI / ShowAbsentMembers.
+                if (UIManager.Instance != null) UIManager.Instance.UpdateTransitionTimer(currentTimer);
 
                 // LIVE ABSENT TRACKING: Constantly scan the room as the clock ticks down
                 List<string> liveAbsentPlayers = new List<string>();
@@ -171,9 +167,9 @@ public class MatchManager : MonoBehaviour
                         }
                     }
                 }
-                
-                // Pushes the updated list to the screen every frame
-                UIManager.Instance.ShowAbsentMembers(liveAbsentPlayers); 
+
+                // Pushes the updated list to the screen every frame (via the view's subscription)
+                GameEvents.RaiseAbsentPlayersChanged(liveAbsentPlayers);
             }
 
             if (currentTimer <= 0f)

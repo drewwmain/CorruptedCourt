@@ -180,11 +180,8 @@ public class TaskManager : MonoBehaviour
             completedTasksHistory.Add(definition);
         }
 
-        // Update the visual meter
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.UpdateGlobalMeter(currentCourtProgress, maxCourtProgress);
-        }
+        // Announce the new progress - the court meter is a view that subscribes to this.
+        GameEvents.RaiseCourtProgressChanged(currentCourtProgress, maxCourtProgress);
 
         Debug.Log($"Court Task Completed: {(definition != null ? definition.taskName : "<unknown>")}! Global Meter: {currentCourtProgress}% / {maxCourtProgress}%");
     }
