@@ -42,6 +42,13 @@ namespace CorruptedCourt.Gameplay
 
         private Gallows sceneGallows;
 
+        // Shared scratch buffer for the character-layer overlap sweep in CheckForInteractable's custody
+        // handoff check. That runs on the main thread and consumes the hits immediately, so one static
+        // buffer is safe. 16 is comfortably above any realistic number of characters on the character
+        // layer inside one interaction radius.
+        private static readonly Collider[] royalOverlapBuffer = new Collider[16];
+        private static bool royalOverlapBufferFullWarned;
+
         // The sibling PlayerController on this same GameObject.
         private PlayerController player;
 
@@ -106,10 +113,22 @@ namespace CorruptedCourt.Gameplay
 
                 bool nearRoyal = false;
                 PlayerController nearbyRoyal = null;
-                Collider[] royalHits = Physics.OverlapSphere(transform.position, InteractionRange, characterLayer);
+                int royalHitCount = Physics.OverlapSphereNonAlloc(transform.position, InteractionRange, royalOverlapBuffer, characterLayer);
 
-                foreach (Collider c in royalHits)
+                // Buffer full: OverlapSphereNonAlloc silently drops the rest, so this sweep can only ever
+                // UNDER-count nearby royals - a truncated result may hide a valid handoff target. This
+                // runs every frame while dragging a prisoner, so warn once rather than per-frame.
+                if (royalHitCount == royalOverlapBuffer.Length && !royalOverlapBufferFullWarned)
                 {
+                    royalOverlapBufferFullWarned = true;
+                    Log.Warn($"[PlayerInteractor] royal-proximity buffer full ({royalOverlapBuffer.Length}) - custody handoff target search may be truncated.");
+                }
+
+                for (int i = 0; i < royalHitCount; i++)
+                {
+                    Collider c = royalOverlapBuffer[i];
+                    if (c == null) continue;
+
                     PlayerController p = c.GetComponent<PlayerController>();
                     if (p != null && p != player && !p.Vitals.isGhost && (p.Vitals.currentRole == PlayerRole.King || p.Vitals.currentRole == PlayerRole.Kingsguard))
                     {

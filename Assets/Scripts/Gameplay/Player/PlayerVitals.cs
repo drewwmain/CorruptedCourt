@@ -31,6 +31,13 @@ namespace CorruptedCourt.Gameplay
         public float gallowsRange = 4.0f;
         private Gallows sceneGallows;
 
+        // Shared scratch buffer for the character-layer overlap sweeps below (the custody handoff check
+        // in HandleStrangleOrArrest and Blinding Ash in ExecutePowerUp). Both run on the main thread and
+        // consume the hits immediately, so one static buffer is safe. 16 is comfortably above any
+        // realistic number of characters inside one sweep radius.
+        private static readonly Collider[] characterOverlapBuffer = new Collider[16];
+        private static bool characterOverlapBufferFullWarned;
+
         [Header("Punch Mechanic")]
         public float punchCooldown = 2f;
         private float lastPunchTime = -2f; // Starts at -2 so they can punch immediately
@@ -396,10 +403,22 @@ namespace CorruptedCourt.Gameplay
 
                     bool nearRoyal = false;
                     PlayerController nearbyRoyal = null;
-                    Collider[] royalHits = Physics.OverlapSphere(transform.position, player.Interactor.InteractionRange, player.Interactor.CharacterLayer);
+                    int royalHitCount = Physics.OverlapSphereNonAlloc(
+                        transform.position, player.Interactor.InteractionRange, characterOverlapBuffer, player.Interactor.CharacterLayer);
 
-                    foreach (Collider c in royalHits)
+                    // Buffer full: OverlapSphereNonAlloc silently drops the rest, so this sweep can only
+                    // ever UNDER-count nearby royals - a truncated result may hide a valid handoff target.
+                    if (royalHitCount == characterOverlapBuffer.Length && !characterOverlapBufferFullWarned)
                     {
+                        characterOverlapBufferFullWarned = true;
+                        Log.Warn($"[PlayerVitals] character-overlap buffer full ({characterOverlapBuffer.Length}) - custody handoff target search may be truncated.");
+                    }
+
+                    for (int i = 0; i < royalHitCount; i++)
+                    {
+                        Collider c = characterOverlapBuffer[i];
+                        if (c == null) continue;
+
                         PlayerController p = c.GetComponent<PlayerController>();
                         if (p != null && p != player && !p.Vitals.isGhost && (p.Vitals.currentRole == PlayerRole.King || p.Vitals.currentRole == PlayerRole.Kingsguard))
                         {
@@ -1095,11 +1114,22 @@ namespace CorruptedCourt.Gameplay
                     return true;
 
                 case PowerUpType.AlchemistsBlindingAsh:
-                    Collider[] hitColliders = Physics.OverlapSphere(transform.position, 10f, player.Interactor.CharacterLayer);
+                    int ashHitCount = Physics.OverlapSphereNonAlloc(transform.position, 10f, characterOverlapBuffer, player.Interactor.CharacterLayer);
                     int blindedCount = 0;
 
-                    foreach (Collider hitC in hitColliders)
+                    // Buffer full: OverlapSphereNonAlloc silently drops the rest, so some in-range
+                    // innocents may be missed by the blast. Warn once so a truncated hit is visible.
+                    if (ashHitCount == characterOverlapBuffer.Length && !characterOverlapBufferFullWarned)
                     {
+                        characterOverlapBufferFullWarned = true;
+                        Log.Warn($"[PlayerVitals] character-overlap buffer full ({characterOverlapBuffer.Length}) - Blinding Ash may not have hit every player in range.");
+                    }
+
+                    for (int i = 0; i < ashHitCount; i++)
+                    {
+                        Collider hitC = characterOverlapBuffer[i];
+                        if (hitC == null) continue;
+
                         PlayerController victim = hitC.GetComponent<PlayerController>();
                         if (victim != null && victim != player && !victim.Vitals.isGhost && victim.Vitals.currentRole != PlayerRole.Corrupted)
                         {

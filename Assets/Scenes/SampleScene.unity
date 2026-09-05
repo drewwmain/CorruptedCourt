@@ -2770,6 +2770,7 @@ MonoBehaviour:
   - {fileID: 0}
   winningTeam: None
   winReason: 
+  debugPollWinConditions: 0
 --- !u!4 &698097555
 Transform:
   m_ObjectHideFlags: 0
@@ -4399,7 +4400,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60d164b97cc2cf34e8eaa5001a858342, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  powerUpData: {fileID: 11400000, guid: be7ea8d426001e746adf2a63dc2c0f89, type: 2}
+  powerUpData: {fileID: 11400000, guid: 6a5a30c86cdeafb40a63bb721e2a1e18, type: 2}
 --- !u!65 &1174470841
 BoxCollider:
   m_ObjectHideFlags: 0
