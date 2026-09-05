@@ -18,8 +18,8 @@ namespace CorruptedCourt.Gameplay
     // The root player component: component references, Awake wiring, input callbacks routing to the
     // right component, and orchestration (Update/LateUpdate order, minigame launch/finish/cancel) that
     // doesn't cleanly belong to any single sibling. Business logic lives on the sibling components below -
-    // see PlayerMotor, PlayerLook, PlayerInventory, PlayerIKRig, PlayerInteractor, PlayerTaskBook, and
-    // PlayerVitals (Assets/Scripts/Player/).
+    // see PlayerMotor, PlayerLook, PlayerInventory, PlayerIKRig, PlayerInteractor, PlayerTaskBook,
+    // PlayerVitals, PlayerStrangle, and PlayerPowerUps (Assets/Scripts/Gameplay/Player/).
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(PlayerInput))]
     public class PlayerController : MonoBehaviour
@@ -51,16 +51,22 @@ namespace CorruptedCourt.Gameplay
         [SerializeField] private PlayerInteractor interactor;
         [Tooltip("Owns this player's task lists and the task-evaluation loop.")]
         [SerializeField] private PlayerTaskBook taskBook;
-        [Tooltip("Owns role, health, ghosting, custody, strangle, punch, and Corrupted power-ups.")]
+        [Tooltip("Owns role, health, ghosting, status effects, custody, and punch.")]
         [SerializeField] private PlayerVitals vitals;
-        // All seven components above must live on this same GameObject (PlayerInput SendMessage relies
+        [Tooltip("Owns the Corrupted strangle state machine and its two-handed reach IK.")]
+        [SerializeField] private PlayerStrangle strangle;
+        [Tooltip("Owns the Corrupted power-up loadout: equip/scroll/use and every power-up effect.")]
+        [SerializeField] private PlayerPowerUps powerUps;
+        // All nine components above must live on this same GameObject (PlayerInput SendMessage relies
         // on the same-GameObject requirement for PlayerMotor/PlayerLook/PlayerInventory/PlayerIKRig; the
-        // other three are pure logic components resolved the same way for consistency). Each is resolved
+        // other five are pure logic components resolved the same way for consistency). Each is resolved
         // automatically via GetComponent in Awake if left unassigned.
 
         public PlayerInteractor Interactor => interactor;
         public PlayerTaskBook TaskBook => taskBook;
         public PlayerVitals Vitals => vitals;
+        public PlayerStrangle Strangle => strangle;
+        public PlayerPowerUps PowerUps => powerUps;
 
         [Header("Look Settings")]
         [SerializeField] private Transform playerCamera;
@@ -91,8 +97,8 @@ namespace CorruptedCourt.Gameplay
         // Public getters so items / other components can use the player's camera
         public Transform PlayerCamera => playerCamera;
         public CharacterController CharController => motor.CharController;
-        /// <summary>Exposed for PlayerVitals' strangle orbit (UpdateStrangleLock), which shuffles side to
-        /// side on the same A/D input Update() reads every frame.</summary>
+        /// <summary>Exposed for PlayerStrangle's strangle orbit (UpdateStrangleLock), which shuffles side
+        /// to side on the same A/D input Update() reads every frame.</summary>
         public Vector2 MoveInput => moveInput;
 
         [Header("Minigame State")]
@@ -138,6 +144,8 @@ namespace CorruptedCourt.Gameplay
             if (interactor == null) interactor = GetComponent<PlayerInteractor>();
             if (taskBook == null) taskBook = GetComponent<PlayerTaskBook>();
             if (vitals == null) vitals = GetComponent<PlayerVitals>();
+            if (strangle == null) strangle = GetComponent<PlayerStrangle>();
+            if (powerUps == null) powerUps = GetComponent<PlayerPowerUps>();
             playerInput = GetComponent<PlayerInput>();
             // Grab the Animator from the child CharacterVisuals model
             animator = GetComponentInChildren<Animator>();
@@ -364,17 +372,20 @@ namespace CorruptedCourt.Gameplay
                 return; // Stop here! Do not run the strangle/arrest logic!
             }
 
-            vitals.HandleStrangleOrArrest(value.isPressed, GetHeldItem(), GetLeftHeldItem());
+            // Same button, mutually exclusive by role: Corrupted strangle vs King/Kingsguard arrest.
+            // Each call no-ops if the player's role doesn't match, so it's safe to fire both.
+            strangle.HandleStrangleInput(value.isPressed, GetHeldItem(), GetLeftHeldItem());
+            vitals.HandleArrestInput(value.isPressed);
         }
 
         // --- DEDICATED USE POWER-UP MECHANIC (F Key) ---
-        public void OnUseItem(InputValue value) => vitals.HandleUsePowerUp(value.isPressed);
+        public void OnUseItem(InputValue value) => powerUps.HandleUsePowerUp(value.isPressed);
 
-        public void OnUsePowerUp1(InputValue value) { if (value.isPressed) vitals.EquipCorruptedSlot(0); }
-        public void OnUsePowerUp2(InputValue value) { if (value.isPressed) vitals.EquipCorruptedSlot(1); }
-        public void OnUsePowerUp3(InputValue value) { if (value.isPressed) vitals.EquipCorruptedSlot(2); }
+        public void OnUsePowerUp1(InputValue value) { if (value.isPressed) powerUps.EquipCorruptedSlot(0); }
+        public void OnUsePowerUp2(InputValue value) { if (value.isPressed) powerUps.EquipCorruptedSlot(1); }
+        public void OnUsePowerUp3(InputValue value) { if (value.isPressed) powerUps.EquipCorruptedSlot(2); }
 
-        public void OnScrollWheel(InputValue value) => vitals.HandleScrollWheel(value.Get<Vector2>().y);
+        public void OnScrollWheel(InputValue value) => powerUps.HandleScrollWheel(value.Get<Vector2>().y);
 
         #endregion
 
@@ -448,7 +459,7 @@ namespace CorruptedCourt.Gameplay
             motor.CancelSprint();
             motor.CancelLeanInput(); // legacy Ctrl read in Update() still drives the lean while locked
             inventory.StopCharging();
-            vitals.CancelStrangleButton();
+            strangle.CancelStrangleButton();
 
             // Stop every input action callback from firing while the menu is up.
             if (playerInput != null) playerInput.enabled = !locked;

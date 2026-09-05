@@ -7945,9 +7945,9 @@ PrefabInstance:
       propertyPath: 'rightHandFingerBones.Array.data[2]'
       value: 
       objectReference: {fileID: 1712623765}
-    - target: {fileID: 8861515512267257831, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+    - target: {fileID: 8861515512267257833, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
       propertyPath: powerUpHoldPoint
-      value: 
+      value:
       objectReference: {fileID: 136332455}
     m_RemovedComponents:
     - {fileID: 1817573232352279913, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}

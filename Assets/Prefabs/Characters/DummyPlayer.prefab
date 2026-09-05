@@ -159,6 +159,8 @@ GameObject:
   - component: {fileID: 3955641281975924361}
   - component: {fileID: 5001159918652263853}
   - component: {fileID: 6668280575978724801}
+  - component: {fileID: 5001159918652263854}
+  - component: {fileID: 5001159918652263855}
   m_Layer: 7
   m_Name: DummyPlayer
   m_TagString: Untagged
@@ -407,8 +409,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ce0f8b945c1e9994291ee9c5e53bb5e6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   currentRole: 0
   currentHealth: 1
   maxHealth: 1
@@ -425,8 +427,20 @@ MonoBehaviour:
   punchRadius: 0.5
   pushbackForce: 15
   pushbackDuration: 0.2
+  currentZoneID:
+--- !u!114 &5001159918652263854
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2874292650299591091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31b68694a919463b8d4dc1778cae2a4c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
   strangleCooldown: 4
-  strangleRange: 1
   strangleHoldTime: 1.5
   strangleGrabDistance: 0.4
   strangleConnectDistance: 1.15
@@ -440,7 +454,18 @@ MonoBehaviour:
   strangleReachDistance: 0.9
   strangleHandRotationOffset: {x: 0, y: 0, z: 0}
   strangleHandRoll: 90
-  currentZoneID: 
+--- !u!114 &5001159918652263855
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2874292650299591091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b61416ffd9414404b9e3d182aaa0a281, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
   corruptedInventory:
   - {fileID: 0}
   - {fileID: 0}
