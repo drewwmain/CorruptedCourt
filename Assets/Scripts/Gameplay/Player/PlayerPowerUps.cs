@@ -397,16 +397,18 @@ namespace CorruptedCourt.Gameplay
             // 2. Pick a random innocent
             PlayerController stolenIdentity = innocents[Random.Range(0, innocents.Count)];
 
-            // 3. Save the Corrupted player's real data
-            string originalName = gameObject.name;
+            // 3. Save the Corrupted player's real presentation (display name + body material).
+            string originalDisplayName = player.DisplayName;
             Material originalMat = null;
             if (playerRenderers != null && playerRenderers.Length > 0 && playerRenderers[0] != null)
             {
                 originalMat = playerRenderers[0].material;
             }
 
-            // 4. APPLY THE DISGUISE
-            gameObject.name = stolenIdentity.gameObject.name;
+            // 4. APPLY THE DISGUISE - display name + material ONLY. gameObject.name and every lookup
+            //    identity (the PlayerController reference, PlayerController.Local) are left untouched,
+            //    so a disguise can never make the game address the wrong player.
+            player.SetDisplayName(stolenIdentity.DisplayName);
             if (originalMat != null)
             {
                 // Copy the innocent's material color/texture
@@ -414,12 +416,12 @@ namespace CorruptedCourt.Gameplay
                 if (targetRenderer != null) playerRenderers[0].material = targetRenderer.material;
             }
 
-            Log.Game($"<color=#F1C40F>Stolen Heraldry active! You look exactly like {stolenIdentity.gameObject.name}.</color>");
+            Log.Game($"<color=#F1C40F>Stolen Heraldry active! You look exactly like {stolenIdentity.DisplayName}.</color>");
 
             yield return new WaitForSeconds(duration);
 
             // 5. REMOVE THE DISGUISE
-            gameObject.name = originalName;
+            player.SetDisplayName(originalDisplayName);
             if (originalMat != null && playerRenderers.Length > 0 && playerRenderers[0] != null)
             {
                 playerRenderers[0].material = originalMat;

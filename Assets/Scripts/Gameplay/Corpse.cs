@@ -38,7 +38,7 @@ namespace CorruptedCourt.Gameplay
             initialized = true;
 
             Victim = victim;
-            if (victim != null) VictimName = victim.gameObject.name;
+            if (victim != null) VictimName = victim.DisplayName;
             DeathZoneID = string.IsNullOrEmpty(deathZoneID) ? "" : deathZoneID;
             DeathMatchTime = deathMatchTime;
 

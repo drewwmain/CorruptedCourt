@@ -353,8 +353,8 @@ namespace CorruptedCourt.Gameplay
             LastBodyReportZoneID = deathZoneID;
             HasPendingBodyReport = true;
 
-            string reporterName = reporter != null ? reporter.gameObject.name : "Someone";
-            string victimName = victim != null ? victim.gameObject.name : "an unknown court member";
+            string reporterName = reporter != null ? reporter.DisplayName : "Someone";
+            string victimName = victim != null ? victim.DisplayName : "an unknown court member";
             string zoneName = string.IsNullOrEmpty(deathZoneID) ? "an unknown location" : deathZoneID;
 
             Log.Game($"<color=#E74C3C>--- BODY REPORTED: {reporterName} found {victimName} in {zoneName}! ---</color>");
@@ -421,7 +421,7 @@ namespace CorruptedCourt.Gameplay
         {
             absentBuffer.Clear();
             foreach (PlayerController p in absentPlayers)
-                if (p != null) absentBuffer.Add(new AbsentMember(p.gameObject.name, BucketFor(p)));
+                if (p != null) absentBuffer.Add(new AbsentMember(p.DisplayName, BucketFor(p)));
 
             // Dead members, rebuilt from the lobby each broadcast - a ghost is never in absentPlayers,
             // so without this list a murdered player would just vanish from the roll-call.
@@ -430,7 +430,7 @@ namespace CorruptedCourt.Gameplay
             {
                 foreach (PlayerController p in RoleManager.Instance.allPlayers)
                     if (p != null && p.Vitals != null && p.Vitals.isGhost)
-                        deadNamesBuffer.Add(p.gameObject.name);
+                        deadNamesBuffer.Add(p.DisplayName);
             }
 
             GameEvents.RaiseAbsentPlayersChanged(absentBuffer, deadNamesBuffer);

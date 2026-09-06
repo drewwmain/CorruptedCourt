@@ -147,7 +147,7 @@ namespace CorruptedCourt.Gameplay
                 }
                 else if (nearRoyal && !nearbyRoyal.Vitals.isDraggingPrisoner)
                 {
-                    if (interactionUI != null) interactionUI.text = $"Press <color=#F4D03F>[Right Click]</color> to Handoff to {nearbyRoyal.gameObject.name}\nPress <color=#F4D03F>[Q]</color> to Pardon";
+                    if (interactionUI != null) interactionUI.text = $"Press <color=#F4D03F>[Right Click]</color> to Handoff to {nearbyRoyal.DisplayName}\nPress <color=#F4D03F>[Q]</color> to Pardon";
                     if (crosshair != null) crosshair.color = activeCrosshairColor;
                     targetUIAlpha = 1f;
                     return;
@@ -283,33 +283,33 @@ namespace CorruptedCourt.Gameplay
                             // 1. MULTIPLAYER TASK (Available to Court, Corrupted, King, & Kingsguard)
                             if (player.GetHeldItem() != null && player.GetHeldItem().requiresPartner)
                             {
-                                prompts.Add($"Press <color=#F4D03F>[E]</color> to use <color=#5DADE2>{player.GetHeldItem().DisplayName}</color> with <color=#58D68D>{otherPlayer.gameObject.name}</color>");
+                                prompts.Add($"Press <color=#F4D03F>[E]</color> to use <color=#5DADE2>{player.GetHeldItem().DisplayName}</color> with <color=#58D68D>{otherPlayer.DisplayName}</color>");
                             }
                             else
                             {
-                                prompts.Add($"Press <color=#F4D03F>[E]</color> to interact with <color=#58D68D>{otherPlayer.gameObject.name}</color>");
+                                prompts.Add($"Press <color=#F4D03F>[E]</color> to interact with <color=#58D68D>{otherPlayer.DisplayName}</color>");
                             }
 
                             // 2. KING SPECIFIC
                             if (player.Vitals.courtTitle == CourtTitle.King && !player.Vitals.isGhost)
                             {
-                                prompts.Add($"Press <color=#F4D03F>[F]</color> to appoint <color=#58D68D>{otherPlayer.gameObject.name}</color> as Kingsguard");
+                                prompts.Add($"Press <color=#F4D03F>[F]</color> to appoint <color=#58D68D>{otherPlayer.DisplayName}</color> as Kingsguard");
                             }
 
                             // 3. ARREST MECHANICS (King & Kingsguard)
                             if ((player.Vitals.courtTitle == CourtTitle.King || player.Vitals.courtTitle == CourtTitle.Kingsguard) && !player.Vitals.isGhost)
                             {
                                 if (otherPlayer.Vitals.isArrested)
-                                    prompts.Add($"Press <color=#F4D03F>[Right Click]</color> to grab <color=#58D68D>{otherPlayer.gameObject.name}</color>'s leash");
+                                    prompts.Add($"Press <color=#F4D03F>[Right Click]</color> to grab <color=#58D68D>{otherPlayer.DisplayName}</color>'s leash");
                                 else
-                                    prompts.Add($"Press <color=#F4D03F>[Right Click]</color> to arrest <color=#58D68D>{otherPlayer.gameObject.name}</color>");
+                                    prompts.Add($"Press <color=#F4D03F>[Right Click]</color> to arrest <color=#58D68D>{otherPlayer.DisplayName}</color>");
                             }
 
                             // 4. CORRUPTED MECHANICS (Corrupted)
                             // We check to ensure the target is alive and NOT a fellow Corrupted player
                             if (player.Vitals.faction == Faction.Corrupted && !player.Vitals.isGhost && !otherPlayer.Vitals.isGhost && otherPlayer.Vitals.faction != Faction.Corrupted)
                             {
-                                prompts.Add($"Hold <color=#F4D03F>[Right Click]</color> to strangle <color=#E74C3C>{otherPlayer.gameObject.name}</color>");
+                                prompts.Add($"Hold <color=#F4D03F>[Right Click]</color> to strangle <color=#E74C3C>{otherPlayer.DisplayName}</color>");
                             }
 
                             // Combine all valid prompts into a clean, multi-line display

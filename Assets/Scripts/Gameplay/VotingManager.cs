@@ -239,13 +239,13 @@ namespace CorruptedCourt.Gameplay
                 defendant.Vitals.isArrested = false; // clear their state
                 defendant.Vitals.BecomeGhost();
                 EvaluateKingsCurse(defendant);
-                GameEvents.RaiseMeetingResult($"<b>{defendant.gameObject.name} was executed.</b>\n{breakdown}");
+                GameEvents.RaiseMeetingResult($"<b>{defendant.DisplayName} was executed.</b>\n{breakdown}");
             }
             else
             {
                 Log.Game($"RESULT: the court did not confirm the execution. {defendant.gameObject.name} is acquitted.");
                 defendant.Vitals.isArrested = false;
-                GameEvents.RaiseMeetingResult($"<b>{defendant.gameObject.name} was acquitted.</b>\n{breakdown}");
+                GameEvents.RaiseMeetingResult($"<b>{defendant.DisplayName} was acquitted.</b>\n{breakdown}");
             }
 
             condemnedPlayer = null;

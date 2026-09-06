@@ -28,8 +28,24 @@ namespace CorruptedCourt.Gameplay
         [Tooltip("The player THIS machine's user controls. Exactly one PlayerController in the scene should have this checked. UNCHECK it on dummy players and network clones.")]
         [SerializeField] private bool isLocalPlayer = true;
 
+        [Tooltip("The name shown for this player on every UI surface (roll-call, vote list, meeting " +
+                 "results, interaction prompts). Distinct from the GameObject name, which stays fixed " +
+                 "as the stable lookup identity. Leave blank to fall back to the GameObject name. " +
+                 "Stolen Heraldry temporarily overwrites THIS, never the GameObject name.")]
+        [SerializeField] private string displayName = "";
+
         /// <summary>True for the player this machine's user controls.</summary>
         public bool IsLocal => isLocalPlayer;
+
+        /// <summary>The name to show for this player on UI. Falls back to the GameObject name when no
+        /// override is set. NEVER used for lookups, identity comparisons or persistence - those key
+        /// off this component reference / the GameObject, which Stolen Heraldry never touches.</summary>
+        public string DisplayName => string.IsNullOrEmpty(displayName) ? gameObject.name : displayName;
+
+        /// <summary>Sets the display-name override (Stolen Heraldry disguise); pass null/empty to clear
+        /// back to the fallback. Does NOT touch gameObject.name or any lookup identity. The caller is
+        /// responsible for restoring the previous value when a temporary disguise ends.</summary>
+        public void SetDisplayName(string value) => displayName = value ?? string.Empty;
 
         /// <summary>The local player. Set in Awake; null until the local PlayerController has awoken.</summary>
         public static PlayerController Local { get; private set; }

@@ -383,6 +383,38 @@ namespace CorruptedCourt.UI
                 RenderGhostHud(local);
         }
 
+        // When a Stolen Heraldry disguise makes two players share a display name, a plain list would
+        // show the name twice and read as a UI bug. Given the display names about to be listed (order
+        // preserved), this returns each one suffixed " (1)", " (2)", ... IF that name occurs more than
+        // once, so the duplication reads as deliberate. Fires on meeting / panel events, never per-frame.
+        private static List<string> DisambiguateNameList(List<string> names)
+        {
+            Dictionary<string, int> totals = new Dictionary<string, int>();
+            for (int i = 0; i < names.Count; i++)
+            {
+                string n = names[i] ?? "?";
+                totals[n] = totals.TryGetValue(n, out int c) ? c + 1 : 1;
+            }
+
+            Dictionary<string, int> seen = new Dictionary<string, int>();
+            List<string> result = new List<string>(names.Count);
+            for (int i = 0; i < names.Count; i++)
+            {
+                string n = names[i] ?? "?";
+                if (totals[n] > 1)
+                {
+                    int idx = seen.TryGetValue(n, out int s) ? s + 1 : 1;
+                    seen[n] = idx;
+                    result.Add($"{n} ({idx})");
+                }
+                else
+                {
+                    result.Add(n);
+                }
+            }
+            return result;
+        }
+
         private void RenderGhostHud(PlayerController local)
         {
             if (taskListText == null || local == null) return;
@@ -403,10 +435,17 @@ namespace CorruptedCourt.UI
 
             if (RoleManager.Instance != null)
             {
+                List<PlayerController> roster = new List<PlayerController>();
                 foreach (PlayerController p in RoleManager.Instance.allPlayers)
-                {
-                    if (p == null || p.Vitals == null) continue;
+                    if (p != null && p.Vitals != null) roster.Add(p);
 
+                List<string> names = new List<string>(roster.Count);
+                foreach (PlayerController p in roster) names.Add(p.DisplayName);
+                List<string> shown = DisambiguateNameList(names);
+
+                for (int i = 0; i < roster.Count; i++)
+                {
+                    PlayerController p = roster[i];
                     bool corrupt = p.Vitals.faction == Faction.Corrupted;
                     string factionName = corrupt ? "Corrupted" : "Court";
                     string titleTag = p.Vitals.courtTitle == CourtTitle.King ? " (King)"
@@ -414,9 +453,9 @@ namespace CorruptedCourt.UI
                                     : "";
 
                     if (p.Vitals.isGhost)
-                        sb.AppendLine($"<s><color=#7F8C8D>{p.gameObject.name} - {factionName}{titleTag} (dead)</color></s>");
+                        sb.AppendLine($"<s><color=#7F8C8D>{shown[i]} - {factionName}{titleTag} (dead)</color></s>");
                     else
-                        sb.AppendLine($"<color={(corrupt ? "#E74C3C" : "#58D68D")}>{p.gameObject.name} - {factionName}{titleTag}</color>");
+                        sb.AppendLine($"<color={(corrupt ? "#E74C3C" : "#58D68D")}>{shown[i]} - {factionName}{titleTag}</color>");
                 }
             }
 
@@ -442,9 +481,20 @@ namespace CorruptedCourt.UI
             absentMembersText.gameObject.SetActive(true);
             StringBuilder sb = new StringBuilder();
 
+            // Disambiguate across the WHOLE roll-call (absent + dead) so a disguised player and the
+            // player they copied read as two deliberate entries, not one duplicated bug - even when
+            // one is absent and the other dead.
+            int absentCount = absentMembers != null ? absentMembers.Count : 0;
+            int deadCount = deadPlayers != null ? deadPlayers.Count : 0;
+
+            List<string> rollCall = new List<string>(absentCount + deadCount);
+            for (int i = 0; i < absentCount; i++) rollCall.Add(absentMembers[i].Name);
+            for (int i = 0; i < deadCount; i++) rollCall.Add(deadPlayers[i]);
+            List<string> shown = DisambiguateNameList(rollCall);
+
             sb.AppendLine("<color=#E74C3C><b>Absent court members:</b></color>");
 
-            if (absentMembers == null || absentMembers.Count == 0)
+            if (absentCount == 0)
             {
                 sb.AppendLine("<color=#BDC3C7>None (all living members present)</color>");
             }
@@ -452,12 +502,12 @@ namespace CorruptedCourt.UI
             {
                 // Show WHERE each absent player started the scramble, not just that they're missing:
                 // someone who began across the map had a long way to come, not a bare accusation.
-                foreach (AbsentMember member in absentMembers)
+                for (int i = 0; i < absentCount; i++)
                 {
-                    string origin = member.StartDistance == ScrambleStartDistance.AcrossTheMap
+                    string origin = absentMembers[i].StartDistance == ScrambleStartDistance.AcrossTheMap
                         ? "<color=#E67E22>from across the map</color>"
                         : "<color=#7F8C8D>nearby</color>";
-                    sb.AppendLine($"<color=#BDC3C7>{member.Name}</color>  <size=80%>({origin})</size>");
+                    sb.AppendLine($"<color=#BDC3C7>{shown[i]}</color>  <size=80%>({origin})</size>");
                 }
             }
 
@@ -466,15 +516,15 @@ namespace CorruptedCourt.UI
             sb.AppendLine();
             sb.AppendLine("<color=#922B21><b>Confirmed dead:</b></color>");
 
-            if (deadPlayers == null || deadPlayers.Count == 0)
+            if (deadCount == 0)
             {
                 sb.AppendLine("<color=#BDC3C7>None</color>");
             }
             else
             {
-                foreach (string name in deadPlayers)
+                for (int i = 0; i < deadCount; i++)
                 {
-                    sb.AppendLine($"<s><color=#7F8C8D>{name}</color></s>");
+                    sb.AppendLine($"<s><color=#7F8C8D>{shown[absentCount + i]}</color></s>");
                 }
             }
 
@@ -511,14 +561,22 @@ namespace CorruptedCourt.UI
             VotingManager vm = VotingManager.Instance;
             if (vm != null && vm.AwaitingNominations)
             {
-                // Inquest nomination phase: one button per living court member.
+                // Inquest nomination phase: one button per living court member. Disambiguate the
+                // labels so a Stolen Heraldry disguise shows as two deliberate entries, not a dupe.
                 if (RoleManager.Instance != null)
                 {
+                    List<PlayerController> living = new List<PlayerController>();
                     foreach (PlayerController p in RoleManager.Instance.allPlayers)
+                        if (p != null && p.Vitals != null && !p.Vitals.isGhost) living.Add(p);
+
+                    List<string> names = new List<string>(living.Count);
+                    foreach (PlayerController p in living) names.Add(p.DisplayName);
+                    List<string> shown = DisambiguateNameList(names);
+
+                    for (int i = 0; i < living.Count; i++)
                     {
-                        if (p == null || p.Vitals == null || p.Vitals.isGhost) continue;
-                        PlayerController nominee = p; // capture per-iteration for the closure
-                        CreateVoteButton($"Nominate {p.gameObject.name}", () =>
+                        PlayerController nominee = living[i]; // capture per-iteration for the closure
+                        CreateVoteButton($"Nominate {shown[i]}", () =>
                         {
                             PlayerController local = LocalPlayer;
                             if (VotingManager.Instance != null && local != null)
