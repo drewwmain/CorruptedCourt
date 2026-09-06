@@ -57,9 +57,13 @@ namespace CorruptedCourt.Gameplay
         [SerializeField] private PlayerStrangle strangle;
         [Tooltip("Owns the Corrupted power-up loadout: equip/scroll/use and every power-up effect.")]
         [SerializeField] private PlayerPowerUps powerUps;
-        // All nine components above must live on this same GameObject (PlayerInput SendMessage relies
+        [Tooltip("Owns the dead player's spectator loop: free-fly movement and the Haunt ability. " +
+                 "Optional - a player with no PlayerGhost component just keeps normal grounded movement " +
+                 "after death.")]
+        [SerializeField] private PlayerGhost ghost;
+        // All ten components above must live on this same GameObject (PlayerInput SendMessage relies
         // on the same-GameObject requirement for PlayerMotor/PlayerLook/PlayerInventory/PlayerIKRig; the
-        // other five are pure logic components resolved the same way for consistency). Each is resolved
+        // other six are pure logic components resolved the same way for consistency). Each is resolved
         // automatically via GetComponent in Awake if left unassigned.
 
         public PlayerInteractor Interactor => interactor;
@@ -67,6 +71,9 @@ namespace CorruptedCourt.Gameplay
         public PlayerVitals Vitals => vitals;
         public PlayerStrangle Strangle => strangle;
         public PlayerPowerUps PowerUps => powerUps;
+        /// <summary>The dead-player spectator loop (free-fly + Haunt), or null if the prefab has no
+        /// PlayerGhost component. Read by UIManager's ghost HUD.</summary>
+        public PlayerGhost Ghost => ghost;
 
         [Header("Look Settings")]
         [SerializeField] private Transform playerCamera;
@@ -146,6 +153,7 @@ namespace CorruptedCourt.Gameplay
             if (vitals == null) vitals = GetComponent<PlayerVitals>();
             if (strangle == null) strangle = GetComponent<PlayerStrangle>();
             if (powerUps == null) powerUps = GetComponent<PlayerPowerUps>();
+            if (ghost == null) ghost = GetComponent<PlayerGhost>();
             playerInput = GetComponent<PlayerInput>();
             // Grab the Animator from the child CharacterVisuals model
             animator = GetComponentInChildren<Animator>();
@@ -181,10 +189,20 @@ namespace CorruptedCourt.Gameplay
                 if (!isPlayingMinigame && !vitals.isStrangling)
                 {
                     look.HandleRotation(lookInput);
-                    motor.HandleMovement(moveInput);
-                    motor.HandleCrouchTransition();
-                    interactor.CheckForInteractable();
-                    inventory.TickThrowCharge();
+
+                    if (vitals.isGhost && IsLocal && ghost != null)
+                    {
+                        // The dead free-fly and cannot aim at interactables (G3.2 - see PlayerGhost).
+                        ghost.UpdateFreeFly(moveInput);
+                        interactor.HideUIImmediately(); // no stale interaction prompt left on-screen
+                    }
+                    else
+                    {
+                        motor.HandleMovement(moveInput);
+                        motor.HandleCrouchTransition();
+                        interactor.CheckForInteractable();
+                        inventory.TickThrowCharge();
+                    }
                 }
                 else
                 {
@@ -255,6 +273,7 @@ namespace CorruptedCourt.Gameplay
         public void OnInteract(InputValue value)
         {
             if (!value.isPressed || isPlayingMinigame) return;
+            if (vitals.isGhost) return; // the dead cannot interact, pick up or report (G3.2)
             interactor.PerformInteraction();
         }
 
@@ -345,7 +364,17 @@ namespace CorruptedCourt.Gameplay
             taskBook.RefreshLocalWaypoints();
         }
 
-        public void OnPunch(InputValue value) => vitals.HandlePunch(value.isPressed, GetHeldItem());
+        public void OnPunch(InputValue value)
+        {
+            // Same bind, split by life: the living punch, the dead Haunt (G3.2). HandlePunch already
+            // no-ops for a ghost, so combat stays fully locked out either way.
+            if (vitals.isGhost)
+            {
+                if (value.isPressed && ghost != null) ghost.TryHaunt();
+                return;
+            }
+            vitals.HandlePunch(value.isPressed, GetHeldItem());
+        }
 
         // --- DEDICATED RIGHT CLICK (Strangle OR Arrest, or minigame free-look) ---
         public void OnStrangle(InputValue value)

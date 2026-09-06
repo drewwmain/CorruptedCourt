@@ -101,6 +101,7 @@ namespace CorruptedCourt.UI
             GameEvents.LocalTasksChanged   += OnLocalTasksChanged;
             GameEvents.CourtProgressChanged += UpdateGlobalMeter;
             GameEvents.MatchStateChanged   += OnMatchStateChanged;
+            GameEvents.PlayerGhosted       += OnAnyPlayerGhosted;
             GameEvents.AbsentPlayersChanged += OnAbsentPlayersChanged;
             GameEvents.MeetingAnnouncement  += OnMeetingAnnouncement;
             GameEvents.MeetingResult        += OnMeetingResult;
@@ -133,6 +134,7 @@ namespace CorruptedCourt.UI
             GameEvents.LocalTasksChanged   -= OnLocalTasksChanged;
             GameEvents.CourtProgressChanged -= UpdateGlobalMeter;
             GameEvents.MatchStateChanged   -= OnMatchStateChanged;
+            GameEvents.PlayerGhosted       -= OnAnyPlayerGhosted;
             GameEvents.AbsentPlayersChanged -= OnAbsentPlayersChanged;
             GameEvents.MeetingAnnouncement  -= OnMeetingAnnouncement;
             GameEvents.MeetingResult        -= OnMeetingResult;
@@ -274,6 +276,22 @@ namespace CorruptedCourt.UI
             {
                 ToggleInGameSettings();
             }
+
+            // Ghost spectator HUD: repaint only when Haunt readiness actually flips, so the panel
+            // never rebuilds a string per-frame. The ghostHudActive flag keeps this free for the living.
+            if (ghostHudActive)
+            {
+                PlayerController local = LocalPlayer;
+                if (local != null && local.Vitals != null && local.Vitals.isGhost)
+                {
+                    bool ready = local.Ghost != null && local.Ghost.IsHauntReady;
+                    if (ready != lastHauntReady) RenderGhostHud(local);
+                }
+                else
+                {
+                    ghostHudActive = false;
+                }
+            }
         }
 
         // --- TASK UI LOGIC ---
@@ -290,6 +308,13 @@ namespace CorruptedCourt.UI
         public void UpdatePlayerTaskList(PlayerController player, List<TaskInstance> allTasks, List<TaskInstance> activeTasks, CourtTitle title)
         {
             if (taskListText == null) return;
+
+            // Dead players don't have tasks - they get the spectator roster instead (G3.2).
+            if (player != null && player.Vitals != null && player.Vitals.isGhost)
+            {
+                RenderGhostHud(player);
+                return;
+            }
 
             if (title == CourtTitle.King)
             {
@@ -340,6 +365,62 @@ namespace CorruptedCourt.UI
             // Because we moved all the logic into the TaskStep classes,
             // the UI Manager simply asks the task what to display!
             return task.GetCurrentObjectiveText();
+        }
+
+        // --- GHOST SPECTATOR HUD (G3.2) ---
+        // The dead get full role visibility: the task panel becomes a roster of every court member
+        // and their true faction. Painted on death, on any later death, and when Haunt readiness
+        // flips (see Update). No gameplay call originates here - it is a pure view.
+
+        private bool ghostHudActive;
+        private bool lastHauntReady;
+
+        // A player died. If the local player is (or just became) a ghost, repaint their roster.
+        private void OnAnyPlayerGhosted(PlayerController ghosted)
+        {
+            PlayerController local = LocalPlayer;
+            if (local != null && local.Vitals != null && local.Vitals.isGhost)
+                RenderGhostHud(local);
+        }
+
+        private void RenderGhostHud(PlayerController local)
+        {
+            if (taskListText == null || local == null) return;
+
+            ghostHudActive = true;
+            lastHauntReady = local.Ghost != null && local.Ghost.IsHauntReady;
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("<b><color=#B39DDB>YOU ARE A GHOST</color></b>");
+            sb.AppendLine("<size=80%><color=#BDC3C7>Fly with WASD + mouse. Help the Court by watching - " +
+                          "you now see every court member's true allegiance.</color></size>");
+            sb.AppendLine();
+            sb.AppendLine(lastHauntReady
+                ? "<b><color=#8E44AD>HAUNT READY</color></b> <size=80%><color=#BDC3C7>- Left Click near the living</color></size>"
+                : "<size=90%><color=#7F8C8D>Haunt is recharging...</color></size>");
+            sb.AppendLine();
+            sb.AppendLine("<b><color=#5DADE2>THE COURT</color></b>");
+
+            if (RoleManager.Instance != null)
+            {
+                foreach (PlayerController p in RoleManager.Instance.allPlayers)
+                {
+                    if (p == null || p.Vitals == null) continue;
+
+                    bool corrupt = p.Vitals.faction == Faction.Corrupted;
+                    string factionName = corrupt ? "Corrupted" : "Court";
+                    string titleTag = p.Vitals.courtTitle == CourtTitle.King ? " (King)"
+                                    : p.Vitals.courtTitle == CourtTitle.Kingsguard ? " (Kingsguard)"
+                                    : "";
+
+                    if (p.Vitals.isGhost)
+                        sb.AppendLine($"<s><color=#7F8C8D>{p.gameObject.name} - {factionName}{titleTag} (dead)</color></s>");
+                    else
+                        sb.AppendLine($"<color={(corrupt ? "#E74C3C" : "#58D68D")}>{p.gameObject.name} - {factionName}{titleTag}</color>");
+                }
+            }
+
+            taskListText.text = sb.ToString();
         }
 
         // --- TRANSITION & ABSENT UI LOGIC ---
