@@ -2984,6 +2984,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc9095e2b42aef842a1919cb23ea632f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  matchConfig: {fileID: 11400000, guid: 647dc4de0c0346eaa0ed0a5c2738f05e, type: 2}
+  ignoreMatchConfig: 1
   currentState: 0
   currentStage: 1
   meetingDuration: 5
@@ -3038,6 +3040,8 @@ MonoBehaviour:
   maxSuccessions: 0
   isKingCursed: 0
   corruptedPercentage: 0.3
+  minCorrupted: 1
+  maxCorrupted: 0
   forceTestRole: 3
 --- !u!114 &698097557
 MonoBehaviour:
