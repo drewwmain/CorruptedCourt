@@ -40,13 +40,14 @@ namespace CorruptedCourt.Gameplay
         }
 
         /// <summary>The roll-call for the meeting room changed. Carries two lists so a living player can
-        /// account for every lobby member: <paramref name="absentNames"/> are living members not in the
-        /// room, <paramref name="deadNames"/> are members confirmed dead (ghosts). Anyone in neither list
-        /// is present.</summary>
-        public static event Action<IReadOnlyList<string>, IReadOnlyList<string>> AbsentPlayersChanged;
-        public static void RaiseAbsentPlayersChanged(IReadOnlyList<string> absentNames, IReadOnlyList<string> deadNames)
+        /// account for every lobby member: <paramref name="absentMembers"/> are living members not in the
+        /// room (each with the name shown and how far from the room they began the pre-meeting scramble),
+        /// <paramref name="deadNames"/> are members confirmed dead (ghosts). Anyone in neither list is
+        /// present.</summary>
+        public static event Action<IReadOnlyList<AbsentMember>, IReadOnlyList<string>> AbsentPlayersChanged;
+        public static void RaiseAbsentPlayersChanged(IReadOnlyList<AbsentMember> absentMembers, IReadOnlyList<string> deadNames)
         {
-            AbsentPlayersChanged?.Invoke(absentNames, deadNames);
+            AbsentPlayersChanged?.Invoke(absentMembers, deadNames);
         }
 
         /// <summary>A meeting was opened by a body report. Carries a ready-to-display line naming the

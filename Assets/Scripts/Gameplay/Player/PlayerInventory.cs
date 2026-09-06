@@ -95,6 +95,40 @@ namespace CorruptedCourt.Gameplay
             player.TaskBook.RefreshLocalWaypoints();
         }
 
+        /// <summary>Drops any heavy or two-handed-haul item from BOTH hands where the player stands, then
+        /// regresses any task that needed it. Called by MatchManager (via PlayerController.SetScrambleGrace)
+        /// when the pre-meeting scramble begins so a player caught mid-haul isn't movement-locked out of
+        /// reaching the meeting room in time (G3.1). No-op if neither hand holds a heavy/haul item.</summary>
+        public void DropHeavyItems()
+        {
+            bool dropped = false;
+
+            if (currentlyHeldItem != null && (currentlyHeldItem.isHeavy || currentlyHeldItem.haulWithBothHands))
+            {
+                PickupItem item = currentlyHeldItem;
+                currentlyHeldItem = null;
+                item.DetachFromHand();
+                player.haulActive = false;
+                Log.Game($"Dropped {item.DisplayName} for the meeting scramble.");
+                dropped = true;
+            }
+
+            if (leftHeldItem != null && (leftHeldItem.isHeavy || leftHeldItem.haulWithBothHands))
+            {
+                PickupItem item = leftHeldItem;
+                leftHeldItem = null;
+                item.DetachFromHand();
+                Log.Game($"Dropped {item.DisplayName} for the meeting scramble.");
+                dropped = true;
+            }
+
+            if (dropped)
+            {
+                player.TaskBook.CheckRegressionForAll();
+                player.TaskBook.RefreshLocalWaypoints();
+            }
+        }
+
         public void ExecuteThrow()
         {
             isChargingThrow = false;

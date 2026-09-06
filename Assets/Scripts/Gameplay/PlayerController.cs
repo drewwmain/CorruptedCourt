@@ -447,6 +447,15 @@ namespace CorruptedCourt.Gameplay
             => inventory.IsHoldingItem(definition, requiredState);
         public bool IsHoldingHeavyItem() => inventory.IsHoldingHeavyItem();
 
+        // Called by MatchManager when the pre-meeting scramble (TransitionToMeeting) begins and ends.
+        // While active, heavy-item movement penalties are suspended; on the leading edge any heavy or
+        // two-handed-haul item the player is carrying is dropped where they stand (G3.1).
+        public void SetScrambleGrace(bool active)
+        {
+            motor.SetHeavyPenaltySuspended(active);
+            if (active) inventory.DropHeavyItems();
+        }
+
         // Called by UIManager when the pause / settings menu opens or closes. Freezes the player and
         // stops all input so the mouse can be used on the menu.
         public void SetControlsLocked(bool locked)

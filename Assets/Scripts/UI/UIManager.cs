@@ -354,7 +354,7 @@ namespace CorruptedCourt.UI
             }
         }
 
-        private void OnAbsentPlayersChanged(IReadOnlyList<string> absentPlayers, IReadOnlyList<string> deadPlayers)
+        private void OnAbsentPlayersChanged(IReadOnlyList<AbsentMember> absentMembers, IReadOnlyList<string> deadPlayers)
         {
             if (absentMembersText == null) return;
 
@@ -363,15 +363,20 @@ namespace CorruptedCourt.UI
 
             sb.AppendLine("<color=#E74C3C><b>Absent court members:</b></color>");
 
-            if (absentPlayers == null || absentPlayers.Count == 0)
+            if (absentMembers == null || absentMembers.Count == 0)
             {
                 sb.AppendLine("<color=#BDC3C7>None (all living members present)</color>");
             }
             else
             {
-                foreach (string name in absentPlayers)
+                // Show WHERE each absent player started the scramble, not just that they're missing:
+                // someone who began across the map had a long way to come, not a bare accusation.
+                foreach (AbsentMember member in absentMembers)
                 {
-                    sb.AppendLine($"<color=#BDC3C7>{name}</color>");
+                    string origin = member.StartDistance == ScrambleStartDistance.AcrossTheMap
+                        ? "<color=#E67E22>from across the map</color>"
+                        : "<color=#7F8C8D>nearby</color>";
+                    sb.AppendLine($"<color=#BDC3C7>{member.Name}</color>  <size=80%>({origin})</size>");
                 }
             }
 

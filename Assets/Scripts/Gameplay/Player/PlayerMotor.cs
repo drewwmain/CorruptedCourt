@@ -56,6 +56,14 @@ namespace CorruptedCourt.Gameplay
         private bool isGrounded;
         private bool isSprinting;
 
+        // Set by MatchManager (via PlayerController.SetScrambleGrace) for the duration of the pre-meeting
+        // scramble. While true, carrying a heavy item no longer halves move speed or blocks jumping, so a
+        // player caught mid-haul when the round ends can still reach the meeting room in time (G3.1).
+        private bool heavyPenaltySuspended;
+
+        // True when a heavy item in either hand should currently slow the player / block their jump.
+        private bool HeavyPenaltyActive => !heavyPenaltySuspended && player != null && player.IsHoldingHeavyItem();
+
         // --- Lean input blend ---
         private bool isLeaning;
         private float leanBlend;
@@ -96,8 +104,9 @@ namespace CorruptedCourt.Gameplay
 
         public void OnJump(InputValue value)
         {
-            // Block jumping entirely if holding a heavy item (either hand).
-            if (player != null && player.IsHoldingHeavyItem())
+            // Block jumping entirely if holding a heavy item (either hand) - unless the pre-meeting
+            // scramble has temporarily lifted the penalty (see SetHeavyPenaltySuspended).
+            if (HeavyPenaltyActive)
             {
                 if (value.isPressed) Log.Game("Cannot jump while carrying a heavy item!");
                 return;
@@ -149,6 +158,11 @@ namespace CorruptedCourt.Gameplay
         /// <summary>Cancels a latched sprint input, e.g. when a blocking menu opens.</summary>
         public void CancelSprint() => isSprinting = false;
 
+        /// <summary>MatchManager toggles this for the pre-meeting scramble: while suspended, a heavy item
+        /// in hand stops halving move speed and blocking jump, so a player caught mid-haul when the round
+        /// ends can still reach the meeting room in the transition window (G3.1).</summary>
+        public void SetHeavyPenaltySuspended(bool suspended) => heavyPenaltySuspended = suspended;
+
         /// <summary>Cancels a latched lean input, e.g. when a blocking menu opens.</summary>
         public void CancelLeanInput() => isLeaning = false;
 
@@ -166,7 +180,8 @@ namespace CorruptedCourt.Gameplay
             float currentSpeed = walkSpeed;
 
             // --- OVERRIDE MOVEMENT SPEED FOR HEAVY ITEMS, STUNS, & ARRESTS ---
-            bool isHoldingHeavy = player != null && player.IsHoldingHeavyItem();
+            // (the heavy penalty is suspended for the duration of the pre-meeting scramble - see G3.1)
+            bool isHoldingHeavy = HeavyPenaltyActive;
 
             // 1. Highest Priority: Stuns, Pushbacks, and Arrests completely lock voluntary movement
             if (player != null && (player.Vitals.IsStunned || player.Vitals.IsBeingPushed || player.Vitals.isArrested))

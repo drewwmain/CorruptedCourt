@@ -2986,11 +2986,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   currentState: 0
   currentStage: 1
-  transitionDuration: 5
   meetingDuration: 5
   actionDuration: 2
+  scrambleTravelSpeed: 4
+  scrambleBufferSeconds: 4
+  scrambleDurationFallback: 20
+  acrossMapDistanceFraction: 0.5
   meetingZoneID: Meeting Room
-  meetingRoomTransform: {fileID: 0}
+  meetingRoomTransform: {fileID: 1298672457184711542}
   corpsePrefab: {fileID: 6600000000000000001, guid: 9f1c7d2b48e6431da5c30b9e7f26d815, type: 3}
   actionStageSpawnPoints:
   - {fileID: 0}
@@ -8060,13 +8063,17 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3124042149459449148, guid: d58df0e840eefe54fa0a3af1da99533b, type: 3}
+      propertyPath: zoneID
+      value: Meeting Room
+      objectReference: {fileID: 0}
     - target: {fileID: 3166897874502578969, guid: d58df0e840eefe54fa0a3af1da99533b, type: 3}
       propertyPath: m_Name
-      value: TaskZone
+      value: MeetingRoom
       objectReference: {fileID: 0}
     - target: {fileID: 4462526936855033832, guid: d58df0e840eefe54fa0a3af1da99533b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.61
+      value: 8.51
       objectReference: {fileID: 0}
     - target: {fileID: 4462526936855033832, guid: d58df0e840eefe54fa0a3af1da99533b, type: 3}
       propertyPath: m_LocalPosition.y
@@ -8109,6 +8116,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d58df0e840eefe54fa0a3af1da99533b, type: 3}
+--- !u!4 &1298672457184711542 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4462526936855033832, guid: d58df0e840eefe54fa0a3af1da99533b, type: 3}
+  m_PrefabInstance: {fileID: 1298672457184711541}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1388479606923361383
 PrefabInstance:
   m_ObjectHideFlags: 0
