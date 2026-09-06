@@ -30,6 +30,12 @@ namespace CorruptedCourt.Tasks
         [Header("Task Generation")]
         public int tasksPerStage = 3;
 
+        [Tooltip("Most incomplete assignments a player carries into a new stage. Beyond this the OLDEST " +
+                 "incomplete assignment is dropped, so a player who ignores their tasks can't build an " +
+                 "unbounded backlog. Carried tasks keep their per-player step progress; the fresh " +
+                 "tasksPerStage allotment is added on top of the carried ones.")]
+        public int maxCarriedTasks = 2;
+
         // Drag and drop all your created TaskData ScriptableObjects here in the Inspector
         public List<TaskData> allPossibleTasks = new List<TaskData>();
 
@@ -135,12 +141,35 @@ namespace CorruptedCourt.Tasks
                     continue;
                 }
 
-                // Generate a random subset of fresh per-player task instances
-                List<TaskInstance> playerTasks = GenerateRandomTasks(tasksPerStage);
+                // Carry the assignments this player did NOT finish last stage. TaskInstance is per-player
+                // runtime state, so each carried object travels with its own CurrentStepIndex and step
+                // runtimes - nothing resets to step 0. Oldest first, so an over-cap backlog sheds the
+                // tasks the player has ignored longest.
+                List<TaskInstance> carriedTasks = new List<TaskInstance>();
+                foreach (TaskInstance existing in player.TaskBook.activeTasks)
+                {
+                    if (existing != null && !existing.IsComplete) carriedTasks.Add(existing);
+                }
+                while (carriedTasks.Count > maxCarriedTasks) carriedTasks.RemoveAt(0);
+
+                // Fresh allotment from THIS stage's pool, skipping any TaskData already being carried so
+                // the same task is never assigned to one player twice.
+                HashSet<TaskData> carriedDefinitions = new HashSet<TaskData>();
+                foreach (TaskInstance carried in carriedTasks)
+                {
+                    if (carried.Definition != null) carriedDefinitions.Add(carried.Definition);
+                }
+                List<TaskInstance> freshTasks = GenerateRandomTasks(tasksPerStage, carriedDefinitions);
+
+                // Carried tasks first (older), then the fresh allotment.
+                List<TaskInstance> playerTasks = new List<TaskInstance>(carriedTasks);
+                playerTasks.AddRange(freshTasks);
                 player.TaskBook.AssignTasks(playerTasks);
 
                 // --- PREREQUISITE AUTO-SPAWN LOGIC ---
-                foreach (TaskInstance task in playerTasks)
+                // Only the fresh allotment is checked: a carried task's prerequisite item was already
+                // provided when the task was fresh and persists in the world across the rollover.
+                foreach (TaskInstance task in freshTasks)
                 {
                     if (task == null || task.Definition == null) continue;
                     TaskData def = task.Definition;
@@ -201,7 +230,7 @@ namespace CorruptedCourt.Tasks
             if (PlayerController.Local != null) PlayerController.Local.TaskBook.RefreshLocalWaypoints();
         }
 
-        private List<TaskInstance> GenerateRandomTasks(int amount)
+        private List<TaskInstance> GenerateRandomTasks(int amount, HashSet<TaskData> exclude)
         {
             List<TaskInstance> generatedTasks = new List<TaskInstance>();
 
@@ -210,6 +239,9 @@ namespace CorruptedCourt.Tasks
             foreach (var task in allPossibleTasks)
             {
                 if (task == null) continue;
+
+                // Don't hand a player a task they're already carrying from a previous stage.
+                if (exclude != null && exclude.Contains(task)) continue;
 
                 if (!task.isSabotage)
                 {

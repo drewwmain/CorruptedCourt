@@ -3035,7 +3035,7 @@ MonoBehaviour:
   maxSuccessions: 0
   isKingCursed: 0
   corruptedPercentage: 0.3
-  forceTestRole: 1
+  forceTestRole: 3
 --- !u!114 &698097557
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3069,6 +3069,7 @@ MonoBehaviour:
   - 4
   targetStages: 3
   tasksPerStage: 12
+  maxCarriedTasks: 2
   allPossibleTasks:
   - {fileID: 11400000, guid: b9518685377b41a4188b8c2b225b77c3, type: 2}
   - {fileID: 11400000, guid: b9c6ef044706aa2488cb2406a9178478, type: 2}
