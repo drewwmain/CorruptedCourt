@@ -29,6 +29,10 @@ namespace CorruptedCourt.UI
                  "abstained) after a tally. Cleared when a fresh meeting or action stage begins.")]
         public TextMeshProUGUI meetingResultText;
 
+        [Tooltip("Optional. The global-sabotage alert banner: shows the active team sabotage and its " +
+                 "auto-resolve countdown, then a brief resolution notice when it ends.")]
+        public TextMeshProUGUI sabotageAlertText;
+
         [Header("Voting UI")]
         public GameObject openVoteButton; // NEW: The button in the top right to open the panel
         public GameObject votingPanel;
@@ -70,6 +74,10 @@ namespace CorruptedCourt.UI
         // so we don't un-freeze them when the menu closes.
         private bool controlsWereLockedBeforeMenu = false;
 
+        // Label of the global sabotage currently showing in the alert banner, so per-second ticks can
+        // rebuild the line without the event having to re-send it.
+        private string activeSabotageLabel = "";
+
         private PlayerController localPlayerCache;
 
         // Resolved lazily - PlayerController.Local may not be set yet when UIManager wakes.
@@ -96,6 +104,9 @@ namespace CorruptedCourt.UI
             GameEvents.AbsentPlayersChanged += OnAbsentPlayersChanged;
             GameEvents.MeetingAnnouncement  += OnMeetingAnnouncement;
             GameEvents.MeetingResult        += OnMeetingResult;
+            GameEvents.GlobalSabotageStarted += OnGlobalSabotageStarted;
+            GameEvents.GlobalSabotageTick    += OnGlobalSabotageTick;
+            GameEvents.GlobalSabotageEnded   += OnGlobalSabotageEnded;
             GameEvents.CorruptedInventoryChanged += UpdateCorruptedInventory;
             GameEvents.CorruptedSlotHighlighted  += HighlightSlot;
             GameEvents.TransitionTimerTicked     += UpdateTransitionTimer;
@@ -125,6 +136,9 @@ namespace CorruptedCourt.UI
             GameEvents.AbsentPlayersChanged -= OnAbsentPlayersChanged;
             GameEvents.MeetingAnnouncement  -= OnMeetingAnnouncement;
             GameEvents.MeetingResult        -= OnMeetingResult;
+            GameEvents.GlobalSabotageStarted -= OnGlobalSabotageStarted;
+            GameEvents.GlobalSabotageTick    -= OnGlobalSabotageTick;
+            GameEvents.GlobalSabotageEnded   -= OnGlobalSabotageEnded;
             GameEvents.CorruptedInventoryChanged -= UpdateCorruptedInventory;
             GameEvents.CorruptedSlotHighlighted  -= HighlightSlot;
             GameEvents.TransitionTimerTicked     -= UpdateTransitionTimer;
@@ -190,6 +204,13 @@ namespace CorruptedCourt.UI
                 meetingResultText.text = "";
                 meetingResultText.gameObject.SetActive(false);
             }
+
+            // Sabotages don't run outside the action stage - clear the banner the moment play stops.
+            if (state != MatchManager.MatchState.ActionStage)
+            {
+                CancelInvoke(nameof(HideSabotageAlert));
+                HideSabotageAlert();
+            }
         }
 
         // A meeting was opened by a corpse report - show who found the body and where.
@@ -206,6 +227,44 @@ namespace CorruptedCourt.UI
             if (meetingResultText == null) return;
             meetingResultText.gameObject.SetActive(true);
             meetingResultText.text = summary;
+        }
+
+        // --- GLOBAL SABOTAGE ALERT ---
+
+        private void OnGlobalSabotageStarted(string label, int seconds)
+        {
+            activeSabotageLabel = label;
+            if (sabotageAlertText == null) return;
+
+            CancelInvoke(nameof(HideSabotageAlert));
+            sabotageAlertText.gameObject.SetActive(true);
+            sabotageAlertText.text = $"<color=#E74C3C><b>SABOTAGE: {label}</b></color>  <color=#F4D03F>{seconds}s</color>";
+        }
+
+        private void OnGlobalSabotageTick(int seconds)
+        {
+            if (sabotageAlertText == null || !sabotageAlertText.gameObject.activeSelf) return;
+            sabotageAlertText.text = $"<color=#E74C3C><b>SABOTAGE: {activeSabotageLabel}</b></color>  <color=#F4D03F>{seconds}s</color>";
+        }
+
+        private void OnGlobalSabotageEnded(string label, bool autoResolved)
+        {
+            if (sabotageAlertText == null) return;
+
+            sabotageAlertText.gameObject.SetActive(true);
+            sabotageAlertText.text = autoResolved
+                ? $"<color=#F39C12><b>{label} ran its course.</b></color>"
+                : $"<color=#2ECC71><b>{label} contained by the Court.</b></color>";
+
+            CancelInvoke(nameof(HideSabotageAlert));
+            Invoke(nameof(HideSabotageAlert), 4f);
+        }
+
+        private void HideSabotageAlert()
+        {
+            if (sabotageAlertText == null) return;
+            sabotageAlertText.text = "";
+            sabotageAlertText.gameObject.SetActive(false);
         }
 
         void Update()

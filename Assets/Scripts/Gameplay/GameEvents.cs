@@ -67,6 +67,21 @@ namespace CorruptedCourt.Gameplay
         public static event Action<string> MeetingResult;
         public static void RaiseMeetingResult(string summary) => MeetingResult?.Invoke(summary);
 
+        /// <summary>A team-shared global sabotage began. Carries a display label and the countdown
+        /// seconds until it auto-resolves. Raised from <c>SabotageManager</c>.</summary>
+        public static event Action<string, int> GlobalSabotageStarted;
+        public static void RaiseGlobalSabotageStarted(string label, int seconds) => GlobalSabotageStarted?.Invoke(label, seconds);
+
+        /// <summary>Whole seconds left on the active global sabotage's auto-resolve timer. Raised once
+        /// per second while a sabotage runs.</summary>
+        public static event Action<int> GlobalSabotageTick;
+        public static void RaiseGlobalSabotageTick(int secondsRemaining) => GlobalSabotageTick?.Invoke(secondsRemaining);
+
+        /// <summary>The active global sabotage ended. Carries its label and whether it expired on its
+        /// own (true) or the Court fixed it in time (false).</summary>
+        public static event Action<string, bool> GlobalSabotageEnded;
+        public static void RaiseGlobalSabotageEnded(string label, bool autoResolved) => GlobalSabotageEnded?.Invoke(label, autoResolved);
+
         /// <summary>A player entered or left a <see cref="TaskZone"/> (their currentZoneID just changed).
         /// Carries that player. Lets managers track room occupancy off events instead of polling every frame.</summary>
         public static event Action<PlayerController> PlayerZoneChanged;
@@ -147,6 +162,9 @@ namespace CorruptedCourt.Gameplay
             MeetingAnnouncement = null;
             NominationPhaseStarted = null;
             MeetingResult = null;
+            GlobalSabotageStarted = null;
+            GlobalSabotageTick = null;
+            GlobalSabotageEnded = null;
             PlayerZoneChanged = null;
             PlayerGhosted = null;
             StationReceivedDeposit = null;

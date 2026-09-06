@@ -51,10 +51,23 @@ namespace CorruptedCourt.Gameplay
                  "valid item held launches this drag-to-place minigame instead of depositing instantly.")]
         public GameObject depositMinigamePrefab;
 
+        [Header("Targeted Sabotage")]
+        [Tooltip("When a Corrupted uses Targeted Sabotage on this station: true = knock the most recent " +
+                 "deposit loose onto the floor (the Court can re-deposit it); false = destroy it outright " +
+                 "(the Court must re-acquire and re-process the item).")]
+        [SerializeField] private bool sabotageEjectsLastDeposit = true;
+
+        // Legacy flag from the pre-G2.3 Targeted Sabotage (stun-on-interact). Nothing reads it any more -
+        // Targeted Sabotage now ejects/destroys the most recent deposit immediately (see
+        // SabotageMostRecentDeposit). Kept only so the 5 station prefabs that serialize it aren't
+        // orphaned; safe to delete in a follow-up.
         public bool isSabotaged = false;
 
         private Transform[] dropSlots;
         private TaskLocation taskLocation;
+
+        // Runtime only: which slot took the most recent deposit, so Targeted Sabotage can target it.
+        [System.NonSerialized] private int lastDepositedSlot = -1;
 
         // Runtime only, parallel to depositedItemSlots: which player dropped the item currently in each
         // slot. Null = unknown / empty / placed by the system (prerequisite auto-spawn, role switch).
@@ -294,6 +307,7 @@ namespace CorruptedCourt.Gameplay
             item.PlaceInStation(dropSlots[slotIndex], this);
             depositedItemSlots[slotIndex] = item;
             RecordDepositor(slotIndex, depositor);
+            lastDepositedSlot = slotIndex;
             Log.Game($"{item.DisplayName} hung on the {taskLocation.locationID} (slot {slotIndex}).");
             GameEvents.RaiseStationReceivedDeposit(this);
         }
@@ -312,13 +326,6 @@ namespace CorruptedCourt.Gameplay
         {
             PlayerController player = interactor.GetComponent<PlayerController>();
             if (player == null) return;
-
-            if (isSabotaged && player.Vitals.faction != Faction.Corrupted)
-            {
-                Log.Game("Station was sabotaged! You are stunned!");
-                player.Vitals.ApplyStun(3f);
-                isSabotaged = false;
-            }
 
             PickupItem heldItem = player.GetHeldItem();
 
@@ -349,6 +356,7 @@ namespace CorruptedCourt.Gameplay
                     heldItem.PlaceInStation(dropSlots[availableSlot], this);
                     depositedItemSlots[availableSlot] = heldItem;
                     RecordDepositor(availableSlot, player);
+                    lastDepositedSlot = availableSlot;
                     player.ClearHeldItem();
 
                     Log.Game($"Item {heldItem.DisplayName} deposited into slot {availableSlot}.");
@@ -430,6 +438,46 @@ namespace CorruptedCourt.Gameplay
                 if (depositedItemSlots[i] == null) return i;
             }
             return -1;
+        }
+
+        private int GetFirstFilledSlotIndex()
+        {
+            for (int i = 0; i < depositedItemSlots.Length; i++)
+            {
+                if (depositedItemSlots[i] != null) return i;
+            }
+            return -1;
+        }
+
+        // Targeted Sabotage: knock the most-recently-deposited item out of this station (or destroy it
+        // when sabotageEjectsLastDeposit is false), forcing the Court to bring another. Returns false
+        // when the station holds nothing to sabotage.
+        public bool SabotageMostRecentDeposit()
+        {
+            if (depositedItemSlots == null) return false;
+
+            int slot = lastDepositedSlot;
+            if (slot < 0 || slot >= depositedItemSlots.Length || depositedItemSlots[slot] == null)
+                slot = GetFirstFilledSlotIndex();
+            if (slot == -1) return false;
+
+            PickupItem item = depositedItemSlots[slot];
+            depositedItemSlots[slot] = null;
+            RecordDepositor(slot, null);
+            if (lastDepositedSlot == slot) lastDepositedSlot = -1;
+
+            string where = taskLocation != null ? taskLocation.locationID : gameObject.name;
+            if (sabotageEjectsLastDeposit)
+            {
+                Log.Game($"Sabotage: {item.DisplayName} knocked loose from the {where}.");
+                item.DropInPlace();
+            }
+            else
+            {
+                Log.Game($"Sabotage: {item.DisplayName} destroyed at the {where}.");
+                Destroy(item.gameObject);
+            }
+            return true;
         }
 
         public void ReleaseItem(PickupItem itemToRemove)

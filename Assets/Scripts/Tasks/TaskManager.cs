@@ -280,5 +280,16 @@ namespace CorruptedCourt.Tasks
 
             Log.Game($"Court Task Completed: {(definition != null ? definition.taskName : "<unknown>")}! Global Meter: {currentCourtProgress} / {maxCourtProgress}");
         }
+
+        // Lowers the global Court meter (a Corrupted sabotage effect - see SabotageManager's Poison the
+        // Feast). Clamped at 0; never touches the frozen target. Raises the progress event so the meter
+        // view and the win check react.
+        public void DrainCourtProgress(float amount)
+        {
+            if (amount <= 0f) return;
+
+            currentCourtProgress = Mathf.Clamp(currentCourtProgress - amount, 0f, maxCourtProgress);
+            GameEvents.RaiseCourtProgressChanged(currentCourtProgress, maxCourtProgress);
+        }
     }
 }

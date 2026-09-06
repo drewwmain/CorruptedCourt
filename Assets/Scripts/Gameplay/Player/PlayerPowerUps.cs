@@ -229,11 +229,16 @@ namespace CorruptedCourt.Gameplay
                     return false; // FAIL
 
                 case PowerUpType.TargetedSabotage:
-                    if (player.Interactor.CurrentTarget != null && player.Interactor.CurrentTarget is TaskDepositStation station)
+                    if (player.Interactor.CurrentTarget is TaskDepositStation station)
                     {
-                        station.isSabotaged = true;
-                        Log.Game($"Sabotaged the {station.gameObject.name}! The next Innocent will be stunned.");
-                        return true;
+                        if (station.SabotageMostRecentDeposit())
+                        {
+                            Log.Game($"Sabotaged the {station.gameObject.name}! Its most recent deposit is gone - the Court has to bring another.");
+                            return true;
+                        }
+
+                        Log.Game($"The {station.gameObject.name} has nothing deposited to sabotage.");
+                        return false;
                     }
                     else
                     {
