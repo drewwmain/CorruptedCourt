@@ -64,6 +64,14 @@ namespace CorruptedCourt.Gameplay
             cc = GetComponent<CharacterController>();
         }
 
+        // Copies ghost-balance tunables from the MatchConfig asset. Called by MatchManager (via
+        // PlayerController.ApplyMatchConfig) at match start. No-op if cfg is null.
+        public void ApplyConfig(MatchConfig cfg)
+        {
+            if (cfg == null) return;
+            MatchConfig.ApplyFloat(nameof(PlayerGhost), nameof(hauntCooldown), ref hauntCooldown, cfg.hauntCooldown);
+        }
+
         void OnEnable()
         {
             GameEvents.PlayerGhosted += OnPlayerGhosted;

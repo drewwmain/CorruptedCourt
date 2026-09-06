@@ -43,6 +43,19 @@ namespace CorruptedCourt.Gameplay
             GameOver
         }
 
+        [Header("Balance Config (G3.4)")]
+        [Tooltip("The single authored balance surface. At match start every manager and player copies " +
+                 "its tunables from this asset (see ApplyMatchConfig). Leave empty to run entirely on " +
+                 "the inspector values in each component - a warning is logged.")]
+        [SerializeField] private MatchConfig matchConfig;
+        [Tooltip("Tick to ignore the MatchConfig asset and use every component's own inspector values. " +
+                 "Logged loudly at match start so it is never a silent playtest surprise.")]
+        [SerializeField] private bool ignoreMatchConfig = false;
+
+        /// <summary>The assigned balance config (may be null). Managers/players read pushed values via
+        /// ApplyMatchConfig; this getter is for anything that needs to pull a value directly.</summary>
+        public MatchConfig Config => matchConfig;
+
         [Header("Match Settings")]
         public MatchState currentState;
         public int currentStage = 1;
@@ -191,6 +204,10 @@ namespace CorruptedCourt.Gameplay
                     Log.Game("--- MATCH STARTING: Initialization Phase ---");
                     currentStage = 1;
 
+                    // Pull balance from the config asset BEFORE roles are assigned and the meter is
+                    // sized, so every downstream read sees the config's values (G3.4).
+                    ApplyMatchConfig();
+
                     if (RoleManager.Instance != null) RoleManager.Instance.AssignAllRoles();
 
                     // Roles are set - size the Court meter to the lobby now, once per match, before any
@@ -274,6 +291,37 @@ namespace CorruptedCourt.Gameplay
             // A stage / phase change can itself be a win trigger (e.g. tasks finished right as the meeting
             // ends). Cheap, and CheckWinConditions no-ops for Initialization / GameOver.
             CheckWinConditions();
+        }
+
+        // --- BALANCE CONFIG FAN-OUT (G3.4) ---
+        // Copies balance tunables from the MatchConfig asset into every manager and player at match
+        // start. A scene/prefab value that disagrees with the asset is overwritten and shouted about
+        // (see MatchConfig.ApplyFloat) so a stale playtest override can't silently contradict it.
+        private void ApplyMatchConfig()
+        {
+            if (ignoreMatchConfig)
+            {
+                Debug.LogWarning("[MatchManager] ignoreMatchConfig is ON - the MatchConfig asset is ignored; every manager and player uses its own inspector values this match.");
+                return;
+            }
+            if (matchConfig == null)
+            {
+                Debug.LogWarning("[MatchManager] No MatchConfig assigned - every manager and player uses its own inspector values. Assign one for a single balance surface.");
+                return;
+            }
+
+            MatchConfig.ApplyFloat(nameof(MatchManager), nameof(scrambleTravelSpeed), ref scrambleTravelSpeed, matchConfig.transitionTravelSpeed);
+            MatchConfig.ApplyFloat(nameof(MatchManager), nameof(meetingDuration), ref meetingDuration, matchConfig.meetingDuration);
+
+            RoleManager.Instance?.ApplyConfig(matchConfig);
+            TaskManager.Instance?.ApplyConfig(matchConfig);
+            SabotageManager.Instance?.ApplyConfig(matchConfig);
+
+            if (RoleManager.Instance != null)
+            {
+                foreach (PlayerController p in RoleManager.Instance.allPlayers)
+                    if (p != null) p.ApplyMatchConfig(matchConfig);
+            }
         }
 
         private void HandleStateTimers()

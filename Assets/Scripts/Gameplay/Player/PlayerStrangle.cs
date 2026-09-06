@@ -15,7 +15,9 @@ namespace CorruptedCourt.Gameplay
     {
         [Header("Corrupted Combat")]
         public float strangleCooldown = 4f;
-        private float lastStrangleTime = -4f;
+        // NegativeInfinity so the first strangle is available immediately whatever strangleCooldown is
+        // (the MatchConfig value can push it above the old -4f init).
+        private float lastStrangleTime = float.NegativeInfinity;
         public float strangleHoldTime = 1.5f; // How long they must hold the button
         private Coroutine strangleCoroutine;  // Tracks the active struggle
 
@@ -67,6 +69,15 @@ namespace CorruptedCourt.Gameplay
 
         /// <summary>Cancels a latched strangle-button hold, e.g. when a blocking menu opens.</summary>
         public void CancelStrangleButton() => strangleButtonHeld = false;
+
+        // Copies strangle-balance tunables from the MatchConfig asset. Called by MatchManager (via
+        // PlayerController.ApplyMatchConfig) at match start. No-op if cfg is null.
+        public void ApplyConfig(MatchConfig cfg)
+        {
+            if (cfg == null) return;
+            MatchConfig.ApplyFloat(nameof(PlayerStrangle), nameof(strangleHoldTime), ref strangleHoldTime, cfg.strangleHoldTime);
+            MatchConfig.ApplyFloat(nameof(PlayerStrangle), nameof(strangleCooldown), ref strangleCooldown, cfg.strangleCooldown);
+        }
 
         // --- DEDICATED RIGHT CLICK, non-minigame branch (Corrupted only): reach out to strangle.
         // Routed from PlayerController.OnStrangle once it's ruled out the minigame-camera-look

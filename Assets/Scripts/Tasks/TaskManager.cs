@@ -48,6 +48,31 @@ namespace CorruptedCourt.Tasks
             else Destroy(gameObject);
         }
 
+        // Copies task-balance tunables from the MatchConfig asset. Called by MatchManager at match
+        // start, before InitializeCourtMeter / AssignTasksForNewStage read them. No-op if cfg is null.
+        public void ApplyConfig(MatchConfig cfg)
+        {
+            if (cfg == null) return;
+            MatchConfig.ApplyInt(nameof(TaskManager), nameof(tasksPerStage), ref tasksPerStage, cfg.tasksPerStage);
+            MatchConfig.ApplyInt(nameof(TaskManager), nameof(targetStages), ref targetStages, cfg.targetStages);
+            MatchConfig.ApplyInt(nameof(TaskManager), nameof(maxCarriedTasks), ref maxCarriedTasks, cfg.maxCarriedTasks);
+
+            if (cfg.tierWeights != null)
+            {
+                if (!TierWeightsEqual(cfg.tierWeights))
+                    Debug.LogWarning("[MatchConfig] TaskManager.tierWeights: scene/inspector array IGNORED - the MatchConfig asset's values are used instead.");
+                tierWeights = (float[])cfg.tierWeights.Clone();
+            }
+        }
+
+        private bool TierWeightsEqual(float[] other)
+        {
+            if (tierWeights == null || other == null || tierWeights.Length != other.Length) return false;
+            for (int i = 0; i < tierWeights.Length; i++)
+                if (!Mathf.Approximately(tierWeights[i], other[i])) return false;
+            return true;
+        }
+
         // Called once by MatchManager at match start (Initialization), AFTER RoleManager has assigned
         // factions/titles. Resets progress to 0 and sizes the Court meter to the lobby:
         //   target = eligibleCourtCount * tasksPerStage * averageTierWeight * targetStages

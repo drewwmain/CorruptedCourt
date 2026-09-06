@@ -29,6 +29,11 @@ namespace CorruptedCourt.Gameplay
         public GameObject trapPrefab;
         public GameObject illusionPrefab;
 
+        [Header("Ability Tuning")]
+        [Tooltip("Dagger wind-up: seconds between committing the strike and the lethal ray firing (the " +
+                 "counter-play window). Copied from MatchConfig at match start.")]
+        [SerializeField] private float daggerWindup = 1.5f;
+
         private Renderer[] playerRenderers;
 
         // Scratch buffer for the Blinding Ash overlap sweep in ExecutePowerUp. It runs on the main
@@ -52,6 +57,14 @@ namespace CorruptedCourt.Gameplay
         /// <summary>True while a power-up 3D model is physically in the Corrupted player's hand. Read by
         /// PlayerStrangle to block a strangle while a power-up is equipped.</summary>
         public bool HasActivePowerUp => activePowerUpVisual != null;
+
+        // Copies ability-balance tunables from the MatchConfig asset. Called by MatchManager (via
+        // PlayerController.ApplyMatchConfig) at match start. No-op if cfg is null.
+        public void ApplyConfig(MatchConfig cfg)
+        {
+            if (cfg == null) return;
+            MatchConfig.ApplyFloat(nameof(PlayerPowerUps), nameof(daggerWindup), ref daggerWindup, cfg.daggerWindup);
+        }
 
         // --- DEDICATED USE POWER-UP MECHANIC (F Key) --- (routed from PlayerController.OnUseItem)
         public void HandleUsePowerUp(bool isPressed)
@@ -314,8 +327,8 @@ namespace CorruptedCourt.Gameplay
         {
             Log.Game($"<color=#E74C3C>{gameObject.name} readies a dagger...</color>");
 
-            // 1.5 second wind-up delay (Player movement is NOT restricted here!)
-            yield return new WaitForSeconds(1.5f);
+            // Wind-up delay (Player movement is NOT restricted here!) - the counter-play window.
+            yield return new WaitForSeconds(daggerWindup);
 
             Log.Game($"<color=#C0392B>{gameObject.name} strikes!</color>");
 

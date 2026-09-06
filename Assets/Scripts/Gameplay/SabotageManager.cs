@@ -91,6 +91,16 @@ namespace CorruptedCourt.Gameplay
             if (lightingCached) RestoreLighting();
         }
 
+        // Copies sabotage-balance tunables from the MatchConfig asset. Called by MatchManager at
+        // match start. No-op if cfg is null.
+        public void ApplyConfig(MatchConfig cfg)
+        {
+            if (cfg == null) return;
+            MatchConfig.ApplyFloat(nameof(SabotageManager), nameof(sabotageDuration), ref sabotageDuration, cfg.sabotageDuration);
+            MatchConfig.ApplyFloat(nameof(SabotageManager), nameof(teamCooldown), ref teamCooldown, cfg.sabotageTeamCooldown);
+            MatchConfig.ApplyFloat(nameof(SabotageManager), nameof(poisonDrainPerSecond), ref poisonDrainPerSecond, cfg.poisonDrainPerSecond);
+        }
+
         void Update()
         {
             if (cooldownTimer > 0f) cooldownTimer -= Time.deltaTime;

@@ -501,6 +501,17 @@ namespace CorruptedCourt.Gameplay
             if (active) inventory.DropHeavyItems();
         }
 
+        // Called by MatchManager at match start for every player: fans the balance config out to the
+        // sibling components that hold per-player tunables (G3.4). No-op if cfg is null.
+        public void ApplyMatchConfig(MatchConfig cfg)
+        {
+            if (cfg == null) return;
+            vitals?.ApplyConfig(cfg);
+            strangle?.ApplyConfig(cfg);
+            powerUps?.ApplyConfig(cfg);
+            ghost?.ApplyConfig(cfg);
+        }
+
         // Called by UIManager when the pause / settings menu opens or closes. Freezes the player and
         // stops all input so the mouse can be used on the menu.
         public void SetControlsLocked(bool locked)

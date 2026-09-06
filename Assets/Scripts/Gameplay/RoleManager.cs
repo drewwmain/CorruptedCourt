@@ -39,6 +39,12 @@ namespace CorruptedCourt.Gameplay
         [Header("Balance Settings")]
         [Tooltip("Percentage of players that will be Corrupted (Default is 30% or 0.3f).")]
         public float corruptedPercentage = 0.3f;
+        [Tooltip("Minimum Corrupted players after the percentage is rounded to a count. Keeps small " +
+                 "lobbies playable. Copied from MatchConfig at match start.")]
+        public int minCorrupted = 1;
+        [Tooltip("Maximum Corrupted players (0 = no cap), applied after the minimum. Copied from " +
+                 "MatchConfig at match start.")]
+        public int maxCorrupted = 0;
 
         [Header("Testing")]
         [Tooltip("Force the local player's starting role. 'None' = normal random distribution. This is the " +
@@ -77,6 +83,17 @@ namespace CorruptedCourt.Gameplay
             allPlayers.Remove(player);
         }
 
+        // Copies role-balance tunables from the MatchConfig asset. Called by MatchManager at match
+        // start, immediately before AssignAllRoles. No-op if cfg is null.
+        public void ApplyConfig(MatchConfig cfg)
+        {
+            if (cfg == null) return;
+            MatchConfig.ApplyFloat(nameof(RoleManager), nameof(corruptedPercentage), ref corruptedPercentage, cfg.corruptedPercentage);
+            MatchConfig.ApplyInt(nameof(RoleManager), nameof(minCorrupted), ref minCorrupted, cfg.minCorrupted);
+            MatchConfig.ApplyInt(nameof(RoleManager), nameof(maxCorrupted), ref maxCorrupted, cfg.maxCorrupted);
+            MatchConfig.ApplyFloat(nameof(RoleManager), nameof(kingCurseDuration), ref kingCurseDuration, cfg.kingCurseDuration);
+        }
+
         // Called by the MatchManager at the very start of the game
         public void AssignAllRoles()
         {
@@ -100,8 +117,10 @@ namespace CorruptedCourt.Gameplay
             // Adding 0.5f ensures standard rounding (e.g., 15 players * 0.3 = 4.5, which rounds up to 5)
             int actualCorruptedCount = Mathf.FloorToInt((allPlayers.Count * corruptedPercentage) + 0.5f);
 
-            // Failsafe to ensure there is always at least 1 Corrupted player in small lobbies
-            if (actualCorruptedCount < 1) actualCorruptedCount = 1;
+            // Clamp to the configured caps: min keeps small lobbies playable, max (0 = no cap) stops a
+            // small lobby tipping straight into parity.
+            if (actualCorruptedCount < minCorrupted) actualCorruptedCount = minCorrupted;
+            if (maxCorrupted > 0 && actualCorruptedCount > maxCorrupted) actualCorruptedCount = maxCorrupted;
 
             int corruptedSlotsToFill = actualCorruptedCount;
             bool kingAssigned = false;

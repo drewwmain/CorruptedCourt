@@ -49,6 +49,9 @@ namespace CorruptedCourt.Gameplay
         public PlayerController currentPrisoner;
         public Coroutine breakoutTimerCoroutine;
         public int arrestQuota = 2;
+        [Tooltip("Seconds an unattended prisoner takes to break free (freeing themselves and stunning " +
+                 "the captor). Copied from MatchConfig at match start.")]
+        public float breakoutDuration = 30f;
         public bool isDraggingPrisoner = false;
         public bool isArrested = false;
         public PlayerController currentCaptor;
@@ -130,6 +133,16 @@ namespace CorruptedCourt.Gameplay
             }
 
             Log.Game($"[Role Assignment] {gameObject.name} title is now: {courtTitle} with {currentHealth} HP");
+        }
+
+        // Copies custody-balance tunables from the MatchConfig asset. Called by MatchManager (via
+        // PlayerController.ApplyMatchConfig) at match start, before any arrest can happen. No-op if
+        // cfg is null.
+        public void ApplyConfig(MatchConfig cfg)
+        {
+            if (cfg == null) return;
+            MatchConfig.ApplyInt(nameof(PlayerVitals), nameof(arrestQuota), ref arrestQuota, cfg.arrestQuota);
+            MatchConfig.ApplyFloat(nameof(PlayerVitals), nameof(breakoutDuration), ref breakoutDuration, cfg.breakoutDuration);
         }
 
         // --- NEW: COMBAT DAMAGE SYSTEM ---
@@ -561,10 +574,10 @@ namespace CorruptedCourt.Gameplay
         // --- NEW: THE BREAKOUT TIMER ---
         private System.Collections.IEnumerator BreakoutTimerRoutine()
         {
-            // The prisoner has exactly 30 seconds before they violently break free
-            yield return new WaitForSeconds(30f);
+            // The prisoner has breakoutDuration seconds before they violently break free.
+            yield return new WaitForSeconds(breakoutDuration);
 
-            // If they are still arrested after 30 seconds, execute the breakout!
+            // If they are still arrested when it elapses, execute the breakout!
             if (isArrested)
             {
                 Log.Game("<color=#E74C3C>The prisoner broke free from their restraints!</color>");
