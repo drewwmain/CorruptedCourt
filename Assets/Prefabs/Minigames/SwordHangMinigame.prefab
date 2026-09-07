@@ -124,6 +124,7 @@ MonoBehaviour:
   gripContactMask:
     serializedVersion: 2
     m_Bits: 16384
+  compensateGripDrift: 1
   carryLocalEuler: {x: 180, y: 0, z: 0}
   carryLocalPos: {x: 0.137, y: 0.035, z: 0.02}
   settleTime: 1
