@@ -6,6 +6,43 @@ using CorruptedCourt.Items;
 
 namespace CorruptedCourt.Gameplay
 {
+    /// <summary>
+    /// Per-item authoring data for the grip constraint solved by the hand-minigame capability
+    /// (built in a later phase). Pure configuration: no runtime-mutable state, no per-player data,
+    /// no behaviour. One instance is serialized on <see cref="PickupItem"/> and read back through
+    /// its read-only <see cref="PickupItem.GripConstraint"/> accessor.
+    /// </summary>
+    [System.Serializable]
+    public class GripConstraintSettings
+    {
+        [Tooltip("Master switch for this item's grip constraint. When false the constraint is not " +
+                 "applied and every field below is ignored.")]
+        public bool enableGripConstraint = false;
+
+        [Tooltip("The point the item rotates about while the grip constraint solves. Leave empty to " +
+                 "use the item's own origin (its transform position).")]
+        public Transform gripPivot;
+
+        [Tooltip("A DISABLED collider whose dimensions define the swept contact shape. It is measured, " +
+                 "never enabled or simulated at runtime - keep it disabled on the prefab.")]
+        public Collider contactProxy;
+
+        [Tooltip("Degrees the wrist may deviate from its neutral pose before the grip counts as strained. " +
+                 "Clamped 0..45 by PickupItem.OnValidate.")]
+        public float wristLimitDegrees = 15f;
+
+        [Tooltip("Degrees past the wrist limit the item may rotate in-hand before it slips free of the grip. " +
+                 "Clamped 0..60 by PickupItem.OnValidate.")]
+        public float slipLimitDegrees = 25f;
+
+        [Tooltip("How many frames the contact normal is averaged over to remove jitter. " +
+                 "Clamped 1..10 by PickupItem.OnValidate.")]
+        public int normalSmoothingFrames = 3;
+
+        [Tooltip("Metres of clearance kept between the contact proxy and the resting surface.")]
+        public float contactSkin = 0.002f;
+    }
+
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(Collider))]
     public class PickupItem : MonoBehaviour, IInteractable
@@ -84,6 +121,14 @@ namespace CorruptedCourt.Gameplay
         [Tooltip("If set, pressing [E] while holding this item ALWAYS launches this minigame - any role, with or without a related task.")]
         public GameObject processMinigamePrefab;
 
+        [Header("Grip Constraint")]
+        [Tooltip("Per-item tuning for the grip constraint solved by the hand-minigame capability in a " +
+                 "later phase. Authoring configuration only - holds no runtime state.")]
+        [SerializeField] private GripConstraintSettings gripConstraint = new GripConstraintSettings();
+
+        /// <summary>Read-only per-item grip-constraint tuning. Authoring data only; never mutated at runtime.</summary>
+        public GripConstraintSettings GripConstraint => gripConstraint;
+
         private Rigidbody rb;
         private Collider coll;
         private bool isHeld = false;
@@ -103,6 +148,16 @@ namespace CorruptedCourt.Gameplay
         {
             if (definition == null)
                 Debug.LogWarning($"[PickupItem] {name}: no ItemDefinition assigned - every item match is done against it.", this);
+
+            if (gripConstraint != null)
+            {
+                gripConstraint.wristLimitDegrees = Mathf.Clamp(gripConstraint.wristLimitDegrees, 0f, 45f);
+                gripConstraint.slipLimitDegrees = Mathf.Clamp(gripConstraint.slipLimitDegrees, 0f, 60f);
+                gripConstraint.normalSmoothingFrames = Mathf.Clamp(gripConstraint.normalSmoothingFrames, 1, 10);
+
+                if (gripConstraint.enableGripConstraint && gripConstraint.contactProxy == null)
+                    Debug.LogWarning($"[PickupItem] {name}: Grip Constraint is enabled but no Contact Proxy collider is assigned.", this);
+            }
         }
 
         // Registered only while active, so a deactivated item (e.g. a role-switched Vase in round 1)
