@@ -124,7 +124,14 @@ MonoBehaviour:
   gripContactMask:
     serializedVersion: 2
     m_Bits: 16384
+  gripWorldMask:
+    serializedVersion: 2
+    m_Bits: 2112
+  includeWorldGeometry: 1
   compensateGripDrift: 1
+  wristDamping: 0
+  blockedGraceSeconds: 0.1
+  blockPlayerMovement: 0
   carryLocalEuler: {x: 180, y: 0, z: 0}
   carryLocalPos: {x: 0.137, y: 0.035, z: 0.02}
   settleTime: 1

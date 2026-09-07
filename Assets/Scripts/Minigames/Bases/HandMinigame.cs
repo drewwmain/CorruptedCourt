@@ -55,6 +55,16 @@ namespace CorruptedCourt.Minigames
         public bool useGripConstraint = false;
         [Tooltip("Set to the GripContact layer ONLY - the world colliders the held item must not pass through.")]
         public LayerMask gripContactMask;
+        [Tooltip("Extra STATIC WORLD geometry (walls, floors) the held item must also not pass through. Set " +
+                 "this to Ground / Wall - NEVER Default (Synty environment meshes land there) and never any " +
+                 "Player / Character / Ghost layer (the item would grip against its own owner). Only cast " +
+                 "against while Include World Geometry is on. OnValidate strips the Player bit from this and " +
+                 "gripContactMask.")]
+        public LayerMask gripWorldMask;
+        [Tooltip("When on, the grip constraint casts against gripContactMask | gripWorldMask, so the held " +
+                 "item also rests against walls and floors instead of only the authored GripContact volumes. " +
+                 "Default off. Does NOT change WHEN the constraint runs - it is still minigame-only.")]
+        public bool includeWorldGeometry = false;
         [Tooltip("When the grip constraint mirrors part of its correction onto the wrist, also shift the hand " +
                  "reach target so the held item's grip point stays visually pinned. The wrist joint is not at " +
                  "the grip point, so rotating the wrist would otherwise slide the item a few cm. Turn off to " +
@@ -122,7 +132,7 @@ namespace CorruptedCourt.Minigames
             }
 
             Hand = new MinigameHandRig(player, cam);
-            Grip = new MinigameGripConstraint(gripContactMask, Hand);
+            Grip = new MinigameGripConstraint(EffectiveGripMask(), Hand);
             walkAnchor = player.transform.position;
 
             player.SetControlsLocked(true);
@@ -207,6 +217,7 @@ namespace CorruptedCourt.Minigames
             {
                 Grip.compensateGripDrift = compensateGripDrift; // Inspector A/B toggle, read live each frame
                 Grip.wristDamping = wristDamping;               // feel knob for the cosmetic wrist give only
+                Grip.contactMask = EffectiveGripMask();         // live too, so includeWorldGeometry can be A/B'd
                 Grip.Solve();
             }
         }
@@ -265,6 +276,41 @@ namespace CorruptedCourt.Minigames
             if (Hand == null) return;
             if (blockClampActive) Hand.SetReachClamp(blockClampNormal);
             else Hand.ClearReachClamp();
+        }
+
+        // The layer set MinigameGripConstraint sweeps the held item against: gripContactMask alone, or
+        // gripContactMask | gripWorldMask while includeWorldGeometry is on. .value is the raw int the
+        // Physics cast APIs want. OnValidate keeps the Player bit out of both masks, so the constraint
+        // never needs per-collider owner filtering - the whole owner layer is simply not in the mask.
+        private int EffectiveGripMask()
+            => includeWorldGeometry
+                ? (gripContactMask.value | gripWorldMask.value)
+                : gripContactMask.value;
+
+        // Authoring guard. The grip constraint must never cast against the held item's own owner, so the
+        // whole Player layer is stripped from both masks here rather than filtered per collider at solve
+        // time. Debug.LogWarning (not Log.Warn) on purpose - an authoring guard must fire regardless of
+        // CC_LOGGING. Unity dispatches OnValidate over the whole type hierarchy, so a subclass that adds
+        // its own OnValidate does not suppress this one.
+        private void OnValidate()
+        {
+            int playerLayer = LayerMask.NameToLayer("Player");
+            if (playerLayer < 0) return; // no "Player" layer defined - 1 << -1 would not be its bit
+
+            int playerBit = 1 << playerLayer;
+
+            if ((gripContactMask.value & playerBit) != 0)
+            {
+                gripContactMask.value &= ~playerBit;
+                Debug.LogWarning($"[{GetType().Name}] Stripped the 'Player' layer from gripContactMask - the " +
+                                 "grip constraint must not cast against the held item's own owner.", this);
+            }
+            if ((gripWorldMask.value & playerBit) != 0)
+            {
+                gripWorldMask.value &= ~playerBit;
+                Debug.LogWarning($"[{GetType().Name}] Stripped the 'Player' layer from gripWorldMask - the " +
+                                 "grip constraint must not cast against the held item's own owner.", this);
+            }
         }
 
         // --- shared handlers -------------------------------------------------------------------------

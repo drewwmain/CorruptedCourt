@@ -63,7 +63,10 @@ namespace CorruptedCourt.Minigames
         // The cosmetic wrist mirror (MirrorWristFollow) drives the hand through 'hand' only - never
         // PlayerController / PlayerIKRig directly. The item-clearance solve uses neither.
         private readonly MinigameHandRig hand;
-        private readonly int contactMask;
+        // Live-mirrored from HandMinigame.EffectiveGripMask() every LateUpdate (like compensateGripDrift /
+        // wristDamping below), so HandMinigame.includeWorldGeometry and the grip masks can be A/B'd at
+        // runtime while profiling. Seeded by the constructor.
+        public int contactMask;
         private readonly RaycastHit[] hitBuf = new RaycastHit[8];
 
         // --- per-Begin cache --------------------------------------------------------------------------
@@ -113,6 +116,25 @@ namespace CorruptedCourt.Minigames
         private Vector3 lastCorrectionAxis; // world axis the last Solve rotated the item about (also the wrist axis)
 
         // --- public debug surface ----------------------------------------------------------------
+
+        /// <summary>
+        /// Physics casts (CapsuleCast / BoxCast) the last <see cref="Solve"/> issued - the angular march
+        /// plus the fixed 6-iteration bisect. Excludes the one-off stationary overlap query on the first
+        /// Solve after <see cref="Begin"/>. 0 when the item did not move relative to last frame. Ceiling is
+        /// <c>MaxSubsteps + BisectIterations</c> = 30. For profiling the constraint's per-frame query cost.
+        /// </summary>
+        public int LastSolveCastCount { get; private set; }
+
+        /// <summary>
+        /// True when a cast in the last <see cref="Solve"/> filled the internal <c>hitBuf</c> (length 8):
+        /// more colliders overlapped the swept proxy than the NonAlloc buffer holds, so <c>MarchCast</c>'s
+        /// "nearest of the buffer" may not be the true nearest contact (a one-frame tunnel risk). Usual
+        /// cause is a <c>gripWorldMask</c> aimed at granular or Default-layer geometry - an authoring
+        /// signal, see ARCHITECTURE.md. The bisect's <c>ClearAt</c> only tests "any hit", so saturation
+        /// there is harmless.
+        /// </summary>
+        public bool LastSolveBufferSaturated { get; private set; }
+
         public float LastAppliedDegrees { get; private set; }
         /// <summary>Cosmetic wrist share of the last solve: <c>Min(LastAppliedDegrees, wristLimitDegrees)</c>. Follows one frame late, never subtracted from the item.</summary>
         public float LastWristDegrees { get; private set; }
@@ -260,6 +282,8 @@ namespace CorruptedCourt.Minigames
             LastAppliedDegrees = 0f;
             LastWristDegrees = 0f;
             LastGripCompensationMagnitude = 0f;
+            LastSolveCastCount = 0;
+            LastSolveBufferSaturated = false;
             IsBlocked = false;
             HasContact = false;
             LastContactPoint = Vector3.zero;
@@ -292,6 +316,10 @@ namespace CorruptedCourt.Minigames
         /// <summary>The item-clearance solve. Reads the rest pose off the item, solves, commits the pose.</summary>
         private void SolveItemPose()
         {
+            // Per-solve profiling counters, cleared before the inert guard so a released constraint reads 0.
+            LastSolveCastCount = 0;
+            LastSolveBufferSaturated = false;
+
             if (inert || item == null || itemTf == null || settings == null || proxy == null || proxyTf == null) return;
 
             // 1. Rest pose, read fresh. Whatever the owner authored this frame IS the rest pose.
@@ -642,7 +670,9 @@ namespace CorruptedCourt.Minigames
                  + " wrist=" + LastWristDegrees.ToString("0.0", CultureInfo.InvariantCulture)
                  + " blocked=" + IsBlocked.ToString()
                  + " contact=" + HasContact.ToString()
-                 + " substeps=" + lastSubsteps.ToString(CultureInfo.InvariantCulture);
+                 + " substeps=" + lastSubsteps.ToString(CultureInfo.InvariantCulture)
+                 + " casts=" + LastSolveCastCount.ToString(CultureInfo.InvariantCulture)
+                 + " sat=" + LastSolveBufferSaturated.ToString();
         }
 
         private static void DrawCross(Vector3 p, float half, Color c)
@@ -731,13 +761,22 @@ namespace CorruptedCourt.Minigames
         // geometry to the sweep.
         private int RawCast(Vector3 proxyPos, Quaternion proxyRot, Vector3 dir, float dist)
         {
+            LastSolveCastCount++;
+
+            int count;
             if (proxyKind == ProxyKind.Capsule)
             {
                 CapsuleEnds(proxyPos, proxyRot, out Vector3 p1, out Vector3 p2);
-                return Physics.CapsuleCastNonAlloc(p1, p2, sRadius, dir, hitBuf, dist, contactMask, QueryTriggerInteraction.Ignore);
+                count = Physics.CapsuleCastNonAlloc(p1, p2, sRadius, dir, hitBuf, dist, contactMask, QueryTriggerInteraction.Ignore);
             }
-            Vector3 center = ProxyWorldCenter(proxyPos, proxyRot);
-            return Physics.BoxCastNonAlloc(center, sHalfExtents, dir, hitBuf, proxyRot, dist, contactMask, QueryTriggerInteraction.Ignore);
+            else
+            {
+                Vector3 center = ProxyWorldCenter(proxyPos, proxyRot);
+                count = Physics.BoxCastNonAlloc(center, sHalfExtents, dir, hitBuf, proxyRot, dist, contactMask, QueryTriggerInteraction.Ignore);
+            }
+
+            if (count >= hitBuf.Length) LastSolveBufferSaturated = true;
+            return count;
         }
 
         private bool RawOverlap(Vector3 proxyPos, Quaternion proxyRot)
