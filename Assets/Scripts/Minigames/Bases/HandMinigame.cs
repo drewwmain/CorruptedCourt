@@ -60,6 +60,10 @@ namespace CorruptedCourt.Minigames
                  "the grip point, so rotating the wrist would otherwise slide the item a few cm. Turn off to " +
                  "A/B the drift.")]
         public bool compensateGripDrift = true;
+        [Tooltip("Seconds of exponential smoothing on the COSMETIC wrist give only (0 = off/instant). Softens " +
+                 "how quickly the arm yields and returns during grip contact. Never affects where the held " +
+                 "item rests - the item's clearance pose is always applied instantly.")]
+        public float wristDamping = 0f;
 
         protected Camera cam;
         protected MinigameHandRig Hand { get; private set; }
@@ -185,6 +189,7 @@ namespace CorruptedCourt.Minigames
             if (Grip != null)
             {
                 Grip.compensateGripDrift = compensateGripDrift; // Inspector A/B toggle, read live each frame
+                Grip.wristDamping = wristDamping;               // feel knob for the cosmetic wrist give only
                 Grip.Solve();
             }
         }

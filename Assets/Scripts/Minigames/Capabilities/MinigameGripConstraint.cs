@@ -65,7 +65,6 @@ namespace CorruptedCourt.Minigames
         private readonly MinigameHandRig hand;
         private readonly int contactMask;
         private readonly RaycastHit[] hitBuf = new RaycastHit[8];
-        private readonly Vector3[] normalBuf = new Vector3[10]; // ring buffer; capacity == max normalSmoothingFrames
 
         // --- per-Begin cache --------------------------------------------------------------------------
         private PickupItem item;
@@ -93,8 +92,9 @@ namespace CorruptedCourt.Minigames
         private bool hasLastPose;
         private Vector3 lastPos;
         private Quaternion lastRot;   // committed rotation from the last Solve (also used by DrawDebug)
-        private int normalCount;
-        private int normalHead;
+        private Vector3 normalEma;    // exponential moving average of the contact normal (see PushSmoothNormal)
+        private bool hasNormalEma;    // false = the next contact normal seeds the average instead of blending into it
+        private float dampedWristDegrees; // wristDamping ease-state for the COSMETIC wrist share only - never the item
 
         // --- per-Solve scratch (Solve is not reentrant) -------------------------------------------
         private Vector3 sLossyScale;
@@ -136,6 +136,16 @@ namespace CorruptedCourt.Minigames
         /// so it can be A/B'd in the Inspector at runtime.
         /// </summary>
         public bool compensateGripDrift = true;
+
+        /// <summary>
+        /// Seconds of frame-rate-independent exponential smoothing on the COSMETIC wrist share only
+        /// (<see cref="LastWristDegrees"/> / the angle handed to <see cref="MinigameHandRig.MirrorHandRotation"/>).
+        /// 0 = off (instant). Softens the arm's give and return for feel; it can never move where the item
+        /// rests, because the item already took its full clearance angle in <see cref="Solve"/>. Mirrored
+        /// each frame from <c>HandMinigame.wristDamping</c>. MUST NOT be applied to the item rotation - see
+        /// the note at <see cref="SolveItemPose"/> step 10.
+        /// </summary>
+        public float wristDamping;
 
         public MinigameGripConstraint(LayerMask contactMask, MinigameHandRig hand)
         {
@@ -222,8 +232,9 @@ namespace CorruptedCourt.Minigames
         private void ResetState()
         {
             hasLastPose = false;
-            normalCount = 0;
-            normalHead = 0;
+            hasNormalEma = false;
+            normalEma = Vector3.zero;
+            dampedWristDegrees = 0f;
             LastAppliedDegrees = 0f;
             LastWristDegrees = 0f;
             LastGripCompensationMagnitude = 0f;
@@ -305,8 +316,7 @@ namespace CorruptedCourt.Minigames
                 LastAppliedDegrees = 0f;
                 IsBlocked = false;
                 HasContact = false;
-                normalCount = 0;
-                normalHead = 0;
+                hasNormalEma = false; // contact lost - a fresh contact must not inherit this normal
                 CommitOrigin(restPos, restRot);
                 return;
             }
@@ -355,8 +365,7 @@ namespace CorruptedCourt.Minigames
                 LastAppliedDegrees = 0f;
                 IsBlocked = false;
                 HasContact = false;
-                normalCount = 0;
-                normalHead = 0;
+                hasNormalEma = false; // contact lost - a fresh contact must not inherit this normal
                 CommitOrigin(restPos, restRot);
                 return;
             }
@@ -422,6 +431,14 @@ namespace CorruptedCourt.Minigames
             //     takes the WHOLE angle: Phase C adds a cosmetic wrist mirror on top of this, and it
             //     never reduces what the item takes, because the wrist IK lands a frame late and the
             //     item must guarantee clearance THIS frame.
+            //
+            //     DO NOT temporally smooth this commit. No Lerp / Slerp / SmoothDamp / MoveTowards easing
+            //     the item's rotation toward the solved pose over frames, ANYWHERE. Any lag between the
+            //     solve and the applied pose is a frame of visible penetration - the exact failure this
+            //     whole class exists to prevent. Smoothing is only ever allowed on INPUTS (the contact
+            //     normal EMA in PushSmoothNormal) and on the COSMETIC wrist mirror (wristDamping in
+            //     MirrorWristFollow) - neither of which can cause penetration. The Slerp/Lerp in step 6
+            //     are sweep-path samples for the cast, not pose easing.
             LastAppliedDegrees = applied;
             HasContact = true;
 
@@ -462,34 +479,51 @@ namespace CorruptedCourt.Minigames
         // has already zeroed the goal, and 'inert' is true here, so this writes nothing.
         //
         // GRIP-DRIFT COMPENSATION (C2): the wrist joint (hand bone) is NOT at the grip pivot, so rotating
-        // the hand 'wrist' degrees about the wrist translates the pivot a few cm. We predict where the
-        // pivot lands after that rotation and layer the opposite offset onto the reach target via
+        // the hand about the wrist translates the pivot a few cm. We predict where the pivot lands after
+        // that rotation and layer the opposite offset onto the reach target via
         // MinigameHandRig.SetReachCompensation, so next frame's IK solves to a hand pose that leaves the
         // pivot where it was. Same one-frame lag as the rotation - the two are a matched pair. Gated by
         // compensateGripDrift so it can be A/B'd.
+        //
+        // WRIST DAMPING (C3): wristDamping (HandMinigame, default 0) eases the wrist ANGLE toward its raw
+        // per-frame target with frame-rate-independent exponential smoothing - 0 == instant. This is the
+        // ONLY easing this class is allowed to do, and it is safe purely because it acts on the cosmetic
+        // wrist mirror, which cannot penetrate anything (the item already took its full angle in
+        // SolveItemPose). The grip-drift comp is computed from the DAMPED angle so it stays a matched pair.
+        // Nothing here may ever ease the item's rotation - see SolveItemPose step 10.
         private void MirrorWristFollow()
         {
             if (inert || settings == null || hand == null)
             {
                 LastWristDegrees = 0f;
                 LastGripCompensationMagnitude = 0f;
+                dampedWristDegrees = 0f; // no owner/hand -> drop the ease-state so a rebind starts clean
                 return;
             }
 
-            float wrist = Mathf.Min(LastAppliedDegrees, Mathf.Max(0f, settings.wristLimitDegrees));
-            LastWristDegrees = wrist;
+            // Raw wrist share this frame: a capped slice of the item's correction while in contact, else 0.
+            float targetWrist = (lastHadCastContact && LastAppliedDegrees > 0f)
+                ? Mathf.Min(LastAppliedDegrees, Mathf.Max(0f, settings.wristLimitDegrees))
+                : 0f;
 
-            if (wrist > 0f && lastHadCastContact)
+            float k = wristDamping > 0f ? 1f - Mathf.Exp(-Time.deltaTime / wristDamping) : 1f;
+            dampedWristDegrees = Mathf.Lerp(dampedWristDegrees, targetWrist, k);
+            if (targetWrist <= 0f && dampedWristDegrees < 0.01f) dampedWristDegrees = 0f; // settle fully to rest
+
+            LastWristDegrees = dampedWristDegrees;
+
+            if (dampedWristDegrees > 0f && lastCorrectionAxis.sqrMagnitude > 1e-8f)
             {
-                hand.MirrorHandRotation(wrist, lastCorrectionAxis, 1f);
+                hand.MirrorHandRotation(dampedWristDegrees, lastCorrectionAxis, 1f);
 
                 Transform wristBone = hand.HandBone;
                 if (wristBone != null)
                 {
-                    // Rotate the current pivot 'wrist' deg about the wrist joint (same axis as the mirror);
-                    // the offset from there back to the current pivot is what the hand must translate.
+                    // Rotate the current pivot by the DAMPED wrist angle about the wrist joint (same axis
+                    // as the mirror); the offset from there back to the current pivot is what the hand
+                    // must translate to leave the pivot put.
                     Vector3 wristPos = wristBone.position;
-                    Quaternion q = Quaternion.AngleAxis(wrist, lastCorrectionAxis);
+                    Quaternion q = Quaternion.AngleAxis(dampedWristDegrees, lastCorrectionAxis);
                     Vector3 pivotAfter = wristPos + q * (lastPivot - wristPos);
                     Vector3 comp = lastPivot - pivotAfter;
                     LastGripCompensationMagnitude = comp.magnitude;
@@ -503,7 +537,7 @@ namespace CorruptedCourt.Minigames
             }
             else
             {
-                hand.MirrorHandRotation(0f, Vector3.up, 0f); // no correction this frame -> hand back to the animated pose
+                hand.MirrorHandRotation(0f, Vector3.up, 0f); // no share this frame -> hand back to the animated pose
                 hand.SetReachCompensation(Vector3.zero);     // ...and stop shifting the reach target
                 LastGripCompensationMagnitude = 0f;
             }
@@ -736,25 +770,31 @@ namespace CorruptedCourt.Minigames
             return best;
         }
 
-        // Push a raw contact normal into the ring buffer and return the averaged (renormalised)
-        // normal over the most recent normalSmoothingFrames entries. Window 1 == passthrough.
+        // Exponential moving average of the raw contact normal, to de-jitter the rotation axis as the
+        // proxy slides across a collider seam (adjacent faces hand back sharply different normals frame
+        // to frame). alpha = 1 / normalSmoothingFrames: N == 1 is passthrough (no smoothing); larger N
+        // blends more of the history in. The average is SEEDED (not blended) on the first frame of a
+        // contact, and every caller that loses contact clears hasNormalEma, so a fresh contact never
+        // inherits a stale normal.
+        //
+        // This smooths an INPUT (the measured normal). It must NEVER be turned into easing on the
+        // committed item pose - see SolveItemPose step 10.
         private Vector3 PushSmoothNormal(Vector3 raw)
         {
-            int cap = Mathf.Clamp(settings != null ? settings.normalSmoothingFrames : 1, 1, normalBuf.Length);
+            int n = Mathf.Max(1, settings != null ? settings.normalSmoothingFrames : 1);
+            float alpha = 1f / n;
 
-            normalBuf[normalHead] = raw;
-            normalHead = (normalHead + 1) % normalBuf.Length;
-            if (normalCount < normalBuf.Length) normalCount++;
-
-            int use = Mathf.Min(normalCount, cap);
-            Vector3 sum = Vector3.zero;
-            int idx = normalHead;
-            for (int i = 0; i < use; i++)
+            if (!hasNormalEma)
             {
-                idx = (idx - 1 + normalBuf.Length) % normalBuf.Length;
-                sum += normalBuf[idx];
+                normalEma = raw;
+                hasNormalEma = true;
             }
-            return sum.sqrMagnitude > 1e-10f ? sum.normalized : raw;
+            else
+            {
+                normalEma += alpha * (raw - normalEma); // == alpha*raw + (1-alpha)*normalEma
+            }
+
+            return normalEma.sqrMagnitude > 1e-10f ? normalEma.normalized : raw;
         }
     }
 }
