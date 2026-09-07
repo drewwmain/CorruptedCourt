@@ -1,5 +1,6 @@
 using UnityEngine;
 using CorruptedCourt.Core;
+using CorruptedCourt.Gameplay;
 
 namespace CorruptedCourt.Minigames
 {
@@ -13,7 +14,9 @@ namespace CorruptedCourt.Minigames
     ///  - the settings-menu pause,
     ///  - hold-RIGHT-CLICK to look around (+ a quick tap to cancel),
     ///  - WASD footwork leashed to where the player started,
-    ///  - <see cref="MouseWorld"/> - the mouse projected in front of the camera.
+    ///  - <see cref="MouseWorld"/> - the mouse projected in front of the camera,
+    ///  - an optional <see cref="MinigameGripConstraint"/> that keeps the held item from visibly
+    ///    penetrating world geometry while aiming.
     ///
     /// ============================================================================================
     /// CONVENTION - READ BEFORE ADDING A SUBCLASS: this class declares Update()/LateUpdate()/
@@ -45,8 +48,25 @@ namespace CorruptedCourt.Minigames
         [Tooltip("Let the WASD look/footwork also tilt the camera vertically while looking around.")]
         public bool rmbAllowPitch = true;
 
+        [Header("Grip constraint")]
+        [Tooltip("Rotate the held item about its grip pivot so it never visibly enters world geometry " +
+                 "while aiming. Also needs the item's PickupItem > Grip Constraint > Enable Grip Constraint. " +
+                 "No effect while off.")]
+        public bool useGripConstraint = false;
+        [Tooltip("Set to the GripContact layer ONLY - the world colliders the held item must not pass through.")]
+        public LayerMask gripContactMask;
+
         protected Camera cam;
         protected MinigameHandRig Hand { get; private set; }
+
+        /// <summary>
+        /// Optional predictive anti-penetration solve for the held item during the aiming phase. Built in
+        /// <see cref="OnMinigameBegin"/> next to <see cref="Hand"/>; bound to the in-hand
+        /// <c>Context.HeldItem</c> and Solved each frame right after <see cref="OnMinigameLateUpdate"/>;
+        /// released by <see cref="RestorePlayer"/>. Inert (Solve is a safe no-op) until bound. Gated by
+        /// <see cref="useGripConstraint"/> plus the item's own <c>enableGripConstraint</c>.
+        /// </summary>
+        protected MinigameGripConstraint Grip { get; private set; }
 
         // This family drives its own leashed WASD shuffle (HandleFootwork) - keep PlayerController's
         // normal movement path off so the player isn't Move()d twice per frame.
@@ -56,6 +76,7 @@ namespace CorruptedCourt.Minigames
         private float rmbDownTime;
         private bool rmbDragged;
         private bool wasMenuPaused;
+        private PickupItem gripBoundItem;
 
         // --- lifecycle ---------------------------------------------------------------------------
 
@@ -73,6 +94,7 @@ namespace CorruptedCourt.Minigames
             }
 
             Hand = new MinigameHandRig(player, cam);
+            Grip = new MinigameGripConstraint(player, gripContactMask);
             walkAnchor = player.transform.position;
 
             player.SetControlsLocked(true);
@@ -99,6 +121,10 @@ namespace CorruptedCourt.Minigames
         protected void RestorePlayer()
         {
             if (Hand != null) Hand.End();
+            // The grip constraint must go inert the instant control is handed back: a subclass calls
+            // RestorePlayer the moment a deposit item is released, and GuidedDrop owns the item from then.
+            if (Grip != null) Grip.End();
+            gripBoundItem = null;
             if (player != null) player.SetControlsLocked(false);
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -143,12 +169,47 @@ namespace CorruptedCourt.Minigames
         {
             if (player == null) return;
             OnMinigameLateUpdate();
+
+            // The grip constraint solves AFTER OnMinigameLateUpdate(): a subclass (SwordHangMinigame)
+            // writes the held item's world rotation in there, and THAT write is the rest pose
+            // Grip.Solve() reads and corrects. Solving first would just be overwritten this frame.
+            MaintainGripConstraint();
+            Grip?.Solve();
         }
 
         private void FixedUpdate()
         {
             if (player == null) return;
             OnMinigameFixedUpdate();
+        }
+
+        // Bind the grip constraint to the minigame's held item while it is actually in the hand (the
+        // aiming phase), and unbind when it leaves: released -> GuidedDrop owns it; re-picked-up for a
+        // retry -> rebind. RestorePlayer() also ends it, synchronously, the moment the item is released;
+        // this lazy check is what re-Begins on a retry without the subclass having to call in.
+        private void MaintainGripConstraint()
+        {
+            if (Grip == null) return;
+
+            PickupItem target = null;
+            if (useGripConstraint && Context != null && Context.HeldItem != null
+                && player != null && player.GetHeldItem() == Context.HeldItem)
+            {
+                target = Context.HeldItem;
+            }
+
+            if (target == gripBoundItem) return;
+
+            if (gripBoundItem != null) Grip.End();
+            gripBoundItem = null;
+
+            if (target == null) return;
+
+            GripConstraintSettings gripSettings = target.GripConstraint;
+            if (gripSettings == null || !gripSettings.enableGripConstraint) return;
+
+            Grip.Begin(target);
+            gripBoundItem = target;
         }
 
         // --- shared handlers -------------------------------------------------------------------------

@@ -63,6 +63,10 @@ namespace CorruptedCourt.Minigames
         protected override bool FootworkActive => !released;
         protected override bool WantsFreeCursor => !released;
 
+        // Turn on the base's held-item anti-penetration solve for the sword. The sword's PickupItem must
+        // also have Grip Constraint enabled, and the minigame prefab's gripContactMask must be set.
+        protected override void OnHandBegin() => useGripConstraint = true;
+
         public void BeginHang(PickupItem heldItem, TaskDepositStation targetRack)
         {
             item = heldItem;

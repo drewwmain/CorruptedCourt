@@ -151,7 +151,13 @@ Everything the two deposit minigames duplicate, lifted once:
   > **Convention:** subclasses override `OnMinigameUpdate()` etc. — they must **not** declare their
   > own `Update()` (it would hide the base loop). This is the one rule that keeps the hierarchy sane.
 - `MouseWorld()` → the mouse position projected `reachDistance` in front of the camera.
-- `RestorePlayer()` — un-freeze, re-lock cursor, drop the hand rig.
+- `RestorePlayer()` — un-freeze, re-lock cursor, drop the hand rig, **end the grip constraint**.
+- Optional **`MinigameGripConstraint`** (`Grip`; gated by `useGripConstraint` + `gripContactMask`
+  + the item's own `enableGripConstraint`): built next to the hand rig in `OnMinigameBegin()`,
+  bound to the in-hand `Context.HeldItem`, and `Solve()`d each frame **right after
+  `OnMinigameLateUpdate()`** so it corrects the rest pose the subclass just authored. Released by
+  `RestorePlayer()` (so it is inert the moment a deposit item is let go and `GuidedDrop` takes
+  over), and re-bound if the minigame re-aims. `SwordHangMinigame` turns it on.
 - Serialized knobs shared by all: `reachDistance`, `walkRadius`, `rmbLookSensitivity`,
   `rmbTapCancelTime`.
 

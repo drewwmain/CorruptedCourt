@@ -115,16 +115,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1068a3d5b1d8c04d87b1ba3613d77a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  carryLocalEuler: {x: 180, y: 0, z: 0}
-  carryLocalPos: {x: 0.137, y: 0.035, z: 0.02}
   reachDistance: 1.3
   walkRadius: 1.25
   rmbLookSensitivity: 3
   rmbTapCancelTime: 0.2
+  rmbAllowPitch: 1
+  useGripConstraint: 0
+  gripContactMask:
+    serializedVersion: 2
+    m_Bits: 16384
+  carryLocalEuler: {x: 180, y: 0, z: 0}
+  carryLocalPos: {x: 0.137, y: 0.035, z: 0.02}
   settleTime: 1
   catchRadius: 0.15
-  catchHeightAbove: 0.8
-  catchHeightBelow: 0.2
   debugLanding: 1
   abandonDistance: 8
 --- !u!1 &7515902700699123672

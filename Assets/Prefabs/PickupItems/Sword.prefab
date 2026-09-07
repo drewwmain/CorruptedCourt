@@ -16,7 +16,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1048086837067574238
 Transform:
   m_ObjectHideFlags: 0
@@ -225,7 +225,7 @@ MonoBehaviour:
   gripConstraint:
     enableGripConstraint: 1
     gripPivot: {fileID: 0}
-    contactProxy: {fileID: 0}
+    contactProxy: {fileID: 3474959950896084076}
     wristLimitDegrees: 15
     slipLimitDegrees: 25
     normalSmoothingFrames: 3
