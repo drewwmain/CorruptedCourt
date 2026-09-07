@@ -61,10 +61,13 @@ namespace CorruptedCourt.Minigames
 
         /// <summary>
         /// Optional predictive anti-penetration solve for the held item during the aiming phase. Built in
-        /// <see cref="OnMinigameBegin"/> next to <see cref="Hand"/>; bound to the in-hand
-        /// <c>Context.HeldItem</c> and Solved each frame right after <see cref="OnMinigameLateUpdate"/>;
-        /// released by <see cref="RestorePlayer"/>. Inert (Solve is a safe no-op) until bound. Gated by
-        /// <see cref="useGripConstraint"/> plus the item's own <c>enableGripConstraint</c>.
+        /// <see cref="OnMinigameBegin"/> next to <see cref="Hand"/> (which it drives for the cosmetic
+        /// wrist mirror); bound to the in-hand <c>Context.HeldItem</c> and Solved each frame right after
+        /// <see cref="OnMinigameLateUpdate"/>; released by <see cref="RestorePlayer"/>. Inert (Solve is a
+        /// safe no-op) until bound. Gated by <see cref="useGripConstraint"/> plus the item's own
+        /// <c>enableGripConstraint</c>. The wrist mirror it writes through <see cref="Hand"/> lands on the
+        /// hand one frame later (OnAnimatorIK has already run by LateUpdate) and is purely cosmetic - the
+        /// item itself is always fully clear on the frame of contact.
         /// </summary>
         protected MinigameGripConstraint Grip { get; private set; }
 
@@ -94,7 +97,7 @@ namespace CorruptedCourt.Minigames
             }
 
             Hand = new MinigameHandRig(player, cam);
-            Grip = new MinigameGripConstraint(player, gripContactMask);
+            Grip = new MinigameGripConstraint(gripContactMask, Hand);
             walkAnchor = player.transform.position;
 
             player.SetControlsLocked(true);

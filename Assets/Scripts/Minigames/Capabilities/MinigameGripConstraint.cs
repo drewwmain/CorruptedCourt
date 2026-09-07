@@ -60,9 +60,9 @@ namespace CorruptedCourt.Minigames
         private enum ProxyKind { Unsupported, Capsule, Box }
 
         // --- dependencies -------------------------------------------------------------------------
-        // player is reserved for the Phase C cosmetic wrist mirror; the Phase B solve does not
-        // dereference it. Null-guarded in Begin.
-        private readonly PlayerController player;
+        // The cosmetic wrist mirror (MirrorWristFollow) drives the hand through 'hand' only - never
+        // PlayerController / PlayerIKRig directly. The item-clearance solve uses neither.
+        private readonly MinigameHandRig hand;
         private readonly int contactMask;
         private readonly RaycastHit[] hitBuf = new RaycastHit[8];
         private readonly Vector3[] normalBuf = new Vector3[10]; // ring buffer; capacity == max normalSmoothingFrames
@@ -109,9 +109,12 @@ namespace CorruptedCourt.Minigames
         private Vector3 lastPivot;         // world grip pivot the last Solve used
         private Quaternion lastRestRot = Quaternion.identity; // item rotation the owner authored last Solve
         private Vector3 lastLeverLocal;    // pivot -> contact point in rest-local space (length preserved)
+        private Vector3 lastCorrectionAxis; // world axis the last Solve rotated the item about (also the wrist axis)
 
         // --- public debug surface ----------------------------------------------------------------
         public float LastAppliedDegrees { get; private set; }
+        /// <summary>Cosmetic wrist share of the last solve: <c>Min(LastAppliedDegrees, wristLimitDegrees)</c>. Follows one frame late, never subtracted from the item.</summary>
+        public float LastWristDegrees { get; private set; }
         public bool IsBlocked { get; private set; }
         public bool HasContact { get; private set; }
         public Vector3 LastContactPoint { get; private set; }
@@ -120,9 +123,9 @@ namespace CorruptedCourt.Minigames
         /// <summary>Master switch for <see cref="DrawDebug"/>; the owner still calls DrawDebug itself each frame.</summary>
         public bool debugDraw;
 
-        public MinigameGripConstraint(PlayerController player, LayerMask contactMask)
+        public MinigameGripConstraint(LayerMask contactMask, MinigameHandRig hand)
         {
-            this.player = player;
+            this.hand = hand;
             this.contactMask = contactMask; // LayerMask -> int
         }
 
@@ -139,8 +142,8 @@ namespace CorruptedCourt.Minigames
             proxyKind = ProxyKind.Unsupported;
             inert = true;
 
-            if (player == null)
-                Log.Warn("[MinigameGripConstraint] constructed with a null PlayerController - the Phase C wrist mirror will be unavailable (the Phase B solve still runs).");
+            if (hand == null)
+                Log.Warn("[MinigameGripConstraint] constructed with a null MinigameHandRig - the cosmetic wrist mirror will be unavailable (the item-clearance solve still runs).");
 
             if (item == null || itemTf == null || settings == null)
             {
@@ -208,6 +211,7 @@ namespace CorruptedCourt.Minigames
             normalCount = 0;
             normalHead = 0;
             LastAppliedDegrees = 0f;
+            LastWristDegrees = 0f;
             IsBlocked = false;
             HasContact = false;
             LastContactPoint = Vector3.zero;
@@ -218,10 +222,23 @@ namespace CorruptedCourt.Minigames
             lastPivot = Vector3.zero;
             lastRestRot = Quaternion.identity;
             lastLeverLocal = Vector3.zero;
+            lastCorrectionAxis = Vector3.zero;
         }
 
-        /// <summary>One frame of solve. Reads the rest pose off the item, solves, commits the pose.</summary>
+        /// <summary>
+        /// One frame of solve: correct the ITEM so it is clear this frame (<see cref="SolveItemPose"/>),
+        /// then mirror a capped share of that correction onto the hand, for looks only
+        /// (<see cref="MirrorWristFollow"/>). Call from <c>OnMinigameLateUpdate</c>, after the owner has
+        /// authored the item's rest rotation for the frame.
+        /// </summary>
         public void Solve()
+        {
+            SolveItemPose();
+            MirrorWristFollow();
+        }
+
+        /// <summary>The item-clearance solve. Reads the rest pose off the item, solves, commits the pose.</summary>
+        private void SolveItemPose()
         {
             if (inert || item == null || itemTf == null || settings == null || proxy == null || proxyTf == null) return;
 
@@ -348,6 +365,7 @@ namespace CorruptedCourt.Minigames
                 return;
             }
             axis.Normalize();
+            lastCorrectionAxis = axis; // world axis for both the item correction below and the wrist mirror
 
             // 9. Bisect the corrective angle in [0, wristLimit + slipLimit]. 0deg == the rest pose,
             //    which step 6 just proved blocked; the clamp is the largest correction allowed. Six
@@ -418,17 +436,40 @@ namespace CorruptedCourt.Minigames
             }
         }
 
+        // COSMETIC ONLY - not part of the clearance guarantee. SolveItemPose() has already committed the
+        // WHOLE clamped angle to the ITEM, and the item is already clear THIS frame. This mirrors a capped
+        // share of that same angle onto the HAND, about the same axis, so the wrist visibly gives instead
+        // of the arm staying rigid. It is written from LateUpdate, but OnAnimatorIK has already run this
+        // frame, so it does not reach the hand until the NEXT frame's IK pass - one frame late, by design.
+        // That lag must NEVER be compensated by subtracting LastWristDegrees from what the item takes.
+        // Routed through MinigameHandRig (never PlayerController) and only while the constraint is bound to
+        // an in-hand item; once the item is released 'hand' still exists but RestorePlayer()/Hand.End()
+        // has already zeroed the goal, and 'inert' is true here, so this writes nothing.
+        private void MirrorWristFollow()
+        {
+            if (inert || settings == null || hand == null) { LastWristDegrees = 0f; return; }
+
+            float wrist = Mathf.Min(LastAppliedDegrees, Mathf.Max(0f, settings.wristLimitDegrees));
+            LastWristDegrees = wrist;
+
+            if (wrist > 0f && lastHadCastContact)
+                hand.MirrorHandRotation(wrist, lastCorrectionAxis, 1f);
+            else
+                hand.MirrorHandRotation(0f, Vector3.up, 0f); // no correction this frame -> hand back to the animated pose
+        }
+
         // --- debug output --------------------------------------------------------------------------
 
         /// <summary>
         /// Emit one frame of <see cref="Debug"/> lines for the last <see cref="Solve"/>: the grip pivot
         /// (white 3-axis cross), the pivot -> contact direction shown through the authored rest rotation
-        /// (grey) and through the rotation the solve committed (green) - they fan apart by
-        /// <see cref="LastAppliedDegrees"/> - and the contact point + normal (red when
-        /// <see cref="IsBlocked"/>, orange otherwise). Draws nothing when the last Solve found no
-        /// contact, before the first Solve, or while <see cref="debugDraw"/> is false. Uses
-        /// Debug.DrawLine / Debug.DrawRay only (no Gizmos - this is not a MonoBehaviour). Call it every
-        /// frame from the owner's per-frame method.
+        /// (grey), through the rotation the solve committed to the item (green) - they fan apart by
+        /// <see cref="LastAppliedDegrees"/> - and through the cosmetic wrist share (cyan), which fans
+        /// from grey by <see cref="LastWristDegrees"/> and so lies between grey and green. Also the
+        /// contact point + normal (red when <see cref="IsBlocked"/>, orange otherwise). Draws nothing
+        /// when the last Solve found no contact, before the first Solve, or while <see cref="debugDraw"/>
+        /// is false. Uses Debug.DrawLine / Debug.DrawRay only (no Gizmos - this is not a MonoBehaviour).
+        /// Call it every frame from the owner's per-frame method.
         /// </summary>
         public void DrawDebug()
         {
@@ -438,8 +479,12 @@ namespace CorruptedCourt.Minigames
 
             // "Axis" = the pivot -> contact-point direction, drawn through the authored rest rotation
             // (grey) and the committed rotation (green); the gap between them is the applied correction.
-            Debug.DrawLine(lastPivot, lastPivot + lastRestRot * lastLeverLocal, Color.grey);
+            Vector3 restDir = lastRestRot * lastLeverLocal;
+            Debug.DrawLine(lastPivot, lastPivot + restDir, Color.grey);
             Debug.DrawLine(lastPivot, lastPivot + lastRot * lastLeverLocal, Color.green);
+
+            // The cosmetic wrist share: same axis, capped at wristLimitDegrees. Sits between grey and green.
+            Debug.DrawLine(lastPivot, lastPivot + Quaternion.AngleAxis(LastWristDegrees, lastCorrectionAxis) * restDir, Color.cyan);
 
             Color c = IsBlocked ? Color.red : OrangeContact;
             DrawCross(LastContactPoint, ContactCrossHalf, c);
@@ -450,6 +495,7 @@ namespace CorruptedCourt.Minigames
         public string DebugSummary()
         {
             return "grip: theta=" + LastAppliedDegrees.ToString("0.0", CultureInfo.InvariantCulture)
+                 + " wrist=" + LastWristDegrees.ToString("0.0", CultureInfo.InvariantCulture)
                  + " blocked=" + IsBlocked.ToString()
                  + " contact=" + HasContact.ToString()
                  + " substeps=" + lastSubsteps.ToString(CultureInfo.InvariantCulture);

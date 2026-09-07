@@ -69,6 +69,31 @@ namespace CorruptedCourt.Minigames
         }
 
         /// <summary>
+        /// Cosmetic-only follow-through: set the hand's IK rotation goal to the CURRENT hand pose rotated
+        /// <paramref name="degrees"/> about the WORLD <paramref name="worldAxis"/>, blended in at
+        /// <paramref name="weight01"/>. Writes the SAME hangReach rotation goal as
+        /// <see cref="SetHandRotation"/>, so it is consumed by the NEXT OnAnimatorIK - one frame later.
+        /// For visual give that is NOT part of any guarantee (see <see cref="MinigameGripConstraint"/>'s
+        /// wrist mirror). Pass <paramref name="degrees"/> &lt;= 0 to hand the goal back to the animated pose.
+        /// NOTE: the goal is re-derived from the (already IK-posed) hand each frame, so a caller that
+        /// drives this every frame at a high weight settles a few degrees PAST <paramref name="degrees"/>
+        /// (it converges - ratio = the IK weight - it does not run away). Use a sub-1 weight, or drive it
+        /// only transiently, if that overshoot matters.
+        /// </summary>
+        public void MirrorHandRotation(float degrees, Vector3 worldAxis, float weight01)
+        {
+            if (player == null) return;
+            Transform bone = HandBone;
+            if (bone == null || degrees <= 0f || weight01 <= 0f || worldAxis.sqrMagnitude < 1e-8f)
+            {
+                player.hangReachRotWeight = 0f;   // nothing to mirror - back to the animated pose
+                return;
+            }
+            player.hangReachRot = Quaternion.AngleAxis(degrees, worldAxis.normalized) * bone.rotation;
+            player.hangReachRotWeight = Mathf.Clamp01(weight01);
+        }
+
+        /// <summary>
         /// Finger-curl amount, 0 = open .. 1 = fist. Currently PlayerController auto-drives the grip from
         /// the left mouse button while any minigame is open (see ApplyHandGripPose); this is the hook for
         /// minigames that want to script it explicitly once PlayerController exposes a setter.
