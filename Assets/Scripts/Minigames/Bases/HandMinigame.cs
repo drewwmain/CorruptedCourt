@@ -55,6 +55,11 @@ namespace CorruptedCourt.Minigames
         public bool useGripConstraint = false;
         [Tooltip("Set to the GripContact layer ONLY - the world colliders the held item must not pass through.")]
         public LayerMask gripContactMask;
+        [Tooltip("When the grip constraint mirrors part of its correction onto the wrist, also shift the hand " +
+                 "reach target so the held item's grip point stays visually pinned. The wrist joint is not at " +
+                 "the grip point, so rotating the wrist would otherwise slide the item a few cm. Turn off to " +
+                 "A/B the drift.")]
+        public bool compensateGripDrift = true;
 
         protected Camera cam;
         protected MinigameHandRig Hand { get; private set; }
@@ -177,7 +182,11 @@ namespace CorruptedCourt.Minigames
             // writes the held item's world rotation in there, and THAT write is the rest pose
             // Grip.Solve() reads and corrects. Solving first would just be overwritten this frame.
             MaintainGripConstraint();
-            Grip?.Solve();
+            if (Grip != null)
+            {
+                Grip.compensateGripDrift = compensateGripDrift; // Inspector A/B toggle, read live each frame
+                Grip.Solve();
+            }
         }
 
         private void FixedUpdate()

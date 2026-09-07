@@ -18,6 +18,9 @@ namespace CorruptedCourt.Minigames
         private readonly PlayerController player;
         private readonly Camera cam;
 
+        // Persistent additive world offset re-applied to every reach-target write (see SetReachCompensation).
+        private Vector3 reachCompensation;
+
         public MinigameHandRig(PlayerController player, Camera cam)
         {
             this.player = player;
@@ -31,6 +34,7 @@ namespace CorruptedCourt.Minigames
         /// <summary>Start driving the right hand toward a reach target.</summary>
         public void Begin()
         {
+            reachCompensation = Vector3.zero;
             if (player == null) return;
             player.hangReachActive = true;
             player.hangReachRotWeight = 0f;
@@ -39,25 +43,39 @@ namespace CorruptedCourt.Minigames
         /// <summary>Stop driving the hand; the arm blends back to its animated pose.</summary>
         public void End()
         {
+            reachCompensation = Vector3.zero;
             if (player == null) return;
             player.hangReachActive = false;
             player.hangReachRotWeight = 0f;
         }
 
-        /// <summary>Point the hand at a world position.</summary>
+        /// <summary>Point the hand at a world position (plus the current <see cref="SetReachCompensation"/> offset).</summary>
         public void ReachToward(Vector3 worldPos)
         {
             if (player == null) return;
-            player.hangReachPos = worldPos;
+            player.hangReachPos = worldPos + reachCompensation;
         }
 
-        /// <summary>Point the hand at the mouse, projected <paramref name="distance"/> m in front of the camera.</summary>
+        /// <summary>Point the hand at the mouse, projected <paramref name="distance"/> m in front of the camera (plus the current <see cref="SetReachCompensation"/> offset).</summary>
         public void AimFromMouse(float distance)
         {
             if (player == null || cam == null) return;
             Vector3 mp = MinigameInput.MouseScreenPosition;
             mp.z = distance;
-            player.hangReachPos = cam.ScreenToWorldPoint(mp);
+            player.hangReachPos = cam.ScreenToWorldPoint(mp) + reachCompensation;
+        }
+
+        /// <summary>
+        /// Persistent additive world-space offset layered on top of every <see cref="ReachToward"/> /
+        /// <see cref="AimFromMouse"/> target until changed or cleared - it does NOT replace the per-frame
+        /// reach target the minigame sets. Used by <see cref="MinigameGripConstraint"/> to cancel the
+        /// grip-point drift its cosmetic wrist rotation would otherwise cause (the wrist joint is not at
+        /// the grip point). Reset to zero by <see cref="Begin"/> / <see cref="End"/>. Pass Vector3.zero to
+        /// stop compensating.
+        /// </summary>
+        public void SetReachCompensation(Vector3 worldOffset)
+        {
+            reachCompensation = worldOffset;
         }
 
         /// <summary>Optionally align the hand's rotation to <paramref name="worldRot"/> (0 = keep held pose).</summary>

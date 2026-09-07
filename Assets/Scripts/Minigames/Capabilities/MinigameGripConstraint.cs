@@ -115,6 +115,12 @@ namespace CorruptedCourt.Minigames
         public float LastAppliedDegrees { get; private set; }
         /// <summary>Cosmetic wrist share of the last solve: <c>Min(LastAppliedDegrees, wristLimitDegrees)</c>. Follows one frame late, never subtracted from the item.</summary>
         public float LastWristDegrees { get; private set; }
+        /// <summary>
+        /// Magnitude, in metres, of the grip-pivot drift the cosmetic wrist rotation induces (the wrist
+        /// joint is offset from the grip point). Small (~cm) and non-zero while in contact with a wrist
+        /// share; 0 otherwise. Layered onto the reach target only when <see cref="compensateGripDrift"/> is on.
+        /// </summary>
+        public float LastGripCompensationMagnitude { get; private set; }
         public bool IsBlocked { get; private set; }
         public bool HasContact { get; private set; }
         public Vector3 LastContactPoint { get; private set; }
@@ -122,6 +128,14 @@ namespace CorruptedCourt.Minigames
 
         /// <summary>Master switch for <see cref="DrawDebug"/>; the owner still calls DrawDebug itself each frame.</summary>
         public bool debugDraw;
+
+        /// <summary>
+        /// When true, <see cref="Solve"/> also layers a reach-target offset onto <see cref="MinigameHandRig"/>
+        /// (via <see cref="MinigameHandRig.SetReachCompensation"/>) that keeps the grip pivot pinned while
+        /// the cosmetic wrist rotation moves it. Mirrored each frame from <c>HandMinigame.compensateGripDrift</c>
+        /// so it can be A/B'd in the Inspector at runtime.
+        /// </summary>
+        public bool compensateGripDrift = true;
 
         public MinigameGripConstraint(LayerMask contactMask, MinigameHandRig hand)
         {
@@ -212,6 +226,7 @@ namespace CorruptedCourt.Minigames
             normalHead = 0;
             LastAppliedDegrees = 0f;
             LastWristDegrees = 0f;
+            LastGripCompensationMagnitude = 0f;
             IsBlocked = false;
             HasContact = false;
             LastContactPoint = Vector3.zero;
@@ -445,17 +460,53 @@ namespace CorruptedCourt.Minigames
         // Routed through MinigameHandRig (never PlayerController) and only while the constraint is bound to
         // an in-hand item; once the item is released 'hand' still exists but RestorePlayer()/Hand.End()
         // has already zeroed the goal, and 'inert' is true here, so this writes nothing.
+        //
+        // GRIP-DRIFT COMPENSATION (C2): the wrist joint (hand bone) is NOT at the grip pivot, so rotating
+        // the hand 'wrist' degrees about the wrist translates the pivot a few cm. We predict where the
+        // pivot lands after that rotation and layer the opposite offset onto the reach target via
+        // MinigameHandRig.SetReachCompensation, so next frame's IK solves to a hand pose that leaves the
+        // pivot where it was. Same one-frame lag as the rotation - the two are a matched pair. Gated by
+        // compensateGripDrift so it can be A/B'd.
         private void MirrorWristFollow()
         {
-            if (inert || settings == null || hand == null) { LastWristDegrees = 0f; return; }
+            if (inert || settings == null || hand == null)
+            {
+                LastWristDegrees = 0f;
+                LastGripCompensationMagnitude = 0f;
+                return;
+            }
 
             float wrist = Mathf.Min(LastAppliedDegrees, Mathf.Max(0f, settings.wristLimitDegrees));
             LastWristDegrees = wrist;
 
             if (wrist > 0f && lastHadCastContact)
+            {
                 hand.MirrorHandRotation(wrist, lastCorrectionAxis, 1f);
+
+                Transform wristBone = hand.HandBone;
+                if (wristBone != null)
+                {
+                    // Rotate the current pivot 'wrist' deg about the wrist joint (same axis as the mirror);
+                    // the offset from there back to the current pivot is what the hand must translate.
+                    Vector3 wristPos = wristBone.position;
+                    Quaternion q = Quaternion.AngleAxis(wrist, lastCorrectionAxis);
+                    Vector3 pivotAfter = wristPos + q * (lastPivot - wristPos);
+                    Vector3 comp = lastPivot - pivotAfter;
+                    LastGripCompensationMagnitude = comp.magnitude;
+                    hand.SetReachCompensation(compensateGripDrift ? comp : Vector3.zero);
+                }
+                else
+                {
+                    LastGripCompensationMagnitude = 0f;
+                    hand.SetReachCompensation(Vector3.zero);
+                }
+            }
             else
+            {
                 hand.MirrorHandRotation(0f, Vector3.up, 0f); // no correction this frame -> hand back to the animated pose
+                hand.SetReachCompensation(Vector3.zero);     // ...and stop shifting the reach target
+                LastGripCompensationMagnitude = 0f;
+            }
         }
 
         // --- debug output --------------------------------------------------------------------------
