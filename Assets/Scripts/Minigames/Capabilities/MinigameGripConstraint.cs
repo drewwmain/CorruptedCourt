@@ -1,3 +1,4 @@
+using System.Globalization;
 using UnityEngine;
 using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
@@ -25,6 +26,8 @@ namespace CorruptedCourt.Minigames
     ///  - <see cref="End"/> when the aiming phase is over. End performs no transform write - it leaves
     ///    the item exactly as the owner last set it (GuidedDrop owns the item after release; this
     ///    class must be inert by then).
+    ///  - <see cref="DrawDebug"/> / <see cref="DebugSummary"/> any time, to inspect the last solve
+    ///    before this is wired into a minigame.
     ///
     /// All tuning comes from the item's authoring data (<see cref="PickupItem.GripConstraint"/> -
     /// <see cref="GripConstraintSettings"/>): the grip pivot, a DISABLED contact-proxy collider whose
@@ -46,6 +49,13 @@ namespace CorruptedCourt.Minigames
 
         private const float DegenerateAxisSqr = 1e-8f;
         private const float NegligibleTravel = 1e-5f;
+
+        // DrawDebug only - line sizes in metres, plus the "not blocked" contact colour (orange, since
+        // UnityEngine.Color has no orange).
+        private const float PivotCrossHalf = 0.03f;
+        private const float ContactCrossHalf = 0.02f;
+        private const float NormalRayLength = 0.12f;
+        private static readonly Color OrangeContact = new Color(1f, 0.55f, 0f);
 
         private enum ProxyKind { Unsupported, Capsule, Box }
 
@@ -82,7 +92,7 @@ namespace CorruptedCourt.Minigames
         // --- per-frame state ------------------------------------------------------------------------
         private bool hasLastPose;
         private Vector3 lastPos;
-        private Quaternion lastRot;
+        private Quaternion lastRot;   // committed rotation from the last Solve (also used by DrawDebug)
         private int normalCount;
         private int normalHead;
 
@@ -93,12 +103,22 @@ namespace CorruptedCourt.Minigames
         private float sHalfSeg;  // capsule: half the distance between the two sphere centres
         private Vector3 sHalfExtents; // box: world half extents
 
+        // --- last-Solve snapshot for DrawDebug / DebugSummary -----------------------------------------
+        private bool lastHadCastContact;   // did the last Solve hit geometry with a cast?
+        private int lastSubsteps;          // N from the last Solve's angular march
+        private Vector3 lastPivot;         // world grip pivot the last Solve used
+        private Quaternion lastRestRot = Quaternion.identity; // item rotation the owner authored last Solve
+        private Vector3 lastLeverLocal;    // pivot -> contact point in rest-local space (length preserved)
+
         // --- public debug surface ----------------------------------------------------------------
         public float LastAppliedDegrees { get; private set; }
         public bool IsBlocked { get; private set; }
         public bool HasContact { get; private set; }
         public Vector3 LastContactPoint { get; private set; }
         public Vector3 LastContactNormal { get; private set; }
+
+        /// <summary>Master switch for <see cref="DrawDebug"/>; the owner still calls DrawDebug itself each frame.</summary>
+        public bool debugDraw;
 
         public MinigameGripConstraint(PlayerController player, LayerMask contactMask)
         {
@@ -192,6 +212,12 @@ namespace CorruptedCourt.Minigames
             HasContact = false;
             LastContactPoint = Vector3.zero;
             LastContactNormal = Vector3.zero;
+
+            lastHadCastContact = false;
+            lastSubsteps = 0;
+            lastPivot = Vector3.zero;
+            lastRestRot = Quaternion.identity;
+            lastLeverLocal = Vector3.zero;
         }
 
         /// <summary>One frame of solve. Reads the rest pose off the item, solves, commits the pose.</summary>
@@ -206,6 +232,12 @@ namespace CorruptedCourt.Minigames
             // 2. Grip pivot in world space. A null pivot means the item's own origin, so no
             //    translation is ever produced (see step 10).
             Vector3 pivot = settings.gripPivot != null ? settings.gripPivot.position : restPos;
+
+            // Debug snapshot - refined as the solve proceeds; DrawDebug / DebugSummary read it next frame.
+            lastPivot = pivot;
+            lastRestRot = restRot;
+            lastSubsteps = 0;
+            lastHadCastContact = false;
 
             // Proxy world dimensions for this frame (a rescaled proxy keeps working; still no alloc).
             ComputeProxyWorldDims();
@@ -248,6 +280,7 @@ namespace CorruptedCourt.Minigames
             }
 
             int n = Mathf.Clamp(Mathf.CeilToInt(travel / SubstepMeters), 1, MaxSubsteps);
+            lastSubsteps = n;
 
             // 6. March the origin -> rest motion in N substeps; stop at the first substep that hits.
             bool hit = false;
@@ -282,6 +315,8 @@ namespace CorruptedCourt.Minigames
                 }
             }
 
+            lastHadCastContact = hit;
+
             // 7. No hit on any substep: the rest pose is reachable. It is already on the transform.
             if (!hit)
             {
@@ -299,6 +334,7 @@ namespace CorruptedCourt.Minigames
             LastContactPoint = contact.point;
             Vector3 normal = PushSmoothNormal(contact.normal);
             LastContactNormal = normal;
+            lastLeverLocal = Quaternion.Inverse(restRot) * (LastContactPoint - pivot);
 
             Vector3 axis = Vector3.Cross(LastContactPoint - pivot, normal);
             if (axis.sqrMagnitude < DegenerateAxisSqr)
@@ -380,6 +416,50 @@ namespace CorruptedCourt.Minigames
             {
                 CommitOrigin(restPos, restRot);
             }
+        }
+
+        // --- debug output --------------------------------------------------------------------------
+
+        /// <summary>
+        /// Emit one frame of <see cref="Debug"/> lines for the last <see cref="Solve"/>: the grip pivot
+        /// (white 3-axis cross), the pivot -> contact direction shown through the authored rest rotation
+        /// (grey) and through the rotation the solve committed (green) - they fan apart by
+        /// <see cref="LastAppliedDegrees"/> - and the contact point + normal (red when
+        /// <see cref="IsBlocked"/>, orange otherwise). Draws nothing when the last Solve found no
+        /// contact, before the first Solve, or while <see cref="debugDraw"/> is false. Uses
+        /// Debug.DrawLine / Debug.DrawRay only (no Gizmos - this is not a MonoBehaviour). Call it every
+        /// frame from the owner's per-frame method.
+        /// </summary>
+        public void DrawDebug()
+        {
+            if (!debugDraw || !lastHadCastContact) return;
+
+            DrawCross(lastPivot, PivotCrossHalf, Color.white);
+
+            // "Axis" = the pivot -> contact-point direction, drawn through the authored rest rotation
+            // (grey) and the committed rotation (green); the gap between them is the applied correction.
+            Debug.DrawLine(lastPivot, lastPivot + lastRestRot * lastLeverLocal, Color.grey);
+            Debug.DrawLine(lastPivot, lastPivot + lastRot * lastLeverLocal, Color.green);
+
+            Color c = IsBlocked ? Color.red : OrangeContact;
+            DrawCross(LastContactPoint, ContactCrossHalf, c);
+            Debug.DrawRay(LastContactPoint, LastContactNormal * NormalRayLength, c);
+        }
+
+        /// <summary>One line describing the last <see cref="Solve"/>, e.g. for an on-screen readout or Log.Game.</summary>
+        public string DebugSummary()
+        {
+            return "grip: theta=" + LastAppliedDegrees.ToString("0.0", CultureInfo.InvariantCulture)
+                 + " blocked=" + IsBlocked.ToString()
+                 + " contact=" + HasContact.ToString()
+                 + " substeps=" + lastSubsteps.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static void DrawCross(Vector3 p, float half, Color c)
+        {
+            Debug.DrawLine(p - Vector3.right * half, p + Vector3.right * half, c);
+            Debug.DrawLine(p - Vector3.up * half, p + Vector3.up * half, c);
+            Debug.DrawLine(p - Vector3.forward * half, p + Vector3.forward * half, c);
         }
 
         // --- solve helpers ---------------------------------------------------------------------------
