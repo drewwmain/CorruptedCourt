@@ -21,6 +21,16 @@ namespace CorruptedCourt.Minigames
         // Persistent additive world offset re-applied to every reach-target write (see SetReachCompensation).
         private Vector3 reachCompensation;
 
+        // Last reach target actually written (WITHOUT reachCompensation) + whether one exists yet. The
+        // block clamp measures this frame's motion against it.
+        private Vector3 lastReachTarget;
+        private bool hasLastReachTarget;
+
+        // Optional plane the reach target may not advance INTO - set by HandMinigame while the grip
+        // constraint reports itself blocked. Motion across the plane and back out of it is untouched.
+        private bool reachClampActive;
+        private Vector3 reachClampNormal;
+
         public MinigameHandRig(PlayerController player, Camera cam)
         {
             this.player = player;
@@ -35,6 +45,10 @@ namespace CorruptedCourt.Minigames
         public void Begin()
         {
             reachCompensation = Vector3.zero;
+            lastReachTarget = Vector3.zero;
+            hasLastReachTarget = false;
+            reachClampActive = false;
+            reachClampNormal = Vector3.zero;
             if (player == null) return;
             player.hangReachActive = true;
             player.hangReachRotWeight = 0f;
@@ -44,6 +58,10 @@ namespace CorruptedCourt.Minigames
         public void End()
         {
             reachCompensation = Vector3.zero;
+            lastReachTarget = Vector3.zero;
+            hasLastReachTarget = false;
+            reachClampActive = false;
+            reachClampNormal = Vector3.zero;
             if (player == null) return;
             player.hangReachActive = false;
             player.hangReachRotWeight = 0f;
@@ -53,7 +71,10 @@ namespace CorruptedCourt.Minigames
         public void ReachToward(Vector3 worldPos)
         {
             if (player == null) return;
-            player.hangReachPos = worldPos + reachCompensation;
+            Vector3 target = ApplyReachClamp(worldPos);
+            lastReachTarget = target;
+            hasLastReachTarget = true;
+            player.hangReachPos = target + reachCompensation;
         }
 
         /// <summary>Point the hand at the mouse, projected <paramref name="distance"/> m in front of the camera (plus the current <see cref="SetReachCompensation"/> offset).</summary>
@@ -62,7 +83,10 @@ namespace CorruptedCourt.Minigames
             if (player == null || cam == null) return;
             Vector3 mp = MinigameInput.MouseScreenPosition;
             mp.z = distance;
-            player.hangReachPos = cam.ScreenToWorldPoint(mp) + reachCompensation;
+            Vector3 target = ApplyReachClamp(cam.ScreenToWorldPoint(mp));
+            lastReachTarget = target;
+            hasLastReachTarget = true;
+            player.hangReachPos = target + reachCompensation;
         }
 
         /// <summary>
@@ -76,6 +100,39 @@ namespace CorruptedCourt.Minigames
         public void SetReachCompensation(Vector3 worldOffset)
         {
             reachCompensation = worldOffset;
+        }
+
+        /// <summary>
+        /// Constrain subsequent <see cref="ReachToward"/> / <see cref="AimFromMouse"/> targets so they
+        /// may not advance any further along <c>-worldNormal</c> (into a surface the held item is jammed
+        /// against) than they already have. Motion across the surface and back out of it passes through
+        /// untouched, and the target is never pulled back. Driven by <c>HandMinigame</c> from
+        /// <see cref="MinigameGripConstraint.IsBlocked"/>; a near-zero normal releases it, as does
+        /// <see cref="ClearReachClamp"/>. Reset by <see cref="Begin"/> / <see cref="End"/>.
+        /// </summary>
+        public void SetReachClamp(Vector3 worldNormal)
+        {
+            if (worldNormal.sqrMagnitude < 1e-8f) { reachClampActive = false; return; }
+            reachClampNormal = worldNormal.normalized;
+            reachClampActive = true;
+        }
+
+        /// <summary>Release the constraint set by <see cref="SetReachClamp"/>.</summary>
+        public void ClearReachClamp()
+        {
+            reachClampActive = false;
+        }
+
+        // Remove the part of this frame's motion (target - lastReachTarget) that heads into the clamp
+        // plane; keep tangential + outward motion. No-op until a target has been recorded and a clamp is
+        // active. A hard limit, never eased - the hand stops the same frame the clamp engages.
+        private Vector3 ApplyReachClamp(Vector3 target)
+        {
+            if (!reachClampActive || !hasLastReachTarget) return target;
+            Vector3 delta = target - lastReachTarget;
+            float into = Vector3.Dot(delta, reachClampNormal);
+            if (into < 0f) delta -= into * reachClampNormal;
+            return lastReachTarget + delta;
         }
 
         /// <summary>Optionally align the hand's rotation to <paramref name="worldRot"/> (0 = keep held pose).</summary>

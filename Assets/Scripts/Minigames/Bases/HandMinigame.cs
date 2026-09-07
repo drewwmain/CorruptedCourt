@@ -64,6 +64,16 @@ namespace CorruptedCourt.Minigames
                  "how quickly the arm yields and returns during grip contact. Never affects where the held " +
                  "item rests - the item's clearance pose is always applied instantly.")]
         public float wristDamping = 0f;
+        [Tooltip("Once the grip constraint has been blocked (held item jammed against geometry) for longer " +
+                 "than this many seconds, the hand stops advancing INTO the contact: reach-target and WASD " +
+                 "footwork motion heading into the contact normal is removed, while sliding along the surface " +
+                 "and pulling back stay free. Short grace so a one-frame blocked reading doesn't stutter the hand.")]
+        public float blockedGraceSeconds = 0.1f;
+        [Tooltip("RESERVED - not implemented. For running MinigameGripConstraint OUTSIDE a minigame, where a " +
+                 "blocked held item should also stop the player's body walking into the surface. HandMinigame " +
+                 "drives footwork itself and must not touch PlayerMotor / PlayerController movement, so this " +
+                 "does nothing here.")]
+        public bool blockPlayerMovement = false;
 
         protected Camera cam;
         protected MinigameHandRig Hand { get; private set; }
@@ -89,6 +99,12 @@ namespace CorruptedCourt.Minigames
         private bool rmbDragged;
         private bool wasMenuPaused;
         private PickupItem gripBoundItem;
+
+        // Set once per frame in UpdateBlockClamp() from the grip constraint's blocked state; read by
+        // HandleFootwork(). The reach target is clamped inside MinigameHandRig (the subclass writes it
+        // there itself), so it is not re-read here.
+        private bool blockClampActive;
+        private Vector3 blockClampNormal;
 
         // --- lifecycle ---------------------------------------------------------------------------
 
@@ -172,6 +188,7 @@ namespace CorruptedCourt.Minigames
                 }
             }
 
+            UpdateBlockClamp();
             HandleLook();
             HandleFootwork();
             OnMinigameUpdate();
@@ -229,6 +246,27 @@ namespace CorruptedCourt.Minigames
             gripBoundItem = target;
         }
 
+        // Read last frame's grip-constraint solve: if the held item has been jammed against geometry for
+        // longer than blockedGraceSeconds, stop the hand advancing into that surface this frame. The reach
+        // target is clamped inside MinigameHandRig (a subclass writes it there itself, from
+        // OnMinigameUpdate, so HandMinigame never sees the value - hence the hook); the WASD step is
+        // clamped in HandleFootwork below. Motion across the surface and back out of it is left alone, and
+        // the clamp is dropped the instant the constraint reports itself unblocked (pull back -> release).
+        // Runs before HandleLook / HandleFootwork / OnMinigameUpdate so the rig clamp is armed before the
+        // subclass sets this frame's reach target.
+        private void UpdateBlockClamp()
+        {
+            blockClampActive = Grip != null
+                               && Grip.IsBlocked
+                               && Grip.BlockedDuration > blockedGraceSeconds
+                               && Grip.BlockedNormal.sqrMagnitude > 1e-8f;
+            blockClampNormal = blockClampActive ? Grip.BlockedNormal : Vector3.zero;
+
+            if (Hand == null) return;
+            if (blockClampActive) Hand.SetReachClamp(blockClampNormal);
+            else Hand.ClearReachClamp();
+        }
+
         // --- shared handlers -------------------------------------------------------------------------
 
         /// <summary>Hold RMB to pan the body (and optionally pitch); a quick no-drag tap cancels.</summary>
@@ -265,7 +303,29 @@ namespace CorruptedCourt.Minigames
         {
             if (!FootworkActive || walkRadius <= 0f) return;
             Vector2 step = MinigameInput.MoveAxis;
+            if (step.sqrMagnitude <= 0f) return;
+
+            if (blockClampActive) step = ClampStepAgainstBlock(step);
             if (step.sqrMagnitude > 0f) player.MinigameWalk(step, walkAnchor, walkRadius);
+        }
+
+        // Strip the part of a WASD step heading into the blocked surface, in the same body-relative basis
+        // PlayerMotor.WalkConstrained reads it (x -> transform.right, y -> transform.forward). Sliding
+        // along the surface and stepping back out of it are untouched; footwork is trimmed, never disabled.
+        private Vector2 ClampStepAgainstBlock(Vector2 step)
+        {
+            Transform t = player.transform;
+
+            Vector3 flatNormal = blockClampNormal;
+            flatNormal.y = 0f;
+            if (flatNormal.sqrMagnitude < 1e-6f) return step; // contact ~vertical - nothing to strip in the walk plane
+            flatNormal.Normalize();
+
+            Vector3 worldStep = t.right * step.x + t.forward * step.y;
+            float into = Vector3.Dot(worldStep, flatNormal);
+            if (into < 0f) worldStep -= into * flatNormal;
+
+            return new Vector2(Vector3.Dot(worldStep, t.right), Vector3.Dot(worldStep, t.forward));
         }
 
         /// <summary>The mouse position projected <see cref="reachDistance"/> m in front of the camera.</summary>

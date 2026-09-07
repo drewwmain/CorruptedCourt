@@ -95,6 +95,7 @@ namespace CorruptedCourt.Minigames
         private Vector3 normalEma;    // exponential moving average of the contact normal (see PushSmoothNormal)
         private bool hasNormalEma;    // false = the next contact normal seeds the average instead of blending into it
         private float dampedWristDegrees; // wristDamping ease-state for the COSMETIC wrist share only - never the item
+        private bool wasBlocked;     // IsBlocked from the previous Solve - false->true edge captures BlockedNormal
 
         // --- per-Solve scratch (Solve is not reentrant) -------------------------------------------
         private Vector3 sLossyScale;
@@ -121,10 +122,31 @@ namespace CorruptedCourt.Minigames
         /// share; 0 otherwise. Layered onto the reach target only when <see cref="compensateGripDrift"/> is on.
         /// </summary>
         public float LastGripCompensationMagnitude { get; private set; }
+        /// <summary>
+        /// True when the last <see cref="Solve"/> could not fully clear the item within
+        /// <c>wristLimitDegrees + slipLimitDegrees</c> and committed the clamped maximum instead - the
+        /// item cannot rotate any further to stay clear. See <see cref="BlockedNormal"/> /
+        /// <see cref="BlockedDuration"/> for the surface it is pinned against and how long it has been.
+        /// </summary>
         public bool IsBlocked { get; private set; }
         public bool HasContact { get; private set; }
         public Vector3 LastContactPoint { get; private set; }
         public Vector3 LastContactNormal { get; private set; }
+
+        /// <summary>
+        /// While <see cref="IsBlocked"/> is continuously true: the EMA-smoothed world contact normal
+        /// captured on the frame it went true, held until it clears (a stable surface to push against,
+        /// not one that re-jitters per frame as the proxy slides a collider seam). <see cref="Vector3.zero"/>
+        /// whenever not blocked. <c>HandMinigame</c> strips reach-target and WASD-footwork motion heading
+        /// into this so the hand stops advancing instead of overstretching the arm.
+        /// </summary>
+        public Vector3 BlockedNormal { get; private set; }
+
+        /// <summary>
+        /// Seconds <see cref="IsBlocked"/> has been continuously true; <c>0</c> whenever it is false.
+        /// Lets the owner ignore a one-frame blocked reading before acting (<c>HandMinigame.blockedGraceSeconds</c>).
+        /// </summary>
+        public float BlockedDuration { get; private set; }
 
         /// <summary>Master switch for <see cref="DrawDebug"/>; the owner still calls DrawDebug itself each frame.</summary>
         public bool debugDraw;
@@ -242,6 +264,9 @@ namespace CorruptedCourt.Minigames
             HasContact = false;
             LastContactPoint = Vector3.zero;
             LastContactNormal = Vector3.zero;
+            BlockedNormal = Vector3.zero;
+            BlockedDuration = 0f;
+            wasBlocked = false;
 
             lastHadCastContact = false;
             lastSubsteps = 0;
@@ -261,6 +286,7 @@ namespace CorruptedCourt.Minigames
         {
             SolveItemPose();
             MirrorWristFollow();
+            UpdateBlockedTracking();
         }
 
         /// <summary>The item-clearance solve. Reads the rest pose off the item, solves, commits the pose.</summary>
@@ -541,6 +567,39 @@ namespace CorruptedCourt.Minigames
                 hand.SetReachCompensation(Vector3.zero);     // ...and stop shifting the reach target
                 LastGripCompensationMagnitude = 0f;
             }
+        }
+
+        // Book-keep the "held item is jammed against a surface" signal HandMinigame reads next frame to
+        // stop the hand (and the WASD footwork) advancing into that surface. SolveItemPose() has already
+        // committed the item's full clearance pose this frame; this only REPORTS - it eases nothing.
+        //
+        //  - BlockedNormal is captured ONCE, on the frame IsBlocked goes true, from the already-EMA-
+        //    smoothed LastContactNormal, and held for the whole continuous block: a stable axis to strip
+        //    motion against, not one that re-jitters per frame as the proxy slides across a seam.
+        //  - BlockedDuration counts seconds IsBlocked has stayed continuously true, so the owner can
+        //    ignore a one-frame blocked reading (HandMinigame.blockedGraceSeconds) before it reacts.
+        //
+        // Both reset the instant the block clears, so pulling back releases the hand immediately.
+        private void UpdateBlockedTracking()
+        {
+            bool blocked = IsBlocked && !inert;
+
+            if (blocked)
+            {
+                if ((!wasBlocked || BlockedNormal.sqrMagnitude < DegenerateAxisSqr)
+                    && LastContactNormal.sqrMagnitude > DegenerateAxisSqr)
+                {
+                    BlockedNormal = LastContactNormal.normalized;
+                }
+                BlockedDuration += Time.deltaTime;
+            }
+            else
+            {
+                BlockedNormal = Vector3.zero;
+                BlockedDuration = 0f;
+            }
+
+            wasBlocked = blocked;
         }
 
         // --- debug output --------------------------------------------------------------------------
