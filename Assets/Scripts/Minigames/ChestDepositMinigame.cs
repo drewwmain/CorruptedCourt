@@ -21,11 +21,12 @@ namespace CorruptedCourt.Minigames
     /// item is released). Launched by TaskDepositStation when its Deposit Minigame Prefab carries this
     /// component. Extends ItemDepositMinigame so success advances the DepositItemStep.
     ///
-    /// The falling-item physics (no-bounce, funnelled drop) and the "has it touched the chest yet" check
-    /// are the GuidedDrop / StationContactProbe capabilities in Assets/Scripts/Minigames/Capabilities -
-    /// shared with SwordHangMinigame (P1). The freeze / RMB-look / footwork / settings-pause / hand rig
-    /// plumbing is HandMinigame, via ItemDepositMinigame (P2) - this class keeps only the lid open/close
-    /// phase machine and the funnel-to-slot tuning. See ARCHITECTURE.md.
+    /// The falling-item physics (no-bounce, dead-straight drop - rotation and X/Z frozen, no steering
+    /// toward the slot) and the "has it touched the chest yet" check are the GuidedDrop /
+    /// StationContactProbe capabilities in Assets/Scripts/Minigames/Capabilities - shared with
+    /// SwordHangMinigame (P1). The freeze / RMB-look / footwork / settings-pause / hand rig plumbing is
+    /// HandMinigame, via ItemDepositMinigame (P2) - this class keeps only the lid open/close phase
+    /// machine. See ARCHITECTURE.md.
     /// </summary>
     public class ChestDepositMinigame : ItemDepositMinigame
     {
@@ -57,10 +58,18 @@ namespace CorruptedCourt.Minigames
         [Header("Drop into chest")]
         [Tooltip("Seconds to wait for a released item to settle before judging the outcome.")]
         public float settleTime = 1.2f;
-        [Tooltip("Once the item has PHYSICALLY touched the chest, it registers on the nearest free DropSlot within this distance.")]
+        [Tooltip("HORIZONTAL distance from a free DropSlot the released item must be within to drop into it. " +
+                 "Since the drop is dead-straight (X/Z frozen), this is effectively decided the instant you " +
+                 "let go - it is the aim tolerance.")]
         public float catchRadius = 0.4f;
-        [Tooltip("After you let go, the item is steered sideways onto the target slot's column as it falls, so you don't have to release dead-centre over the chest. Metres/sec of horizontal correction. 0 = drop straight down from where you released.")]
-        public float dropFunnelSpeed = 3f;
+        [Tooltip("The straight-dropping item seats once it has fallen to within this distance ABOVE a free " +
+                 "slot (and any distance below, until it has clearly dropped past the opening). No physical " +
+                 "contact with the chest is needed - the chest's interior geometry does not have to catch it.")]
+        public float dropCatchAbove = 0.25f;
+        [Tooltip("DISABLED - the released item now always drops straight down from where you let go, with " +
+                 "no sideways steering toward the chest. Kept only so it can still make the chest's non-mesh " +
+                 "colliders passable to the falling item when > 0; leave at 0.")]
+        public float dropFunnelSpeed = 0f;
 
         [Header("Debug")]
         public bool debugMinigame = true;
@@ -81,7 +90,9 @@ namespace CorruptedCourt.Minigames
         private bool awaitingRetry;
         private bool touchedChest;
         private float settleTimer;
-        private Transform dropTargetSlot; // the slot the released item is being funnelled toward
+        // Decided at release from the aim (X/Z is frozen for the fall, so it can't change afterwards):
+        // the free slot this drop is heading into, or -1 if the aim missed every free slot.
+        private int seatSlotIndex = -1;
 
         private GuidedDrop.Handle dropHandle;
         private Collider[] passableChestColliders;
@@ -277,13 +288,20 @@ namespace CorruptedCourt.Minigames
                 return;
             }
 
-            // Record the moment the falling item physically touches the chest.
-            if (!touchedChest && StationContactProbe.Resting(item.transform, chest.transform)) touchedChest = true;
+            // touchedChest is tracked for the MISS-log context only, not as a gate.
+            if (!touchedChest && StationContactProbe.Resting(item.transform, chest.transform, 0.5f)) touchedChest = true;
 
-            // Register once it's lined up on a free slot: either after physically touching the chest, or -
-            // when the funnel is steering it down a slot column - as soon as it drops to the slot's lip.
-            bool linedUp = touchedChest || (dropTargetSlot != null && dropFunnelSpeed > 0f);
-            if (linedUp && TrySeatInChest("contact")) return;
+            // The drop is dead-straight (X/Z frozen), so whether it lands in a slot was decided by the aim
+            // at release (seatSlotIndex). Seat it once it has fallen to the slot OR come to rest - the
+            // chest's interior geometry does not have to physically catch it.
+            if (seatSlotIndex >= 0 && chest.IsSlotFree(seatSlotIndex))
+            {
+                Transform st = chest.GetDropSlot(seatSlotIndex);
+                Rigidbody rbc = item.GetComponent<Rigidbody>();
+                bool resting = rbc == null || rbc.isKinematic || rbc.linearVelocity.sqrMagnitude <= 0.04f;
+                bool atSlot = st != null && item.transform.position.y <= st.position.y + dropCatchAbove;
+                if (atSlot || resting) { SeatInChest(seatSlotIndex, atSlot ? "drop" : "rest"); return; }
+            }
 
             settleTimer -= Time.deltaTime;
             Rigidbody rb = item.GetComponent<Rigidbody>();
@@ -293,18 +311,21 @@ namespace CorruptedCourt.Minigames
 
         private void ResolveDrop()
         {
-            if (touchedChest && TrySeatInChest("settle")) return;
+            if (seatSlotIndex >= 0 && chest.IsSlotFree(seatSlotIndex)) { SeatInChest(seatSlotIndex, "settle"); return; }
 
             if (debugMinigame)
-                Log.Game($"[ChestDeposit] MISS - touchedChest={touchedChest}. Leaving the item loose to retry.");
+                Log.Game("[ChestDeposit] MISS - the item wasn't aimed into a free slot at release " +
+                         $"(touchedChest={touchedChest}). Leaving it loose to retry.");
             awaitingRetry = true;
         }
 
-        // Seats the item once it has been funnelled onto a free DropSlot's column and dropped to (or past)
-        // the slot's lip: horizontal distance within catchRadius, and no more than catchRadius ABOVE it
-        // (any depth below counts - a fast frame can carry the pivot past the slot). Returns true on seat.
-        private bool TrySeatInChest(string via)
+        // The nearest free DropSlot whose HORIZONTAL distance to the item is within catchRadius, or -1.
+        // Called once at release: X/Z is frozen for the fall, so the aim at that instant is the whole
+        // decision. Also logs the nearest-slot distance so catchRadius / slot placement can be tuned.
+        private int AimedFreeSlot()
         {
+            if (item == null || chest == null) return -1;
+
             int slot = -1;
             float best = float.MaxValue;
             for (int i = 0; i < chest.SlotCount; i++)
@@ -314,24 +335,31 @@ namespace CorruptedCourt.Minigames
                 if (st == null) continue;
                 Vector3 d = item.transform.position - st.position;
                 float horiz = new Vector2(d.x, d.z).magnitude;
-                if (horiz > catchRadius || d.y > catchRadius) continue;
-                float score = horiz + Mathf.Max(0f, d.y);
-                if (score < best) { best = score; slot = i; }
+                if (horiz < best) { best = horiz; if (horiz <= catchRadius) slot = i; }
             }
-            if (slot < 0) return false;
 
+            if (debugMinigame)
+                Log.Game(slot >= 0
+                    ? $"[ChestDeposit] released - aimed at slot {slot} (horiz {best:F2}m <= {catchRadius}). It will drop in."
+                    : $"[ChestDeposit] released - no free slot aimed (nearest horiz {best:F2}m > catchRadius {catchRadius}). Miss.");
+            return slot;
+        }
+
+        // Deposit into a slot chosen at release by AimedFreeSlot(). No geometry check here - the aim
+        // already decided it and X/Z was frozen the whole way down.
+        private void SeatInChest(int slot, string via)
+        {
             resolving = true;
             dropHandle?.End();
             dropHandle = null;
             chest.DepositIntoSlot(item, slot, player);
-            if (debugMinigame) Log.Game($"[ChestDeposit] seated in slot {slot} via {via} (dist {best:F2}). WIN");
+            if (debugMinigame) Log.Game($"[ChestDeposit] seated in slot {slot} via {via}. WIN");
 
             // Auto-close the lid, then finish. (item is kept referenced so Update keeps ticking; it's
             // nulled at the end of UpdateClosingLid.)
             lidCloseFrom = lidOpen01;
             lidCloseTimer = 0f;
             phase = Phase.ClosingLid;
-            return true;
         }
 
         private void ReleaseItem()
@@ -340,13 +368,13 @@ namespace CorruptedCourt.Minigames
             awaitingRetry = false;
             touchedChest = false;
             settleTimer = settleTime;
-            dropTargetSlot = NearestFreeSlot(); // funnel the fall toward whichever slot is nearest the release point
 
             player.ClearHeldItem();
             item.DropInPlace();
 
-            // No tumble, no bounce, gentle depenetration; X/Z stays free so the funnel (below) can steer
-            // it onto dropTargetSlot's column as it falls. (GuidedDrop capability.)
+            // Dead-straight drop: rotation AND X/Z position frozen, no bounce, gentle depenetration. The
+            // item falls from exactly where the player let go - there is NO steering toward the chest, aim
+            // is entirely theirs. (GuidedDrop capability.)
             Rigidbody rb = item.GetComponent<Rigidbody>();
             Collider c = item.GetComponent<Collider>();
             dropHandle = GuidedDrop.Begin(rb, c, new GuidedDrop.Settings
@@ -354,8 +382,8 @@ namespace CorruptedCourt.Minigames
                 maxAngularVelocity = 2.5f,
                 maxDepenetrationVelocity = 0.5f,
                 freezeRotation = true,
-                freezeHorizontalPosition = false,
-                funnelSpeed = dropFunnelSpeed,
+                freezeHorizontalPosition = true,
+                funnelSpeed = 0f,
                 materialName = "ChestDrop"
             });
 
@@ -369,33 +397,10 @@ namespace CorruptedCourt.Minigames
                         if (cc != null && !cc.isTrigger) Physics.IgnoreCollision(c, cc, true);
             }
 
+            // X/Z is frozen from here on, so decide NOW (from the aim) which free slot this drop lands in.
+            seatSlotIndex = AimedFreeSlot();
+
             RestorePlayer();
-        }
-
-        // Nearest currently-free DropSlot to the item's present position (its release point).
-        private Transform NearestFreeSlot()
-        {
-            Transform best = null;
-            float bestD = float.MaxValue;
-            for (int i = 0; i < chest.SlotCount; i++)
-            {
-                if (!chest.IsSlotFree(i)) continue;
-                Transform st = chest.GetDropSlot(i);
-                if (st == null) continue;
-                float d = Vector3.Distance(item.transform.position, st.position);
-                if (d < bestD) { bestD = d; best = st; }
-            }
-            return best;
-        }
-
-        // Steers the released item's horizontal position onto the target slot's column while gravity does
-        // the falling, so releasing anywhere over the open chest still funnels the item down to the slot.
-        protected override void OnMinigameFixedUpdate()
-        {
-            if (phase != Phase.AimItem || !itemReleased || resolving || awaitingRetry) return;
-            if (item == null || dropTargetSlot == null) return;
-
-            dropHandle?.Funnel(dropTargetSlot.position);
         }
 
         private void RestartAim()
@@ -406,7 +411,7 @@ namespace CorruptedCourt.Minigames
             resolving = false;
             awaitingRetry = false;
             touchedChest = false;
-            dropTargetSlot = null;
+            seatSlotIndex = -1;
             // Player is "busy" again while re-aiming - ReleaseItem's RestorePlayer left the registry the
             // moment the item was released (see MinigameBase.LeaveActiveRegistry).
             RejoinActiveRegistry();

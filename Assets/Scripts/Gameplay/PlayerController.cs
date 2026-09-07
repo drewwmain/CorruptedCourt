@@ -526,6 +526,12 @@ namespace CorruptedCourt.Gameplay
             inventory.StopCharging();
             strangle.CancelStrangleButton();
 
+            // The Update() animation-sync block only runs while NOT controlsLocked, so the "Speed"
+            // parameter would otherwise stay frozen at whatever it was when the lock came on - if the
+            // player was walking as they started a minigame, the walk cycle keeps playing and fights the
+            // hand IK / held-item physics. Snap the legs to idle here.
+            if (locked && animator != null) animator.SetFloat("Speed", 0f);
+
             // Stop every input action callback from firing while the menu is up.
             if (playerInput != null) playerInput.enabled = !locked;
         }

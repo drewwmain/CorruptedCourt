@@ -40,6 +40,16 @@ namespace CorruptedCourt.Minigames
             public float funnelSpeed;
             [Tooltip("Name for the transient no-bounce PhysicsMaterial (cosmetic - shows in the Inspector while active).")]
             public string materialName;
+            [Tooltip("Dynamic friction of the transient drop material. Low = the item slides freely off " +
+                     "ledges/slopes instead of sticking where it lands. 0 / unset = 0.9 (the grippy original).")]
+            public float dynamicFriction;
+            [Tooltip("Static friction of the transient drop material. Low = a balanced item breaks loose and " +
+                     "starts sliding on a gentler slope. 0 / unset = 0.9.")]
+            public float staticFriction;
+            [Tooltip("How the drop material's friction combines with the surface it lands on. Unset (Average) " +
+                     "is remapped to Maximum - the original behaviour. Set Minimum so a low dynamicFriction " +
+                     "here actually makes the item slide even on a grippy (default 0.6) surface like a Synty rack.")]
+            public PhysicsMaterialCombine frictionCombine;
 
             public static Settings Default => new Settings
             {
@@ -48,7 +58,10 @@ namespace CorruptedCourt.Minigames
                 freezeRotation = true,
                 freezeHorizontalPosition = false,
                 funnelSpeed = 0f,
-                materialName = "GuidedDrop"
+                materialName = "GuidedDrop",
+                dynamicFriction = 0.9f,
+                staticFriction = 0.9f,
+                frictionCombine = PhysicsMaterialCombine.Maximum
             };
         }
 
@@ -61,6 +74,7 @@ namespace CorruptedCourt.Minigames
             internal RigidbodyConstraints savedConstraints;
             internal float savedMaxAngVel;
             internal float savedMaxDepen;
+            internal CollisionDetectionMode savedCollisionMode;
             internal PhysicsMaterial savedMaterial;
             internal PhysicsMaterial dropMaterial;
             internal bool ended;
@@ -88,6 +102,7 @@ namespace CorruptedCourt.Minigames
                     rb.constraints = savedConstraints;
                     rb.maxAngularVelocity = savedMaxAngVel;
                     rb.maxDepenetrationVelocity = savedMaxDepen;
+                    if (!rb.isKinematic) rb.collisionDetectionMode = savedCollisionMode;
                 }
                 if (col != null) col.sharedMaterial = savedMaterial;
                 if (dropMaterial != null) Object.Destroy(dropMaterial);
@@ -103,6 +118,11 @@ namespace CorruptedCourt.Minigames
                 h.savedConstraints = rb.constraints;
                 h.savedMaxAngVel = rb.maxAngularVelocity;
                 h.savedMaxDepen = rb.maxDepenetrationVelocity;
+                h.savedCollisionMode = rb.collisionDetectionMode;
+
+                // Continuous collision while it falls: a small item dropped straight down from ~1 m
+                // otherwise tunnels through thin ground / station colliders on a single Discrete step.
+                if (!rb.isKinematic) rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
                 // freezeHorizontalPosition forces a literal X/Z-position + full-rotation freeze (sword);
                 // otherwise only rotation is (optionally) OR'd onto whatever constraints were already set,
@@ -119,13 +139,24 @@ namespace CorruptedCourt.Minigames
             if (col != null)
             {
                 h.savedMaterial = col.sharedMaterial;
+
+                // 0 / unset friction falls back to the original 0.9, and an unset combine mode (Average,
+                // the enum's zero) falls back to the original Maximum - so a caller that passes none of
+                // these three (ChestDepositMinigame) gets exactly the pre-existing grippy drop. A caller
+                // that wants the item to slide (SwordHangMinigame) passes a low friction AND Minimum.
+                float dynFriction = settings.dynamicFriction > 0f ? settings.dynamicFriction : 0.9f;
+                float staticFriction = settings.staticFriction > 0f ? settings.staticFriction : 0.9f;
+                PhysicsMaterialCombine frictionCombine = settings.frictionCombine == default(PhysicsMaterialCombine)
+                    ? PhysicsMaterialCombine.Maximum
+                    : settings.frictionCombine;
+
                 h.dropMaterial = new PhysicsMaterial(string.IsNullOrEmpty(settings.materialName) ? "GuidedDrop" : settings.materialName)
                 {
                     bounciness = 0f,
-                    dynamicFriction = 0.9f,
-                    staticFriction = 0.9f,
+                    dynamicFriction = dynFriction,
+                    staticFriction = staticFriction,
                     bounceCombine = PhysicsMaterialCombine.Minimum,
-                    frictionCombine = PhysicsMaterialCombine.Maximum
+                    frictionCombine = frictionCombine
                 };
                 col.sharedMaterial = h.dropMaterial;
             }

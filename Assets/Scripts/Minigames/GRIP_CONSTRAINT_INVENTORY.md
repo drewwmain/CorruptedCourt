@@ -308,12 +308,60 @@ Same net collider/rigidbody state as SwordHang's path (`isKinematic = true`,
 `player.ClearHeldItem()` then `item.DropInPlace()` (`PickupItem.cs:239-255`:
 `isKinematic = false`, `useGravity = true`, velocities zeroed, `coll.enabled = true`,
 `coll.isTrigger = false`, `SettlePhysics` coroutine started), then
-`GuidedDrop.Begin(rb, col, …)` (`GuidedDrop.cs:97`) overrides `rb.constraints`
-(`FreezePositionX | FreezePositionZ | FreezeRotation` because
-`freezeHorizontalPosition = true`), `rb.maxAngularVelocity = 2.5`,
+`GuidedDrop.Begin(rb, col, …)` (`GuidedDrop.cs:97`) sets `rb.maxAngularVelocity = 2.5`,
 `rb.maxDepenetrationVelocity = 0.5`, swaps `col.sharedMaterial` for a runtime no-bounce
 `PhysicsMaterial "SwordDrop"`, and zeroes velocities. `GuidedDrop.Handle.End()` restores
 all of it.
+
+> **Updated (two-phase drop):**
+> - **Phase 1 (`ReleaseSword`)** - `GuidedDrop.Begin` with `freezeRotation = true` /
+>   `freezeHorizontalPosition = true` and default friction: the sword drops **dead-straight
+>   down** from wherever it was let go, no forward throw, no tumble.
+> - **Phase 2 (`GoPhysical`, called the moment `StationContactProbe.Resting` reports the sword
+>   touching the rack)** - `dropHandle.End()` then a fresh `GuidedDrop.Begin` with `freezeRotation
+>   = false` / `freezeHorizontalPosition = false`, `dynamicFriction`/`staticFriction =
+>   releaseSlideFriction` (default 0.3), `frictionCombine = Minimum`; and `toppleTimer` is armed.
+> - For up to `toppleAssistTime` s (default 2) into Phase 2, `OnMinigameFixedUpdate` applies a
+>   steady `rb.AddTorque(..., ForceMode.Acceleration)` about `Cross(bladeWorld, Vector3.down)`
+>   scaled by `toppleAssistSpin * (1 - dot(bladeWorld, down))`, rotating the **blade toward
+>   pointing straight down** so a sword resting flat on the rack slowly topples blade-first and
+>   slides off toward a notch / the ground. Never runs while `!touchedRack`; stops once the blade
+>   is down or the timer elapses; capped by `rb.maxAngularVelocity`.
+>
+> `ChestDepositMinigame`: the funnel/steering path was **removed** - `ReleaseItem` always
+> passes `freezeRotation = true` + `freezeHorizontalPosition = true` + `funnelSpeed = 0`, so
+> the item drops dead-straight down from the release point. `dropTargetSlot`, `NearestFreeSlot`
+> and the `OnMinigameFixedUpdate` override are gone; `dropFunnelSpeed` is a vestigial flag
+> (only still gates the chest-collider pass-through in `SetChestPassable`). Seating no longer
+> requires `touchedChest` (the chest interior geometry doesn't have to catch the item):
+> `TrySeatInChest` fires when the drop is within `catchRadius` horizontally of a free slot
+> (fixed at release, X/Z frozen) and has fallen to within `dropCatchAbove` of it.
+>
+> **Contact / tunnelling fixes (from Editor testing - `touchedRack`/`touchedChest` were always
+> False, jewels fell through the floor):**
+> - `GuidedDrop.Begin` now also sets `rb.collisionDetectionMode = ContinuousDynamic` for the
+>   fall (saved/restored by `End`) - a small item dropped straight down was tunnelling thin
+>   ground / station colliders on one Discrete step.
+> - `StationContactProbe.Resting` now uses `RaycastNonAlloc`, **skips the item's own collider
+>   hierarchy** (the ray starts just above the item origin and was hitting its own mesh), and
+>   both deposit minigames pass a generous `distance` (`rackTouchDistance` 0.5 / `0.5`) instead
+>   of the 0.12 default.
+> - `SwordHangMinigame.PassRackBoxColliders` `Physics.IgnoreCollision`s the released sword
+>   against the rack's non-`MeshCollider` colliders (a solid Box slab sits above notch level),
+>   so it can descend to the real peg geometry and topple blade-into-a-gap. Gated by
+>   `ignoreRackBoxColliders` (default on). Prefab `catchRadius` 0.15 -> 0.35, `settleTime` -> 3.
+>
+> **Chest seat timing (the jewel deposit never registered - a valued drop was rejected by a
+> vertical window):** `ChestDepositMinigame` decides the target slot ONCE at release
+> (`AimedFreeSlot()` - nearest free slot within `catchRadius` HORIZONTALLY, since X/Z is frozen
+> for the fall). It then seats via `SeatInChest` when the item falls to `slot.y + dropCatchAbove`
+> or comes to rest - no vertical window that can reject a valid drop, no `touchedChest`
+> requirement. If the aim missed every free slot at release, `AimedFreeSlot()` returns -1 and
+> logs the nearest-slot distance, and the drop is a guaranteed miss.
+>
+> `SwordHangMinigame` keeps the eager per-frame `TryHangOnSlot("contact")` (it hangs the instant
+> `touchedRack` is true and the origin is within `catchRadius` of a free slot) - a "settle first,
+> then register" variant was tried and reverted at the user's request.
 
 ---
 

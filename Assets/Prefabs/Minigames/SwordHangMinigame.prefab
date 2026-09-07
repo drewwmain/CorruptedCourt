@@ -134,8 +134,13 @@ MonoBehaviour:
   blockPlayerMovement: 0
   carryLocalEuler: {x: 180, y: 0, z: 0}
   carryLocalPos: {x: 0.137, y: 0.035, z: 0.02}
-  settleTime: 1
-  catchRadius: 0.15
+  settleTime: 1.5
+  releaseSlideFriction: 0.3
+  toppleAssistSpin: 3
+  toppleAssistTime: 2
+  catchRadius: 1
+  rackTouchDistance: 0.5
+  ignoreRackBoxColliders: 1
   debugLanding: 1
   abandonDistance: 8
 --- !u!1 &7515902700699123672
