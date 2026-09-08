@@ -17,6 +17,7 @@ MonoBehaviour:
   taskDescription: The High Table requires more decor. Haul the heavy flower vase
     over to the main table.
   isSabotage: 0
+  taskTier: 1
   allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
@@ -37,7 +38,7 @@ MonoBehaviour:
     - rid: 5911507330253979757
       type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
-        minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
+        minigamePrefab: {fileID: 606725026419083546, guid: bca172838060432081d41dea8f8c378c, type: 3}
         requiredItem: {fileID: 11400000, guid: 69afb08c8427c87488822d1f51c0f44a, type: 2}
         requiredState: 2
         targetStationID: HighTable

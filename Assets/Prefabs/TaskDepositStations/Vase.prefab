@@ -50,10 +50,109 @@ MonoBehaviour:
   pickupItemObject: {fileID: 2181184745465135353}
   pickupFromStage: 2
   testMode: 1
-  prefixNameWhenDeposited: 1
+  flagAsDepositedContainer: 1
   snapDepositsToRestPoint: 1
   depositRestLocalPosition: {x: 0, y: 0, z: 0}
   depositRestPerItemOffset: {x: 0, y: 0.05, z: 0}
+--- !u!1 &592732999803207627
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 778183963036543430}
+  m_Layer: 8
+  m_Name: DropSlot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &778183963036543430
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592732999803207627}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.571, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6017977100855695870}
+  m_Father: {fileID: 4287128183735945129}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7098665492160025325
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6017977100855695870}
+  - component: {fileID: 4229638535939428871}
+  - component: {fileID: 323556263549290933}
+  m_Layer: 8
+  m_Name: InteriorTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6017977100855695870
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7098665492160025325}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.116, z: 0}
+  m_LocalScale: {x: 0.15, y: 0.1, z: 0.13}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 778183963036543430}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &4229638535939428871
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7098665492160025325}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &323556263549290933
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7098665492160025325}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9043f8d6af84cc1981621f34d6d2897, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  volume: {fileID: 0}
 --- !u!1001 &2273851425883746675
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -172,13 +271,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   definition: {fileID: 11400000, guid: 69afb08c8427c87488822d1f51c0f44a, type: 2}
   state: 0
-  itemName: Vase
   requiresPartner: 0
   taskLocationID: HighTable
   isInfiniteSource: 0
-  isProcessed: 0
-  isDepositedContainer: 0
-  isSpent: 0
   isHeavy: 0
   haulWithBothHands: 0
   haulForward: 0.55
@@ -193,6 +288,14 @@ MonoBehaviour:
   itemWeight: 1
   leftHandSocketRotation: {x: 0, y: 0, z: 0}
   processMinigamePrefab: {fileID: 0}
+  gripConstraint:
+    enableGripConstraint: 0
+    gripPivot: {fileID: 0}
+    contactProxy: {fileID: 0}
+    wristLimitDegrees: 15
+    slipLimitDegrees: 25
+    normalSmoothingFrames: 3
+    contactSkin: 0.002
 --- !u!1001 &3602432036678560921
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -251,7 +354,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 756772445730630448, guid: 7ddb9e19c25e7ab46b4f135fb9242a51, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 778183963036543430}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 129276364789625226, guid: 7ddb9e19c25e7ab46b4f135fb9242a51, type: 3}
       insertIndex: -1
@@ -333,7 +439,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   locationID: Vase
   acceptedItem: {fileID: 11400000, guid: 3d5248a4469b2664593d999a57bcaeef, type: 2}
-  acceptedItemName: Flowers
 --- !u!114 &2789680347807167857
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -348,16 +453,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   depositedItemSlots:
   - {fileID: 0}
-  customDropSlots: []
+  customDropSlots:
+  - {fileID: 778183963036543430}
   slotHeight: 0.5
   slotSpacing: 0.33
+  requiredState: 0
   retrievableFromStage: 999
   retrieveTestMode: 0
   depositLocalPosition: {x: 0, y: 0, z: 0}
   depositLocalEuler: {x: 0, y: 0, z: 0}
   preserveDepositedItemScale: 1
-  depositMinigamePrefab: {fileID: 0}
+  depositMinigamePrefab: {fileID: 606725026419083546, guid: bca172838060432081d41dea8f8c378c, type: 3}
+  sabotageEjectsLastDeposit: 1
   isSabotaged: 0
+  fallbackTargetRadius: 0.15
 --- !u!4 &4287128183735945129 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 756772445730630448, guid: 7ddb9e19c25e7ab46b4f135fb9242a51, type: 3}

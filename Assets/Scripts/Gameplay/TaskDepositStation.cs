@@ -63,6 +63,11 @@ namespace CorruptedCourt.Gameplay
         // orphaned; safe to delete in a follow-up.
         public bool isSabotaged = false;
 
+        [Header("Deposit Contact")]
+        [Tooltip("Fallback when a DropSlot has no DepositTarget child: an item's DepositContactPoint " +
+                 "must get within this many metres of the slot's position to deposit.")]
+        public float fallbackTargetRadius = 0.15f;
+
         private Transform[] dropSlots;
         private TaskLocation taskLocation;
 
@@ -195,6 +200,19 @@ namespace CorruptedCourt.Gameplay
         {
             if (dropSlots != null && index >= 0 && index < dropSlots.Length) return dropSlots[index];
             return transform;
+        }
+
+        /// <summary>
+        /// The <see cref="DepositTarget"/> attached to (or under) drop slot <paramref name="slotIndex"/>,
+        /// or null when that slot has none - callers then fall back to <see cref="fallbackTargetRadius"/>
+        /// around the slot's position. Resolves against the same runtime slot array as
+        /// <see cref="GetDropSlot"/>, and returns null for an out-of-range index (never the station root).
+        /// </summary>
+        public DepositTarget GetDepositTarget(int slotIndex)
+        {
+            if (dropSlots == null || slotIndex < 0 || slotIndex >= dropSlots.Length) return null;
+            Transform slot = GetDropSlot(slotIndex);
+            return slot != null ? slot.GetComponentInChildren<DepositTarget>(true) : null;
         }
 
         /// <summary>
@@ -506,6 +524,7 @@ namespace CorruptedCourt.Gameplay
                     if (s == null) continue;
                     Gizmos.DrawWireSphere(s.position, 0.08f);
                     Gizmos.DrawLine(s.position, s.position + s.forward * 0.25f);
+                    DrawFallbackRadiusGizmo(s.position);
                 }
                 return;
             }
@@ -514,7 +533,9 @@ namespace CorruptedCourt.Gameplay
 
             if (count == 1)
             {
-                Gizmos.DrawWireSphere(transform.TransformPoint(new Vector3(0f, slotHeight, 0f)), 0.08f);
+                Vector3 centre = transform.TransformPoint(new Vector3(0f, slotHeight, 0f));
+                Gizmos.DrawWireSphere(centre, 0.08f);
+                DrawFallbackRadiusGizmo(centre);
                 return;
             }
 
@@ -526,8 +547,20 @@ namespace CorruptedCourt.Gameplay
                 int row = i / cols;
                 float x = (col - (cols - 1) * 0.5f) * slotSpacing;
                 float z = (row - (rows - 1) * 0.5f) * slotSpacing;
-                Gizmos.DrawWireSphere(transform.TransformPoint(new Vector3(x, slotHeight, z)), 0.08f);
+                Vector3 p = transform.TransformPoint(new Vector3(x, slotHeight, z));
+                Gizmos.DrawWireSphere(p, 0.08f);
+                DrawFallbackRadiusGizmo(p);
             }
+        }
+
+        // Faint outer sphere: the fallbackTargetRadius catch zone a DepositContactPoint must reach when
+        // its slot has no DepositTarget child. Saves/restores Gizmos.color so the caller is unaffected.
+        private void DrawFallbackRadiusGizmo(Vector3 worldPos)
+        {
+            Color prev = Gizmos.color;
+            Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.35f);
+            Gizmos.DrawWireSphere(worldPos, fallbackTargetRadius);
+            Gizmos.color = prev;
         }
     }
 }
