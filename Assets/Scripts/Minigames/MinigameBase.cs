@@ -84,6 +84,10 @@ namespace CorruptedCourt.Minigames
                 player.FinishMinigame(activeTask);
             }
 
+            // After the step this minigame satisfied has advanced (FinishMinigame), hand off to a
+            // chained follow-up if one is configured (Cheers -> Drink). No-op when Chain is null.
+            ChainNextIfSet();
+
             Destroy(gameObject);
         }
 
@@ -108,6 +112,27 @@ namespace CorruptedCourt.Minigames
 
         /// <summary>Runs as the minigame closes. <paramref name="won"/> = it reached its success state.</summary>
         protected virtual void OnMinigameEnd(bool won) { }
+
+        // --- optional chained follow-up minigame --------------------------------------------------
+
+        /// <summary>
+        /// Override to return a serialized <see cref="MinigameChain"/> field and this minigame will
+        /// auto-launch its next minigame on success (Cheers -> Drink, ARCHITECTURE.md §5). Null (the
+        /// default) = nothing chains.
+        /// </summary>
+        protected virtual MinigameChain Chain => null;
+
+        /// <summary>
+        /// If <see cref="Chain"/> is set, spawn and set up its next minigame with a fresh context.
+        /// Called by <see cref="CompleteMinigame"/> after <c>player.FinishMinigame</c> (so the step this
+        /// minigame satisfied has already advanced) and before this object is destroyed. No-op when
+        /// <see cref="Chain"/> is null or carries no prefab.
+        /// </summary>
+        protected void ChainNextIfSet()
+        {
+            MinigameChain chain = Chain;
+            if (chain != null) chain.LaunchNext(player, activeTask);
+        }
 
         // --- mid-lifecycle registry control ---------------------------------------------------------
         // A HandMinigame-style subclass can hand control back to the player WELL BEFORE its outcome is

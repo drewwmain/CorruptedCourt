@@ -112,6 +112,12 @@ namespace CorruptedCourt.Gameplay
         public bool haulActive { get => ikRig.haulActive; set => ikRig.haulActive = value; }
         public float ikBlendSpeed => ikRig.ikBlendSpeed;
 
+        /// <summary>Minigame-scripted right-hand finger-curl (0 = open .. 1 = fist). While set it overrides
+        /// PlayerIKRig's "curl while LEFT-CLICK is held during a minigame" default; clearing it hands the
+        /// grip back to that default. MinigameHandRig.SetGrip / Begin / End route through these.</summary>
+        public void SetMinigameHandGrip(float amount01) => ikRig.SetScriptedGrip(amount01);
+        public void ClearMinigameHandGrip() => ikRig.ClearScriptedGrip();
+
         /// <summary>Exposed for PlayerIKRig.ApplyMinigameIK's Station-target branch.</summary>
         public Transform ActiveMinigameStation => activeMinigameStation;
 

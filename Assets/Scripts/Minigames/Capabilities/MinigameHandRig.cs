@@ -50,6 +50,9 @@ namespace CorruptedCourt.Minigames
             reachClampActive = false;
             reachClampNormal = Vector3.zero;
             if (player == null) return;
+            // No scripted finger-curl until a caller sets one - the left-mouse-button auto-curl is the
+            // default. A HandMinigame with autoCurlFromPrimary = false re-pins it open right after this.
+            player.ClearMinigameHandGrip();
             player.hangReachActive = true;
             player.hangReachRotWeight = 0f;
         }
@@ -63,6 +66,7 @@ namespace CorruptedCourt.Minigames
             reachClampActive = false;
             reachClampNormal = Vector3.zero;
             if (player == null) return;
+            player.ClearMinigameHandGrip();
             player.hangReachActive = false;
             player.hangReachRotWeight = 0f;
         }
@@ -169,13 +173,15 @@ namespace CorruptedCourt.Minigames
         }
 
         /// <summary>
-        /// Finger-curl amount, 0 = open .. 1 = fist. Currently PlayerController auto-drives the grip from
-        /// the left mouse button while any minigame is open (see ApplyHandGripPose); this is the hook for
-        /// minigames that want to script it explicitly once PlayerController exposes a setter.
+        /// Finger-curl amount, 0 = open .. 1 = fist. Overrides PlayerIKRig's default "curl while the left
+        /// mouse button is held during a minigame" behaviour until <see cref="End"/> (or the owning
+        /// HandMinigame handing control back). Use in minigames where the left button means something
+        /// else - bow draw, drag-to-grab, pour, duel swing - and in HandMinigame subclasses that set
+        /// autoCurlFromPrimary = false. No effect while the rig's Minigame Hand Grip toggle is off.
         /// </summary>
         public void SetGrip(float amount01)
         {
-            // TODO(P2): route to PlayerController.SetHandGrip(amount01) when that setter is added.
+            if (player != null) player.SetMinigameHandGrip(amount01);
         }
 
         /// <summary>Glue an item to the hand bone at a local offset (kinematic, collider off).</summary>
