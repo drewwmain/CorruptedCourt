@@ -48,15 +48,6 @@ namespace CorruptedCourt.Gameplay
         private float handGrip01;      // current fist amount: 0 = open, 1 = closed
         private float handGripTarget;  // where handGrip01 is heading this frame
         private float gripHoldUntil;   // Time.time until which the grip stays closed after a click
-
-        // Minigame-scripted grip override. While active, ApplyHandGripPose drives the fist to
-        // scriptedGripAmount and ignores the left-mouse-button hold + post-click pulse - for minigames
-        // where the left button means something else (bow draw, drag-to-grab, pour, duel swing) and for
-        // HandMinigame subclasses with autoCurlFromPrimary = false. Set / cleared via
-        // SetScriptedGrip / ClearScriptedGrip, routed here from MinigameHandRig.SetGrip / Begin / End
-        // through PlayerController.SetMinigameHandGrip / ClearMinigameHandGrip.
-        private bool scriptedGripActive;
-        private float scriptedGripAmount;
         private readonly List<Transform> gripFingerBones = new List<Transform>();
         private readonly List<Quaternion> gripFingerDefaults = new List<Quaternion>();
         private readonly List<Quaternion> gripFingerCurls = new List<Quaternion>();   // full-grab local delta per finger bone
@@ -206,26 +197,6 @@ namespace CorruptedCourt.Gameplay
             return Quaternion.AngleAxis(deg, axis);
         }
 
-        /// <summary>
-        /// Drive the minigame finger-curl to <paramref name="amount01"/> (0 = open .. 1 = fist)
-        /// explicitly, overriding the "curl while LEFT-CLICK is held during a minigame" default in
-        /// <see cref="ApplyHandGripPose"/> until <see cref="ClearScriptedGrip"/>. Routed here from
-        /// MinigameHandRig.SetGrip. Still gated by the Minigame Hand Grip toggle above.
-        /// </summary>
-        public void SetScriptedGrip(float amount01)
-        {
-            scriptedGripActive = true;
-            scriptedGripAmount = Mathf.Clamp01(amount01);
-        }
-
-        /// <summary>Drop the <see cref="SetScriptedGrip"/> override; the grip goes back to following the
-        /// left mouse button (hold + post-click pulse) while a minigame is open.</summary>
-        public void ClearScriptedGrip()
-        {
-            scriptedGripActive = false;
-            scriptedGripAmount = 0f;
-        }
-
         // Writes the curled finger pose over whatever the animator produced this frame. Skips entirely
         // when the hand is fully open so idle animation keeps full control of the fingers. Called from
         // PlayerController.LateUpdate - must run after the Animator has posed this frame, and still fires
@@ -237,26 +208,16 @@ namespace CorruptedCourt.Gameplay
 
             bool isPlayingMinigame = player != null && player.isPlayingMinigame;
 
-            if (scriptedGripActive)
-            {
-                // A minigame is driving the grip explicitly (MinigameHandRig.SetGrip). The left mouse
-                // button means something else this minigame (bow draw, drag-grab, pour, duel swing), so
-                // ignore the LMB hold + post-click pulse entirely and follow the scripted amount.
-                handGripTarget = scriptedGripAmount;
-            }
-            else
-            {
-                // Curl toward a fist while the LEFT MOUSE BUTTON is held during ANY minigame, open otherwise.
-                // isPlayingMinigame is a read-through of MinigameBase.IsAnyActive (ARCHITECTURE.md P3), so this
-                // covers every minigame regardless of launch path - StartMinigame ones (cake, consume, ...) and
-                // the deposit ones (sword rack, dowry chest) alike. Used to need `|| hangReachActive` to cover
-                // the deposit case, since TaskDepositStation.LaunchDepositMinigame never set isPlayingMinigame.
-                // The deposit minigames act on the mouse-DOWN (drop / grab the lid), so a real hold never
-                // happens - latch a short pulse on the click so the grab is always visible.
-                if (isPlayingMinigame && Input.GetMouseButtonDown(0)) gripHoldUntil = Time.time + handGripPulseTime;
-                bool wantGrip = isPlayingMinigame && (Input.GetMouseButton(0) || Time.time < gripHoldUntil);
-                handGripTarget = wantGrip ? 1f : 0f;
-            }
+            // Curl toward a fist while the LEFT MOUSE BUTTON is held during ANY minigame, open otherwise.
+            // isPlayingMinigame is a read-through of MinigameBase.IsAnyActive (ARCHITECTURE.md P3), so this
+            // covers every minigame regardless of launch path - StartMinigame ones (cake, consume, ...) and
+            // the deposit ones (sword rack, dowry chest) alike. Used to need `|| hangReachActive` to cover
+            // the deposit case, since TaskDepositStation.LaunchDepositMinigame never set isPlayingMinigame.
+            // The deposit minigames act on the mouse-DOWN (drop / grab the lid), so a real hold never
+            // happens - latch a short pulse on the click so the grab is always visible.
+            if (isPlayingMinigame && Input.GetMouseButtonDown(0)) gripHoldUntil = Time.time + handGripPulseTime;
+            bool wantGrip = isPlayingMinigame && (Input.GetMouseButton(0) || Time.time < gripHoldUntil);
+            handGripTarget = wantGrip ? 1f : 0f;
 
             handGrip01 = Mathf.MoveTowards(handGrip01, handGripTarget, Time.deltaTime * handGripSpeed);
             if (handGrip01 <= 0.0005f && handGripTarget <= 0.0005f) return;

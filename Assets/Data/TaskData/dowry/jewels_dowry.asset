@@ -10,44 +10,36 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
-  m_Name: wine_pour
+  m_Name: jewels_dowry
   m_EditorClassIdentifier: 
-  taskID: wine_pour
-  taskName: Draw the Vintage
-  taskDescription: Tap the cask and fill a glass of wine for the High Table.
+  taskID: dowry_deposit
+  taskName: Secure the Dowry
+  taskDescription: Gather the ceremonial jewels and lock them safely inside the dowry
+    chest.
   isSabotage: 0
   allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
   prerequisiteTask: {fileID: 0}
   stepTemplates:
-  - rid: 5911507330253979739
-  - rid: 5911507330253979740
-  - rid: 5911507330253979741
+  - rid: 5911507330253979729
+  - rid: 5911507330253979730
   references:
     version: 2
     RefIds:
-    - rid: 5911507330253979739
+    - rid: 5911507330253979729
       type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 11400000, guid: 997241456bda42bda5ec617bdc2c84ff, type: 2}
+        requiredItem: {fileID: 11400000, guid: 3cce9f2335d2bf44688ca3c06d2a8997, type: 2}
         requiredState: 0
         legacyRequiredItemName: 
-    - rid: 5911507330253979740
-      type: {class: ProcessItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
-      data:
-        minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
-        targetStationID: WineBarrel
-        targetItem: {fileID: 0}
-        targetItemState: 0
-        legacyTargetStationOrItemName: 
-    - rid: 5911507330253979741
+    - rid: 5911507330253979730
       type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 11400000, guid: 2a4f6fba2bc44af899efcdc16d497379, type: 2}
+        requiredItem: {fileID: 11400000, guid: 3cce9f2335d2bf44688ca3c06d2a8997, type: 2}
         requiredState: 0
-        targetStationID: HighTable
+        targetStationID: DowryChest
         requireOwnDeposit: 0
         legacyRequiredItemName: 

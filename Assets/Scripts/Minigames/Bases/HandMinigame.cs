@@ -47,11 +47,6 @@ namespace CorruptedCourt.Minigames
         public float rmbTapCancelTime = 0.2f;
         [Tooltip("Let the WASD look/footwork also tilt the camera vertically while looking around.")]
         public bool rmbAllowPitch = true;
-        [Tooltip("Curl the right hand into a fist while LEFT-CLICK is held - the default 'reach in and " +
-                 "grab' gesture. Turn OFF for minigames where the left button means something else " +
-                 "(bow draw, drag-to-grab, pour, duel swing) so the hand doesn't clench unexpectedly; " +
-                 "those can still script the grip via the hand rig. Leave ON for deposits.")]
-        public bool autoCurlFromPrimary = true;
 
         [Header("Grip constraint")]
         [Tooltip("Rotate the held item about its grip pivot so it never visibly enters world geometry " +
@@ -145,10 +140,6 @@ namespace CorruptedCourt.Minigames
             Cursor.visible = true;
 
             Hand.Begin();
-            // LMB carries minigame meaning in some subclasses (bow draw, drag-grab, pour, duel) - pin the
-            // finger-curl grip open so PlayerIKRig's "fist while LEFT-CLICK held" default doesn't fight it.
-            // Subclasses can still drive it explicitly with Hand.SetGrip. RestorePlayer -> Hand.End clears it.
-            if (!autoCurlFromPrimary) Hand.SetGrip(0f);
             OnHandBegin();
         }
 

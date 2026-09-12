@@ -10,34 +10,34 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
-  m_Name: turkey_eat
+  m_Name: cakePlate_eat
   m_EditorClassIdentifier: 
-  taskID: turkey_eat
-  taskName: A Hearty Meal
-  taskDescription: Grab a roasted turkey leg from the kitchens and consume it before
-    returning to the floor.
+  taskID: cake_eat
+  taskName: Sample the Dessert
+  taskDescription: Grab a plate of cake and eat it.
   isSabotage: 0
-  allowedStages: 02000000
+  taskTier: 1
+  allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
-  prerequisiteTask: {fileID: 11400000, guid: d9b28f1d05666754fadb24a676c57943, type: 2}
+  prerequisiteTask: {fileID: 11400000, guid: a9267073a6f70eb47bd34214d14fb649, type: 2}
   stepTemplates:
-  - rid: 5911507330253979762
-  - rid: 5911507330253979763
+  - rid: 5911507330253979758
+  - rid: 5911507330253979759
   references:
     version: 2
     RefIds:
-    - rid: 5911507330253979762
+    - rid: 5911507330253979758
       type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 11400000, guid: eb1ae3baa1f34a56b4b642f93d11793e, type: 2}
-        requiredState: 0
+        requiredItem: {fileID: 11400000, guid: 84cbfc4eff99ac24bb9773ed93a5dd0c, type: 2}
+        requiredState: 2
         legacyRequiredItemName: 
-    - rid: 5911507330253979763
+    - rid: 5911507330253979759
       type: {class: ConsumeItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
-        minigamePrefab: {fileID: 2714110265442006716, guid: a38455405cfef8642bda0abd0c385a43, type: 3}
-        requiredItem: {fileID: 11400000, guid: eb1ae3baa1f34a56b4b642f93d11793e, type: 2}
-        requiredState: 0
+        minigamePrefab: {fileID: 4843060717586299352, guid: 5a37ab99966fbb640b0a5c43dd2142fa, type: 3}
+        requiredItem: {fileID: 11400000, guid: 84cbfc4eff99ac24bb9773ed93a5dd0c, type: 2}
+        requiredState: 2
         legacyRequiredItemName: 

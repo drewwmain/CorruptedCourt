@@ -10,34 +10,36 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
-  m_Name: cake_eat
+  m_Name: dowry_royalTable
   m_EditorClassIdentifier: 
-  taskID: cake_eat
-  taskName: Sample the Dessert
-  taskDescription: Grab a plate of cake and eat it.
+  taskID: dowry_move
+  taskName: Relocate the Chest
+  taskDescription: The feast is ending. Haul the heavy dowry chest out to the Royal
+    Tent for safekeeping.
   isSabotage: 0
-  taskTier: 1
   allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
-  prerequisiteTask: {fileID: 11400000, guid: a9267073a6f70eb47bd34214d14fb649, type: 2}
+  prerequisiteTask: {fileID: 11400000, guid: b9518685377b41a4188b8c2b225b77c3, type: 2}
   stepTemplates:
-  - rid: 5911507330253979758
-  - rid: 5911507330253979759
+  - rid: 5911507376665788488
+  - rid: 5911507376665788489
   references:
     version: 2
     RefIds:
-    - rid: 5911507330253979758
+    - rid: 5911507376665788488
       type: {class: AcquireItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
         minigamePrefab: {fileID: 0}
-        requiredItem: {fileID: 11400000, guid: 84cbfc4eff99ac24bb9773ed93a5dd0c, type: 2}
+        requiredItem: {fileID: 11400000, guid: ce9596791f5553e4fb2c607c73719a98, type: 2}
         requiredState: 2
         legacyRequiredItemName: 
-    - rid: 5911507330253979759
-      type: {class: ConsumeItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
+    - rid: 5911507376665788489
+      type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}
       data:
-        minigamePrefab: {fileID: 4843060717586299352, guid: 5a37ab99966fbb640b0a5c43dd2142fa, type: 3}
-        requiredItem: {fileID: 11400000, guid: 84cbfc4eff99ac24bb9773ed93a5dd0c, type: 2}
+        minigamePrefab: {fileID: 0}
+        requiredItem: {fileID: 11400000, guid: ce9596791f5553e4fb2c607c73719a98, type: 2}
         requiredState: 2
+        targetStationID: RoyalTable
+        requireOwnDeposit: 0
         legacyRequiredItemName: 

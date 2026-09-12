@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 9124415088342133323}
   - component: {fileID: 5940126046360453662}
   m_Layer: 5
-  m_Name: VaseDepositMinigame
+  m_Name: FlowerToVaseMinigame
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
