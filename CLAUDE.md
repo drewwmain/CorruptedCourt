@@ -3,6 +3,10 @@
 ## Architecture
 - Assets/Scripts/Minigames/ARCHITECTURE.md is authoritative for anything minigame-related.
   Read it before touching Assets/Scripts/Minigames/ or any MinigameBase subclass.
+- Assets/Scripts/Tasks/ARCHITECTURE.md is authoritative for the task/station/item/emote system
+  (design proposal, revision 4 — not yet implemented; Part III audits it against live code, Part
+  VI tracks open rulings). Read it before touching Assets/Scripts/Tasks/, any TaskStep subclass,
+  or planning task-system work.
 - Gameplay code must never call into UI directly. UI subscribes to gameplay events.
 - ScriptableObjects are authoring assets and must never hold per-player runtime state.
 - Identity is a typed reference or an ID field, never a GameObject name or a substring match.
