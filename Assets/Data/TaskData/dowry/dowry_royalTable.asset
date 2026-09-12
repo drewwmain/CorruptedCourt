@@ -17,6 +17,7 @@ MonoBehaviour:
   taskDescription: The feast is ending. Haul the heavy dowry chest out to the Royal
     Tent for safekeeping.
   isSabotage: 0
+  taskTier: 1
   allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 

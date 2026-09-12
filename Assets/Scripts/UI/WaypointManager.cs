@@ -170,16 +170,6 @@ namespace CorruptedCourt.UI
                         targetsForThisTask.AddRange(FindPlayersWithSameTask(localPlayer, task.Definition.taskID));
                     }
                 }
-                // 5. Data Retrieval Step
-                else if (activeStep is DataRetrievalStep dataStep)
-                {
-                    // Point to the source station until THIS player has the code, then to the input station.
-                    bool hasCode = task.CurrentStepRuntime != null && task.CurrentStepRuntime.HasCode;
-                    string targetID = hasCode ? dataStep.inputStationID : dataStep.sourceStationID;
-                    Transform t = FindLocationByID(targetID);
-                    if (t != null) targetsForThisTask.Add(t);
-                }
-
                 // --- NEW: DEPOSIT ITEM STEP ---
                 else if (activeStep is DepositItemStep depositStep)
                 {

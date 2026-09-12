@@ -16,6 +16,7 @@ MonoBehaviour:
   taskName: Prepare for the Melee
   taskDescription: Carry a practice sword to the tournament grounds.
   isSabotage: 0
+  taskTier: 1
   allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 

@@ -23,8 +23,7 @@ namespace CorruptedCourt.Tasks
 
         /// <summary>
         /// Runtime-aware objective text. <paramref name="runtime"/> carries this step's per-player state.
-        /// The default ignores it; only steps that keep runtime state (e.g. <see cref="DataRetrievalStep"/>)
-        /// override this.
+        /// The default ignores it; only steps that keep runtime state override this.
         /// </summary>
         public virtual string GetObjectiveText(TaskStepRuntime runtime) => GetObjectiveText();
 
@@ -39,7 +38,7 @@ namespace CorruptedCourt.Tasks
         /// <summary>
         /// Runtime-aware completion check. <paramref name="runtime"/> carries this step's per-player,
         /// per-attempt state. The default ignores it and forwards to the stateless overload; only steps
-        /// that need runtime state (e.g. <see cref="DataRetrievalStep"/>) override this.
+        /// that need runtime state override this.
         /// </summary>
         public virtual bool CheckCompletion(PlayerController player, GameObject targetInteractable, TaskStepRuntime runtime)
             => CheckCompletion(player, targetInteractable);

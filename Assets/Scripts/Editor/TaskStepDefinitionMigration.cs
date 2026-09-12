@@ -83,12 +83,6 @@ namespace CorruptedCourt.EditorTools
                             dirty |= Resolve(defs, ref s.legacyRequiredHeldItemName, ref s.requiredItem, ref s.requiredState,
                                              path, i, ref resolved, ref unresolved, unresolvedNames);
                             break;
-                        case MutualPlayerInteractStep s:
-                            dirty |= Resolve(defs, ref s.legacyMyRequiredItemName, ref s.requiredItem, ref s.requiredState,
-                                             path, i, ref resolved, ref unresolved, unresolvedNames);
-                            dirty |= Resolve(defs, ref s.legacyTargetRequiredItemName, ref s.targetRequiredItem, ref s.targetRequiredState,
-                                             path, i, ref resolved, ref unresolved, unresolvedNames);
-                            break;
                         case ProcessItemStep s:
                             dirty |= ResolveProcess(defs, s, path, i, ref resolved, ref unresolved, unresolvedNames);
                             break;
@@ -194,9 +188,6 @@ namespace CorruptedCourt.EditorTools
                 case NavigateStep s:
                     n += Scrub(ref s.targetZoneID, ref dirty);
                     break;
-                case GroupNavigateStep s:
-                    n += Scrub(ref s.targetZoneID, ref dirty);
-                    break;
                 case StationInteractStep s:
                     n += Scrub(ref s.targetStationID, ref dirty);
                     break;
@@ -205,13 +196,6 @@ namespace CorruptedCourt.EditorTools
                     break;
                 case ProcessItemStep s:
                     n += Scrub(ref s.targetStationID, ref dirty);
-                    break;
-                case DataRetrievalStep s:
-                    n += Scrub(ref s.sourceStationID, ref dirty);
-                    n += Scrub(ref s.inputStationID, ref dirty);
-                    break;
-                case EquipClothingStep s:
-                    n += Scrub(ref s.clothingName, ref dirty);
                     break;
             }
             return n;

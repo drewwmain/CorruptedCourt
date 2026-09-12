@@ -12,9 +12,8 @@ namespace CorruptedCourt.Tasks
     /// <see cref="TaskData"/> is a <see cref="ScriptableObject"/> - a single shared asset - so its
     /// <see cref="TaskData.stepTemplates"/> are immutable authoring data. A <see cref="TaskInstance"/>
     /// owns its own step index plus one <see cref="TaskStepRuntime"/> per step, so each player advances
-    /// (and, for steps like <see cref="DataRetrievalStep"/>, accumulates per-attempt state)
-    /// independently. Two players handed the same <see cref="TaskData"/> no longer share a progress
-    /// counter.
+    /// independently, including any per-attempt state a step keeps on that runtime. Two players handed
+    /// the same <see cref="TaskData"/> no longer share a progress counter.
     /// </para>
     /// </summary>
     public class TaskInstance

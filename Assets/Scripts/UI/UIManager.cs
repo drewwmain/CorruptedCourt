@@ -44,17 +44,6 @@ namespace CorruptedCourt.UI
         public TextMeshProUGUI winnerText;
         public TextMeshProUGUI reasonText;
 
-        [Header("Data Retrieval UI")]
-        public GameObject dataPopupPanel; // A simple panel that says "Your code is: 123"
-        public TextMeshProUGUI dataCodeText;
-
-        public GameObject dataInputPanel; // A panel with an InputField and a Submit button
-        public TMP_InputField dataInputField;
-
-        // We need to remember who is typing and for what task
-        private PlayerController currentDataPlayer;
-        private TaskInstance currentDataTask;
-
         [Header("Corrupted UI")]
         public GameObject corruptedUIPanel;
         // Arrays strictly sized to 3 to match the Corrupted inventory slots
@@ -158,29 +147,6 @@ namespace CorruptedCourt.UI
             if (player == null) return;
 
             UpdatePlayerTaskList(player, player.TaskBook.allAssignedTasks, player.TaskBook.activeTasks, player.Vitals.courtTitle);
-
-            // One-shot signals from a DataRetrievalStep: part 1 flags the runtime for the "memorize"
-            // popup, part 2 flags it to open the code-entry panel. The step never calls us directly.
-            if (player.TaskBook.activeTasks != null)
-            {
-                foreach (TaskInstance task in player.TaskBook.activeTasks)
-                {
-                    if (task == null) continue;
-                    TaskStepRuntime rt = task.CurrentStepRuntime;
-                    if (rt == null || !(task.GetCurrentStep() is DataRetrievalStep)) continue;
-
-                    if (rt.CodeRevealPending)
-                    {
-                        rt.CodeRevealPending = false;
-                        ShowDataCodePopup(rt.GeneratedCode);
-                    }
-                    else if (rt.DataInputPending)
-                    {
-                        rt.DataInputPending = false;
-                        OpenDataInputPanel(player, task);
-                    }
-                }
-            }
         }
 
         private void OnMatchStateChanged(MatchManager.MatchState state)
@@ -645,86 +611,6 @@ namespace CorruptedCourt.UI
         {
             Log.Game("--- RESTARTING MATCH ---");
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        }
-
-        // --- DATA RETRIEVAL UI LOGIC ---
-
-        public void ShowDataCodePopup(string code)
-        {
-            if (dataPopupPanel != null && dataCodeText != null)
-            {
-                dataPopupPanel.SetActive(true);
-                dataCodeText.text = $"MEMORIZE CODE:\n<b>{code}</b>";
-
-                // Automatically hide it after 4 seconds to force them to memorize it!
-                Invoke(nameof(HideDataCodePopup), 4f);
-            }
-        }
-
-        private void HideDataCodePopup()
-        {
-            if (dataPopupPanel != null) dataPopupPanel.SetActive(false);
-        }
-
-        public void OpenDataInputPanel(PlayerController player, TaskInstance task)
-        {
-            if (dataInputPanel != null && dataInputField != null)
-            {
-                currentDataPlayer = player;
-                currentDataTask = task;
-
-                dataInputField.text = ""; // Clear old text
-                dataInputPanel.SetActive(true);
-            }
-        }
-
-        public void CloseDataInputPanel()
-        {
-            if (dataInputPanel != null) dataInputPanel.SetActive(false);
-
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
-
-        // Link this to the "Submit" Button on your Data Input Panel in the Unity Inspector!
-        public void SubmitDataCode()
-        {
-            if (currentDataPlayer != null && currentDataTask != null)
-            {
-                string playerInput = dataInputField.text;
-
-                // Compare against THIS player's code, held on the runtime state - never on the asset.
-                TaskStep activeStep = currentDataTask.GetCurrentStep();
-                TaskStepRuntime runtime = currentDataTask.CurrentStepRuntime;
-
-                if (activeStep is DataRetrievalStep && runtime != null)
-                {
-                    if (playerInput == runtime.GeneratedCode)
-                    {
-                        Log.Game("Code Accepted! Data Retrieval Complete.");
-
-                        // We must manually complete the step here because clicking a UI button
-                        // doesn't trigger the PlayerController's physical interaction raycast!
-                        currentDataTask.CompleteActiveStep();
-
-                        if (TaskManager.Instance != null)
-                        {
-                            // Check if that was the final step in the task
-                            if (currentDataTask.IsComplete)
-                            {
-                                TaskManager.Instance.CompleteTask(currentDataPlayer, currentDataTask);
-                            }
-                        }
-                        currentDataPlayer.TaskBook.RefreshLocalWaypoints();
-                    }
-                    else
-                    {
-                        Log.Game("INCORRECT CODE. Connection failed.");
-                    }
-                }
-            }
-
-            CloseDataInputPanel();
         }
 
         // --- CORRUPTED UI LOGIC ---

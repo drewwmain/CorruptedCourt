@@ -19,6 +19,7 @@ MonoBehaviour:
 
 '
   isSabotage: 0
+  taskTier: 1
   allowedStages: 01000000
   autoSpawnItemPrefab: {fileID: 0}
   autoSpawnLocationID: 
