@@ -606,10 +606,18 @@ namespace CorruptedCourt.Gameplay
                         // The minigame borrows the left hand. If the off-hand holds something else, drop it.
                         if (GetLeftHeldItem() != null)
                         {
-                            Log.Game($"Dropped off-hand {GetLeftHeldItem().DisplayName} to free the left hand for the minigame.");
-                            GetLeftHeldItem().DetachFromHand();
+                            PickupItem droppedOffHandItem = GetLeftHeldItem();
+                            Log.Game($"Dropped off-hand {droppedOffHandItem.DisplayName} to free the left hand for the minigame.");
+                            droppedOffHandItem.DetachFromHand();
                             ClearLeftHeldItem();
                             taskBook.CheckRegressionForAll();
+                            taskBook.EvaluateActiveTasks(new TaskEvalContext
+                            {
+                                Player = this,
+                                Reason = TaskEvalReason.InventoryChanged,
+                                Target = droppedOffHandItem.gameObject,
+                                Item = droppedOffHandItem
+                            });
                         }
 
                         if (LeftHandSocket != null)

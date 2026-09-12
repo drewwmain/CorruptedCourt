@@ -1,6 +1,7 @@
 using UnityEngine;
 using CorruptedCourt.Core;
 using CorruptedCourt.Items;
+using CorruptedCourt.Tasks;
 
 namespace CorruptedCourt.Gameplay
 {
@@ -92,6 +93,13 @@ namespace CorruptedCourt.Gameplay
 
             Log.Game($"Dropped {toDrop.DisplayName}.");
             player.TaskBook.CheckRegressionForAll();
+            player.TaskBook.EvaluateActiveTasks(new TaskEvalContext
+            {
+                Player = player,
+                Reason = TaskEvalReason.InventoryChanged,
+                Target = toDrop.gameObject,
+                Item = toDrop
+            });
             player.TaskBook.RefreshLocalWaypoints();
         }
 
@@ -101,30 +109,54 @@ namespace CorruptedCourt.Gameplay
         /// reaching the meeting room in time (G3.1). No-op if neither hand holds a heavy/haul item.</summary>
         public void DropHeavyItems()
         {
-            bool dropped = false;
+            // Captured (rather than a bool flag) so each dropped item - up to one per hand - can raise
+            // its own InventoryChanged evaluation below.
+            PickupItem droppedRightItem = null;
+            PickupItem droppedLeftItem = null;
 
             if (currentlyHeldItem != null && (currentlyHeldItem.isHeavy || currentlyHeldItem.haulWithBothHands))
             {
-                PickupItem item = currentlyHeldItem;
+                droppedRightItem = currentlyHeldItem;
                 currentlyHeldItem = null;
-                item.DetachFromHand();
+                droppedRightItem.DetachFromHand();
                 player.haulActive = false;
-                Log.Game($"Dropped {item.DisplayName} for the meeting scramble.");
-                dropped = true;
+                Log.Game($"Dropped {droppedRightItem.DisplayName} for the meeting scramble.");
             }
 
             if (leftHeldItem != null && (leftHeldItem.isHeavy || leftHeldItem.haulWithBothHands))
             {
-                PickupItem item = leftHeldItem;
+                droppedLeftItem = leftHeldItem;
                 leftHeldItem = null;
-                item.DetachFromHand();
-                Log.Game($"Dropped {item.DisplayName} for the meeting scramble.");
-                dropped = true;
+                droppedLeftItem.DetachFromHand();
+                Log.Game($"Dropped {droppedLeftItem.DisplayName} for the meeting scramble.");
             }
 
-            if (dropped)
+            if (droppedRightItem != null || droppedLeftItem != null)
             {
                 player.TaskBook.CheckRegressionForAll();
+
+                if (droppedRightItem != null)
+                {
+                    player.TaskBook.EvaluateActiveTasks(new TaskEvalContext
+                    {
+                        Player = player,
+                        Reason = TaskEvalReason.InventoryChanged,
+                        Target = droppedRightItem.gameObject,
+                        Item = droppedRightItem
+                    });
+                }
+
+                if (droppedLeftItem != null)
+                {
+                    player.TaskBook.EvaluateActiveTasks(new TaskEvalContext
+                    {
+                        Player = player,
+                        Reason = TaskEvalReason.InventoryChanged,
+                        Target = droppedLeftItem.gameObject,
+                        Item = droppedLeftItem
+                    });
+                }
+
                 player.TaskBook.RefreshLocalWaypoints();
             }
         }
@@ -150,6 +182,13 @@ namespace CorruptedCourt.Gameplay
             ClearHeldItem();
 
             player.TaskBook.CheckRegressionForAll();
+            player.TaskBook.EvaluateActiveTasks(new TaskEvalContext
+            {
+                Player = player,
+                Reason = TaskEvalReason.InventoryChanged,
+                Target = itemToThrow.gameObject,
+                Item = itemToThrow
+            });
 
             // 3. Awaken the Physics components
             Rigidbody rb = itemToThrow.GetComponent<Rigidbody>();

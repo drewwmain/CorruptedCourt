@@ -60,24 +60,24 @@ namespace CorruptedCourt.Tasks
                 : null;
 
         /// <summary>
-        /// Evaluates the active step against the player's action. Advances <see cref="CurrentStepIndex"/>
-        /// if successful, including minigame interception.
+        /// Evaluates the active step against the evaluation event described by <paramref name="ctx"/>.
+        /// Advances <see cref="CurrentStepIndex"/> if successful, including minigame interception.
         /// </summary>
         /// <returns>True if the overall task is now complete.</returns>
-        public bool EvaluateCurrentStep(PlayerController player, GameObject targetInteractable = null, bool skipMinigame = false)
+        public bool EvaluateCurrentStep(TaskEvalContext ctx)
         {
             if (IsComplete) return true;
 
             TaskStep activeStep = GetCurrentStep();
-            if (activeStep != null && activeStep.CheckCompletion(player, targetInteractable, CurrentStepRuntime))
+            if (activeStep != null && activeStep.CheckCompletion(ctx, CurrentStepRuntime))
             {
                 // --- MINIGAME INTERCEPTION ---
                 // Skipped when the caller already ran the minigame (e.g. a held item's own minigame).
-                if (!skipMinigame && activeStep.minigamePrefab != null)
+                if (!ctx.SkipMinigame && activeStep.minigamePrefab != null)
                 {
                     // Hand the minigame THIS instance, so its completion callback
                     // (PlayerController.FinishMinigame) advances this player's copy, not the shared asset.
-                    player.StartMinigame(activeStep.minigamePrefab, this, targetInteractable);
+                    ctx.Player.StartMinigame(activeStep.minigamePrefab, this, ctx.Target);
                     return false; // Return false because the step is NOT complete yet!
                 }
 
@@ -87,6 +87,20 @@ namespace CorruptedCourt.Tasks
 
             return IsComplete;
         }
+
+        /// <summary>
+        /// Interact-shaped convenience overload, kept for every pre-B1 call site: builds a
+        /// <see cref="TaskEvalContext"/> with <see cref="TaskEvalReason.Interact"/> and forwards.
+        /// </summary>
+        /// <returns>True if the overall task is now complete.</returns>
+        public bool EvaluateCurrentStep(PlayerController player, GameObject targetInteractable = null, bool skipMinigame = false)
+            => EvaluateCurrentStep(new TaskEvalContext
+            {
+                Player = player,
+                Reason = TaskEvalReason.Interact,
+                Target = targetInteractable,
+                SkipMinigame = skipMinigame
+            });
 
         /// <summary>
         /// Marks the active step complete and advances. Called instantly by normal steps, or later by a

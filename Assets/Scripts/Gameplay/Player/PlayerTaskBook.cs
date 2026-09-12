@@ -30,6 +30,24 @@ namespace CorruptedCourt.Gameplay
             player = GetComponent<PlayerController>();
         }
 
+        void OnEnable()
+        {
+            GameEvents.PlayerZoneChanged += HandleZoneChanged;
+        }
+
+        void OnDisable()
+        {
+            GameEvents.PlayerZoneChanged -= HandleZoneChanged;
+        }
+
+        // TaskZone raises PlayerZoneChanged for whichever player crossed its trigger - filter to this
+        // component's own player before evaluating, since GameEvents is a shared static bus.
+        private void HandleZoneChanged(PlayerController p)
+        {
+            if (p != player) return;
+            EvaluateActiveTasks(new TaskEvalContext { Player = player, Reason = TaskEvalReason.ZoneChanged });
+        }
+
         public void AssignTasks(List<TaskInstance> newTasks)
         {
             activeTasks.Clear();
@@ -73,13 +91,13 @@ namespace CorruptedCourt.Gameplay
         //   skipMinigame: forwarded to TaskStep.EvaluateCurrentStep - true when a minigame already ran and
         //     this is just advancing state afterward (see ResolveStandaloneItemMinigame).
         // Returns true if at least one task step completed.
-        public bool EvaluateActiveTasks(GameObject target, bool stopOnMinigame = false, bool skipMinigame = false)
+        public bool EvaluateActiveTasks(TaskEvalContext ctx, bool stopOnMinigame = false)
         {
             bool anyCompleted = false;
             for (int i = activeTasks.Count - 1; i >= 0; i--)
             {
                 TaskInstance task = activeTasks[i];
-                if (task.EvaluateCurrentStep(player, target, skipMinigame))
+                if (task.EvaluateCurrentStep(ctx))
                 {
                     if (TaskManager.Instance != null) TaskManager.Instance.CompleteTask(player, task);
                     anyCompleted = true;
@@ -89,6 +107,17 @@ namespace CorruptedCourt.Gameplay
             }
             return anyCompleted;
         }
+
+        // Interact-shaped convenience overload, kept for every pre-B1 call site (PlayerInteractor,
+        // PlayerController). Builds a TaskEvalContext with Reason = Interact and forwards.
+        public bool EvaluateActiveTasks(GameObject target, bool stopOnMinigame = false, bool skipMinigame = false)
+            => EvaluateActiveTasks(new TaskEvalContext
+            {
+                Player = player,
+                Reason = TaskEvalReason.Interact,
+                Target = target,
+                SkipMinigame = skipMinigame
+            }, stopOnMinigame);
 
         // Runs CheckForTaskRegression on every active task - used wherever an item leaves the player's
         // hands outside of a task step completing (dropped, thrown, or borrowed for a minigame), since

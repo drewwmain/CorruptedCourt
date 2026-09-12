@@ -45,6 +45,15 @@ namespace CorruptedCourt.Tasks
             => CheckCompletion(player, targetInteractable);
 
         /// <summary>
+        /// Context-aware completion check. The default forwards to the (player, target, runtime)
+        /// overload above using <see cref="TaskEvalContext.Target"/> - existing steps that only care
+        /// about Interact-shaped evaluation need no changes. Override this instead when a step must
+        /// react to an event with no interaction target (e.g. <see cref="TaskEvalReason.EmotePerformed"/>).
+        /// </summary>
+        public virtual bool CheckCompletion(TaskEvalContext ctx, TaskStepRuntime runtime)
+            => CheckCompletion(ctx.Player, ctx.Target, runtime);
+
+        /// <summary>
         /// Editor-only sanity check, run for every step by <see cref="TaskData.OnValidate"/>. Return a
         /// message to flag mis-authored data (e.g. a legacy identity string is filled in but the typed
         /// <see cref="ItemDefinition"/> reference that replaced it is not); return null when the step is
