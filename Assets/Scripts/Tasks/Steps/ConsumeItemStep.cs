@@ -31,18 +31,39 @@ namespace CorruptedCourt.Tasks
 
         public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
         {
-            var heldItem = player.GetHeldItem();
-            if (heldItem == null || requiredItem == null || !heldItem.Matches(requiredItem, requiredState)) return false;
+            if (requiredItem == null) return false;
 
-            // If a minigame is attached it plays out the eating/drinking and consumes the item itself
-            // (see ConsumeItemMinigame). Here we only confirm the player is holding the right thing.
-            if (minigamePrefab != null) return true;
+            PickupItem heldItem = player.GetHeldItem();
+            if (heldItem == null) return false;
 
-            // No minigame: consume it right away.
-            GameObject objToDestroy = heldItem.gameObject;
-            player.ClearHeldItem();
-            Object.Destroy(objToDestroy);
-            return true;
+            // Existing behaviour: the held item itself IS the required identity (unchanged - every live
+            // task still uses this path today).
+            if (heldItem.Matches(requiredItem, requiredState))
+            {
+                // If a minigame is attached it plays out the eating/drinking and consumes the item itself
+                // (see ConsumeItemMinigame). Here we only confirm the player is holding the right thing.
+                if (minigamePrefab != null) return true;
+
+                // No minigame: consume it right away.
+                GameObject objToDestroy = heldItem.gameObject;
+                player.ClearHeldItem();
+                Object.Destroy(objToDestroy);
+                return true;
+            }
+
+            // New: a held container's payload can also satisfy this (eat the cake off the plate). The
+            // container itself is NOT destroyed - only one serving is consumed from its payload.
+            ItemPayload payload = heldItem.GetComponent<ItemPayload>();
+            if (payload != null && payload.contents == requiredItem && payload.count > 0)
+            {
+                if (minigamePrefab != null) return true;
+
+                payload.count--;
+                if (payload.count <= 0) payload.contents = null;
+                return true;
+            }
+
+            return false;
         }
 
         public override string GetConfigurationWarning()

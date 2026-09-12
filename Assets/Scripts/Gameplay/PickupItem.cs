@@ -71,6 +71,9 @@ namespace CorruptedCourt.Gameplay
         /// <summary>True when this item is <paramref name="def"/> and carries every flag in <paramref name="required"/>.</summary>
         public bool Matches(ItemDefinition def, ItemState required) => definition == def && (state & required) == required;
 
+        /// <summary>True when this item matches <paramref name="id"/> (its definition + every flag in its state).</summary>
+        public bool Matches(ItemIdentity id) => Matches(id.definition, id.state);
+
         /// <summary>True when <paramref name="flag"/> (which may be several ORed flags) is fully set.</summary>
         public bool Has(ItemState flag) => (state & flag) == flag;
 
@@ -398,6 +401,16 @@ namespace CorruptedCourt.Gameplay
 
             state |= ItemState.DepositedContainer;
             Log.Game($"{DisplayName} now carries a deposit.");
+        }
+
+        // Called when a consume minigame empties a container (e.g. the plate/glass after eating/drinking
+        // what it held). Sets the Spent flag so pressing [E] on it again does nothing further.
+        public void MarkAsSpent()
+        {
+            if (Has(ItemState.Spent)) return;
+
+            state |= ItemState.Spent;
+            Log.Game($"{DisplayName} is now spent.");
         }
     }
 }

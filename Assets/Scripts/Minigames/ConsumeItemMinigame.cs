@@ -1,5 +1,4 @@
 using UnityEngine;
-using CorruptedCourt.Items;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Tasks;
 
@@ -64,7 +63,7 @@ namespace CorruptedCourt.Minigames
                         }
 
                         // The container is now empty - pressing [E] on it should do nothing more.
-                        held.state |= ItemState.Spent;
+                        held.MarkAsSpent();
                     }
                 }
             }

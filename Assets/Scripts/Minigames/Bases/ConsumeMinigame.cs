@@ -1,5 +1,4 @@
 using UnityEngine;
-using CorruptedCourt.Items;
 using CorruptedCourt.Gameplay;
 
 namespace CorruptedCourt.Minigames
@@ -72,7 +71,7 @@ namespace CorruptedCourt.Minigames
                 {
                     foreach (PickupItem child in item.GetComponentsInChildren<PickupItem>())
                         if (child != item) Destroy(child.gameObject);
-                    item.state |= ItemState.Spent;
+                    item.MarkAsSpent();
                 }
             }
             OnConsumed();

@@ -156,7 +156,9 @@ namespace CorruptedCourt.Gameplay
         }
 
         // Re-parents every item currently in the deposit station onto the pickup object, keeping its
-        // world position, so deposited props (e.g. the flowers) stay put and travel with it.
+        // world position, so deposited props (e.g. the flowers) stay put and travel with it. Also
+        // records what was deposited on the pickup's ItemPayload, so a step can read it back (e.g. the
+        // Plate now carries CakePiece x1) without the pickup itself needing to BE that identity.
         private void TransferDepositedItems()
         {
             if (pickupItemObject == null || depositStationObject == null) return;
@@ -164,6 +166,7 @@ namespace CorruptedCourt.Gameplay
             TaskDepositStation station = depositStationObject.GetComponent<TaskDepositStation>();
             if (station == null || station.depositedItemSlots == null) return;
 
+            ItemPayload payload = null;
             int placed = 0;
             for (int i = 0; i < station.depositedItemSlots.Length; i++)
             {
@@ -176,6 +179,17 @@ namespace CorruptedCourt.Gameplay
                 {
                     item.transform.localPosition = depositRestLocalPosition + depositRestPerItemOffset * placed;
                     item.transform.localRotation = Quaternion.identity;
+                }
+
+                if (item.definition != null)
+                {
+                    if (payload == null)
+                    {
+                        payload = pickupItemObject.GetComponent<ItemPayload>();
+                        if (payload == null) payload = pickupItemObject.AddComponent<ItemPayload>();
+                    }
+                    payload.contents = item.definition;
+                    payload.count++;
                 }
 
                 station.depositedItemSlots[i] = null; // station no longer owns it
