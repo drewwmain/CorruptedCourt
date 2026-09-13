@@ -60,6 +60,13 @@ namespace CorruptedCourt.Minigames
             // TODO(P5): real remote players get the trigger over the network / via their PlayerController.
         }
 
+        /// <summary>Point the partner's hand at a world position (mutual-reach minigames - B11). No-op
+        /// for a real partner; nothing to drive for a remote hand yet (see <see cref="Mirror"/>).</summary>
+        public void ReachToward(Vector3? worldPoint)
+        {
+            if (PartnerIsDummy && dummy != null) dummy.ReachToward(worldPoint);
+        }
+
         /// <summary>Removes the dummy stand-in, if any. Call when the session ends.</summary>
         public void Dismiss()
         {

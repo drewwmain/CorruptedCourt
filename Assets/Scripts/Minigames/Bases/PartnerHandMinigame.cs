@@ -19,6 +19,8 @@ namespace CorruptedCourt.Minigames
         public GameObject dummyPartnerPrefab;
         [Tooltip("How far in front of the initiator the stand-in partner is placed.")]
         public float dummyPartnerDistance = 1.4f;
+        [Tooltip("Seconds before the stand-in partner auto-accepts, so solo tests always complete.")]
+        public float dummyAutoAcceptDelay = 1.25f;
 
         /// <summary>Partner resolution, shared with <see cref="PartnerMinigame"/>.</summary>
         protected PartnerLink Link { get; } = new PartnerLink();
@@ -35,6 +37,7 @@ namespace CorruptedCourt.Minigames
             }
 
             Link.FaceEachOther();
+            if (Link.PartnerIsDummy) Link.BeginDummyAutoAccept(dummyAutoAcceptDelay);
             OnPartnerHandBegin();
         }
 
