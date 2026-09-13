@@ -2588,10 +2588,6 @@ MonoBehaviour:
   gameOverPanel: {fileID: 1932405627}
   winnerText: {fileID: 2021357732}
   reasonText: {fileID: 98052785}
-  dataPopupPanel: {fileID: 1236277728}
-  dataCodeText: {fileID: 702280350}
-  dataInputPanel: {fileID: 188889864}
-  dataInputField: {fileID: 1713986225}
   corruptedUIPanel: {fileID: 2138176634}
   powerUpNameTexts:
   - {fileID: 1939640995}
@@ -2866,6 +2862,7 @@ GameObject:
   - component: {fileID: 698097557}
   - component: {fileID: 698097558}
   - component: {fileID: 698097559}
+  - component: {fileID: 698097560}
   m_Layer: 8
   m_Name: MatchManager
   m_TagString: Untagged
@@ -3008,6 +3005,19 @@ MonoBehaviour:
   relightsToCure: 2
   mapLights: []
   dousedAmbient: {r: 0.02, g: 0.02, b: 0.03, a: 1}
+--- !u!114 &698097560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 698097553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4c73c619503e3a4c9c4fc36970f40f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fadeDuration: 0.35
 --- !u!1 &702280349
 GameObject:
   m_ObjectHideFlags: 0

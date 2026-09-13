@@ -11,8 +11,8 @@ namespace CorruptedCourt.Gameplay
     public enum Hand { Right, Left }
 
     /// <summary>
-    /// Placeholder for the B5 DroppedItemRegistry phase's drop-slot rules. Defined here now only
-    /// because ItemLifecycle.Drop's signature needs it; B5 owns whether it stays here or moves.
+    /// Why an item left a player's hand. Manual/Thrown consume the player's one outstanding-drop slot
+    /// (see DroppedItemRegistry); Forced (the pre-meeting scramble) is exempt from that rule entirely.
     /// </summary>
     public enum DropCause { Manual, Thrown, Forced }
 
@@ -91,10 +91,24 @@ namespace CorruptedCourt.Gameplay
         // distinct, input-driven mechanic (charge %, weight-scaled force, torque, ThrownProjectile)
         // that doesn't generalise to an arbitrary item + cause, so it is NOT replicated here - Thrown
         // is accepted so callers can express intent, but gets the same toss as Manual/Forced today.
-        // dropper/cause aren't used yet; both are here for the B5 DroppedItemRegistry hook.
+        //
+        // R5 (ARCHITECTURE.md §9.2, B5): a Manual/Thrown drop replaces the dropper's one outstanding
+        // drop, despawning the old one with a visible fade rather than an instant pop. Forced drops
+        // (the pre-meeting scramble) are exempt entirely - they neither replace nor become a tracked
+        // drop, so DroppedItemRegistry is skipped altogether for that cause.
         public static void Drop(PlayerController dropper, PickupItem item, DropCause cause)
         {
             if (item == null) return;
+
+            if (cause != DropCause.Forced && dropper != null && DroppedItemRegistry.Instance != null)
+            {
+                PickupItem outstanding = DroppedItemRegistry.Instance.OutstandingFor(dropper);
+                if (outstanding != null && outstanding != item)
+                    DroppedItemRegistry.Instance.DespawnWithFade(outstanding);
+
+                DroppedItemRegistry.Instance.RegisterDrop(dropper, item, cause);
+            }
+
             item.DetachFromHand();
         }
 

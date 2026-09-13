@@ -223,6 +223,7 @@ namespace CorruptedCourt.Gameplay
                 else
                 {
                     // Standard pickup logic for items that have been dropped on the floor
+                    if (DroppedItemRegistry.Instance != null) DroppedItemRegistry.Instance.Clear(this);
                     player.EquipItem(this);
                 }
             }

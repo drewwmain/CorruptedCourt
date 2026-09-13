@@ -297,7 +297,16 @@ namespace CorruptedCourt.UI
 
                     for (int i = 0; i < markers.Count; i++)
                     {
-                        if (targets[i] == null || markers[i] == null) continue;
+                        if (markers[i] == null) continue;
+
+                        // The target it was pointing at was destroyed (dropped item despawned, sabotage,
+                        // etc.) - hide the marker now instead of leaving it frozen at its last screen
+                        // position until the next full rebuild (LocalTasksChanged) happens to fire.
+                        if (targets[i] == null)
+                        {
+                            markers[i].gameObject.SetActive(false);
+                            continue;
+                        }
 
                         float dist = Vector3.Distance(playerCamera.transform.position, targets[i].position);
                         drawList.Add(new MarkerDrawData { marker = markers[i], target = targets[i], distance = dist });
