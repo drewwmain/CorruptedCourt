@@ -16,10 +16,9 @@ namespace CorruptedCourt.Tasks
         [Tooltip("Set to > 1 if multiple players must interact simultaneously.")]
         public int requiredSimultaneousPlayers = 1;
 
-        // Shared scratch buffer for the group-proximity check. CheckCompletion runs on the main thread
-        // and consumes the hits immediately, so one static buffer is safe. 32 is comfortably above any
-        // realistic count of colliders on the character layer inside one interaction radius.
-        private static readonly Collider[] proximityBuffer = new Collider[32];
+        [Tooltip("When true, the station's TaskStationState must be Pending - re-lighting an already-lit " +
+                 "candle (or similar) does nothing. Requires a TaskStationState on the station.")]
+        public bool requiresStationPending;
 
         public override string GetObjectiveText()
         {
@@ -37,27 +36,31 @@ namespace CorruptedCourt.Tasks
             TaskLocation loc = ResolveLocation(targetInteractable);
             if (loc == null || loc.locationID != targetStationID) return false;
 
-            // If it's a group task, check proximity of other players.
+            TaskStationState state = (requiresStationPending || requiredSimultaneousPlayers > 1)
+                ? loc.GetComponent<TaskStationState>()
+                : null;
+
+            if (requiresStationPending)
+            {
+                if (state == null || state.Current != TaskStationState.Condition.Pending) return false;
+            }
+
+            // If it's a group task, check actual seat occupancy rather than momentary proximity.
             if (requiredSimultaneousPlayers > 1)
             {
-                int playersNearby = 0;
-                int hitCount = Physics.OverlapSphereNonAlloc(
-                    targetInteractable.transform.position, player.Interactor.InteractionRange, proximityBuffer, player.Interactor.CharacterLayer);
-
-                // Buffer full: OverlapSphereNonAlloc silently drops the rest, so the count below could be
-                // low. It can only ever UNDER-count, so a full buffer that already meets the requirement
-                // is still a valid pass; only warn when it might have cost us the completion.
-                if (hitCount == proximityBuffer.Length)
-                    Log.Warn($"[StationInteractStep] proximity buffer full ({proximityBuffer.Length}) at " +
-                             $"'{targetStationID}' - nearby-player count may be truncated.");
-
-                for (int i = 0; i < hitCount; i++)
+                if (state == null)
                 {
-                    if (proximityBuffer[i] != null && proximityBuffer[i].GetComponent<PlayerController>() != null)
-                        playersNearby++;
+                    Log.Warn($"[StationInteractStep] '{targetStationID}' needs a TaskStationState for its multi-player seat check.");
+                    return false;
                 }
 
-                return playersNearby >= requiredSimultaneousPlayers;
+                // No hold-to-interact mechanic exists anywhere in this codebase to release a seat on
+                // button-up, so lazily re-validate before claiming: release anyone no longer actually
+                // near the station, then try to claim this press's seat.
+                state.PruneStaleSeats(player.Interactor.InteractionRange);
+                state.TryClaimSeat(player);
+
+                return state.SeatsFull;
             }
 
             return true; // Standard single-player interaction successful

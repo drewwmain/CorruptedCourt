@@ -79,6 +79,21 @@ namespace CorruptedCourt.Gameplay
             seatedPlayers.Remove(p);
         }
 
+        /// <summary>Releases any seated player now farther than <paramref name="maxDistance"/> from this
+        /// station. There's no hold-to-interact mechanic anywhere in this codebase to release a seat on
+        /// button-up, so callers (StationInteractStep) call this to lazily re-validate occupancy on every
+        /// new interaction attempt instead - see IMPLEMENTATION_PROMPTS.md B6b.</summary>
+        public void PruneStaleSeats(float maxDistance)
+        {
+            float maxDistSq = maxDistance * maxDistance;
+            for (int i = seatedPlayers.Count - 1; i >= 0; i--)
+            {
+                PlayerController p = seatedPlayers[i];
+                if (p == null || (p.transform.position - transform.position).sqrMagnitude > maxDistSq)
+                    seatedPlayers.RemoveAt(i);
+            }
+        }
+
         public void MarkSatisfied(PlayerController by)
         {
             if (depositStation != null) return; // derives from HasReceivedItem() instead - see class summary
