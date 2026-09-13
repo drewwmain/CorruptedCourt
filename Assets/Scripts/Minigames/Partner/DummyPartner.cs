@@ -16,6 +16,9 @@ namespace CorruptedCourt.Minigames
         private Animator anim;
         private float acceptAt = -1f;
 
+        private Vector3? reachTarget;
+        private float reachWeight;
+
         /// <summary>True once the stand-in has "agreed" to the interaction.</summary>
         public bool HasAccepted { get; private set; }
 
@@ -28,6 +31,19 @@ namespace CorruptedCourt.Minigames
         {
             if (!HasAccepted && acceptAt >= 0f && Time.time >= acceptAt)
                 HasAccepted = true;
+        }
+
+        // Requires the Animator Controller's base layer to have "IK Pass" enabled - Unity does not
+        // call OnAnimatorIK otherwise, silently.
+        private void OnAnimatorIK(int layerIndex)
+        {
+            if (anim == null) return;
+
+            float targetWeight = reachTarget.HasValue ? 1f : 0f;
+            reachWeight = Mathf.MoveTowards(reachWeight, targetWeight, Time.deltaTime * 4f);
+
+            anim.SetIKPositionWeight(AvatarIKGoal.RightHand, reachWeight);
+            if (reachTarget.HasValue) anim.SetIKPosition(AvatarIKGoal.RightHand, reachTarget.Value);
         }
 
         /// <summary>Start the countdown to auto-accept.</summary>
@@ -46,6 +62,26 @@ namespace CorruptedCourt.Minigames
         public void HoldPose(string boolParam, bool on)
         {
             if (anim != null && !string.IsNullOrEmpty(boolParam)) anim.SetBool(boolParam, on);
+        }
+
+        /// <summary>
+        /// Points the stand-in's right hand toward a world point (mutual-reach minigames - handshake,
+        /// cheers; B11 drives this each frame toward the shared anchor). Pass null to release the reach
+        /// and let the hand relax back to its normal animated pose. Requires a Humanoid Animator with
+        /// "IK Pass" enabled on its base layer (see the class summary).
+        /// </summary>
+        public void ReachToward(Vector3? worldPoint)
+        {
+            reachTarget = worldPoint;
+        }
+
+        /// <summary>
+        /// Plays an emote's animator trigger on the stand-in. A stub for now - B14 gives emote
+        /// performance its real meaning (timing, looping, category matching); this just fires the clip.
+        /// </summary>
+        public void PerformEmote(EmoteDefinition emote)
+        {
+            if (emote != null) Play(emote.animTrigger);
         }
 
         /// <summary>Remove the stand-in when the minigame ends.</summary>

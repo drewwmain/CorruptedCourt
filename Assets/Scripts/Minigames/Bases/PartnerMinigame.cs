@@ -11,6 +11,11 @@ namespace CorruptedCourt.Minigames
     /// solo test) a <see cref="DummyPartner"/> spawned in front of them that plays its half of the
     /// animation and auto-accepts. Subclasses implement the actual success test in
     /// <see cref="OnMinigameUpdate"/> and call <see cref="CompleteMinigame"/>.
+    ///
+    /// The partner-resolution work itself lives in <see cref="PartnerLink"/> so
+    /// <see cref="PartnerHandMinigame"/> can reuse it without also inheriting from this class -
+    /// MinigameBase's single-inheritance hierarchy can't give one subclass both HandMinigame's
+    /// plumbing and this class's body (Minigames/ARCHITECTURE.md §10.2).
     /// </summary>
     public abstract class PartnerMinigame : MinigameBase
     {
@@ -22,61 +27,49 @@ namespace CorruptedCourt.Minigames
         [Tooltip("Seconds before the stand-in partner auto-accepts, so solo tests always complete.")]
         public float dummyAutoAcceptDelay = 1.25f;
 
+        private readonly PartnerLink link = new PartnerLink();
+
         /// <summary>The other participant (real player or stand-in).</summary>
-        protected PlayerController Partner { get; private set; }
+        protected PlayerController Partner => link.Partner;
 
         /// <summary>True when <see cref="Partner"/> is an AI stand-in rather than a real player.</summary>
-        protected bool PartnerIsDummy { get; private set; }
+        protected bool PartnerIsDummy => link.PartnerIsDummy;
 
-        private DummyPartner dummy;
+        /// <summary>True once the dummy has auto-accepted (or immediately for a cooperating real player).</summary>
+        protected bool PartnerAccepted => link.PartnerAccepted;
 
         protected override void OnMinigameBegin()
         {
-            Partner = PartnerResolver.Resolve(Context, player, dummyPartnerPrefab,
-                                              dummyPartnerDistance, out dummy);
-            PartnerIsDummy = dummy != null;
+            link.Resolve(Context, player, dummyPartnerPrefab, dummyPartnerDistance);
 
-            if (Partner == null)
+            if (link.Partner == null)
             {
                 Log.Warn($"[{GetType().Name}] no partner and no dummy prefab - cancelling.");
                 CancelMinigame();
                 return;
             }
 
-            FacePartner();
-            if (PartnerIsDummy) dummy.BeginAutoAccept(dummyAutoAcceptDelay);
+            link.FaceEachOther();
+            if (link.PartnerIsDummy) link.BeginDummyAutoAccept(dummyAutoAcceptDelay);
             OnPartnerBegin();
         }
 
         protected override void OnMinigameEnd(bool won)
         {
-            if (dummy != null) dummy.Dismiss();
+            link.Dismiss();
         }
 
         private void Update()
         {
-            if (player == null || Partner == null) return;
+            if (player == null || link.Partner == null) return;
             OnMinigameUpdate();
         }
 
         /// <summary>Turn the initiator's body to face the partner (yaw only).</summary>
-        protected void FacePartner()
-        {
-            Vector3 dir = Partner.transform.position - player.transform.position;
-            dir.y = 0f;
-            if (dir.sqrMagnitude > 0.0001f)
-                player.transform.rotation = Quaternion.LookRotation(dir);
-        }
+        protected void FacePartner() => link.FaceEachOther();
 
         /// <summary>Play the same animation trigger on both sides (handshake, cheers clink, ...).</summary>
-        protected void MirrorOnPartner(string animTrigger)
-        {
-            if (PartnerIsDummy && dummy != null) dummy.Play(animTrigger);
-            // TODO(P5): real remote players get the trigger over the network / via their PlayerController.
-        }
-
-        /// <summary>True once the dummy has auto-accepted (or immediately for a cooperating real player).</summary>
-        protected bool PartnerAccepted => PartnerIsDummy ? (dummy != null && dummy.HasAccepted) : true;
+        protected void MirrorOnPartner(string animTrigger) => link.Mirror(animTrigger);
 
         // --- hooks --------------------------------------------------------------------------------
         protected virtual void OnPartnerBegin() { }
