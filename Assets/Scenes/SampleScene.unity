@@ -2047,6 +2047,19 @@ MonoBehaviour:
   jumpHeight: 1.5
   crouchTransitionSpeed: 10
   leanSpeed: 8
+--- !u!114 &521687393
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 521687389}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 505a7de3100dff94b99a83e8de6fef8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  nameplate: {fileID: 0}
 --- !u!1 &556237274
 GameObject:
   m_ObjectHideFlags: 0
@@ -8401,6 +8414,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2979434807370161209, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
       insertIndex: 4
       addedObject: {fileID: 521687392}
+    - targetCorrespondingSourceObject: {fileID: 2979434807370161209, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 521687393}
   m_SourcePrefab: {fileID: 100100000, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
 --- !u!1001 &5904291442710549169
 PrefabInstance:

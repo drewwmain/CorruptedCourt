@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using CorruptedCourt.Minigames;
 
 namespace CorruptedCourt.Gameplay
 {
@@ -146,6 +147,12 @@ namespace CorruptedCourt.Gameplay
         public static event Action<List<Transform>, float> SpymasterWaypointsShown;
         public static void RaiseSpymasterWaypointsShown(List<Transform> targets, float duration) => SpymasterWaypointsShown?.Invoke(targets, duration);
 
+        /// <summary>A player performed an emote. Carries the performer and the emote. Raised from
+        /// <c>PlayerEmotes.Perform</c>; a future <c>EmoteStep</c> (B14) evaluates against this, and
+        /// every partner-overlap check reads <c>PlayerEmotes.IsPerforming</c> off the performer.</summary>
+        public static event Action<PlayerController, EmoteDefinition> EmotePerformed;
+        public static void RaiseEmotePerformed(PlayerController player, EmoteDefinition emote) => EmotePerformed?.Invoke(player, emote);
+
         /// <summary>The in-game settings / pause menu opened (true) or closed (false).
         /// <see cref="SettingsMenuOpen"/> caches the latest value for pull-style readers like MinigameInput.</summary>
         public static event Action<bool> SettingsMenuToggled;
@@ -188,6 +195,7 @@ namespace CorruptedCourt.Gameplay
             SpymasterWaypointsShown = null;
             SettingsMenuToggled = null;
             SettingsMenuOpen = false;
+            EmotePerformed = null;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
