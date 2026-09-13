@@ -204,9 +204,9 @@ namespace CorruptedCourt.Gameplay
 
                 if (isInfiniteSource)
                 {
-                    // 1. Create a physical duplicate of the item in the scene
-                    GameObject cloneObj = Instantiate(this.gameObject);
-                    PickupItem cloneItem = cloneObj.GetComponent<PickupItem>();
+                    // 1. Create a physical duplicate of the item in the scene, at this item's own pose.
+                    ItemIdentity identity = new ItemIdentity { definition = definition, state = state };
+                    PickupItem cloneItem = ItemLifecycle.Spawn(this, identity, transform.position, transform.rotation);
 
                     // 2. The clone should act as a normal item, NOT another infinite spawner!
                     // This ensures if a player drops the clone, other players can pick it up normally.
@@ -214,7 +214,7 @@ namespace CorruptedCourt.Gameplay
 
                     // 3. Cosmetic only: strip Unity's "(Clone)" so the hierarchy stays readable. Identity
                     // rides on 'definition', which Instantiate copies - nothing matches on the name.
-                    cloneObj.name = this.gameObject.name;
+                    cloneItem.gameObject.name = this.gameObject.name;
 
                     // 4. Force the player to equip the clone instead of the original
                     // (Your EquipItem method handles dropping whatever else they might be holding)
@@ -389,7 +389,7 @@ namespace CorruptedCourt.Gameplay
         {
             if (Has(ItemState.Processed)) return; // already processed
 
-            state |= ItemState.Processed;
+            ItemLifecycle.SetState(this, ItemState.Processed, ItemState.None);
             Log.Game($"The {DisplayName} has been successfully modified/processed.");
         }
 
@@ -399,7 +399,7 @@ namespace CorruptedCourt.Gameplay
         {
             if (Has(ItemState.DepositedContainer)) return;
 
-            state |= ItemState.DepositedContainer;
+            ItemLifecycle.SetState(this, ItemState.DepositedContainer, ItemState.None);
             Log.Game($"{DisplayName} now carries a deposit.");
         }
 
@@ -409,7 +409,7 @@ namespace CorruptedCourt.Gameplay
         {
             if (Has(ItemState.Spent)) return;
 
-            state |= ItemState.Spent;
+            ItemLifecycle.SetState(this, ItemState.Spent, ItemState.None);
             Log.Game($"{DisplayName} is now spent.");
         }
     }

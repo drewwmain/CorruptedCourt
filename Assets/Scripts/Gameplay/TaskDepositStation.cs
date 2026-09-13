@@ -322,7 +322,7 @@ namespace CorruptedCourt.Gameplay
         {
             if (item == null || dropSlots == null || slotIndex < 0 || slotIndex >= dropSlots.Length) return;
 
-            item.PlaceInStation(dropSlots[slotIndex], this);
+            ItemLifecycle.PlaceInStation(item, this, slotIndex);
             depositedItemSlots[slotIndex] = item;
             RecordDepositor(slotIndex, depositor);
             lastDepositedSlot = slotIndex;
@@ -371,19 +371,12 @@ namespace CorruptedCourt.Gameplay
                         return;
                     }
 
-                    heldItem.PlaceInStation(dropSlots[availableSlot], this);
-                    depositedItemSlots[availableSlot] = heldItem;
-                    RecordDepositor(availableSlot, player);
-                    lastDepositedSlot = availableSlot;
+                    DepositIntoSlot(heldItem, availableSlot, player);
                     player.ClearHeldItem();
-
-                    Log.Game($"Item {heldItem.DisplayName} deposited into slot {availableSlot}.");
 
                     // Instantly refresh UI.
                     // The PlayerController's PerformInteraction loop will evaluate this immediately after and complete the task step!
                     player.TaskBook.RefreshLocalWaypoints();
-
-                    GameEvents.RaiseStationReceivedDeposit(this);
                 }
                 else
                 {
@@ -493,7 +486,7 @@ namespace CorruptedCourt.Gameplay
             else
             {
                 Log.Game($"Sabotage: {item.DisplayName} destroyed at the {where}.");
-                Destroy(item.gameObject);
+                ItemLifecycle.Despawn(item);
             }
             return true;
         }

@@ -87,7 +87,7 @@ namespace CorruptedCourt.Gameplay
                 return;
             }
 
-            toDrop.DetachFromHand();
+            ItemLifecycle.Drop(player, toDrop, DropCause.Manual);
             if (toDrop == currentlyHeldItem) currentlyHeldItem = null;
             else leftHeldItem = null;
 
@@ -118,7 +118,7 @@ namespace CorruptedCourt.Gameplay
             {
                 droppedRightItem = currentlyHeldItem;
                 currentlyHeldItem = null;
-                droppedRightItem.DetachFromHand();
+                ItemLifecycle.Drop(player, droppedRightItem, DropCause.Forced);
                 player.haulActive = false;
                 Log.Game($"Dropped {droppedRightItem.DisplayName} for the meeting scramble.");
             }
@@ -127,7 +127,7 @@ namespace CorruptedCourt.Gameplay
             {
                 droppedLeftItem = leftHeldItem;
                 leftHeldItem = null;
-                droppedLeftItem.DetachFromHand();
+                ItemLifecycle.Drop(player, droppedLeftItem, DropCause.Forced);
                 Log.Game($"Dropped {droppedLeftItem.DisplayName} for the meeting scramble.");
             }
 
@@ -178,7 +178,7 @@ namespace CorruptedCourt.Gameplay
 
             // 2. Detach and clear the item from the player's inventory
             PickupItem itemToThrow = currentlyHeldItem;
-            itemToThrow.DetachFromHand();
+            ItemLifecycle.Drop(player, itemToThrow, DropCause.Thrown);
             ClearHeldItem();
 
             player.TaskBook.CheckRegressionForAll();
@@ -233,8 +233,8 @@ namespace CorruptedCourt.Gameplay
             leftHeldItem = temp;
 
             // Re-seat whatever ended up in each hand on the matching socket.
-            if (currentlyHeldItem != null) currentlyHeldItem.AttachToHand(rightHandSocket);
-            if (leftHeldItem != null) leftHeldItem.AttachToHand(leftHandSocket);
+            if (currentlyHeldItem != null) ItemLifecycle.GiveToHand(player, currentlyHeldItem, Hand.Right);
+            if (leftHeldItem != null) ItemLifecycle.GiveToHand(player, leftHeldItem, Hand.Left);
 
             Log.Game($"Swapped hands. Active: {(currentlyHeldItem != null ? currentlyHeldItem.DisplayName : "empty")} | Off-hand: {(leftHeldItem != null ? leftHeldItem.DisplayName : "empty")}");
         }
@@ -265,7 +265,7 @@ namespace CorruptedCourt.Gameplay
             {
                 // Active hand is full but the off-hand is free: carry the new item there.
                 leftHeldItem = newItem;
-                leftHeldItem.AttachToHand(leftHandSocket);
+                ItemLifecycle.GiveToHand(player, leftHeldItem, Hand.Left);
                 Log.Game($"Equipped {leftHeldItem.DisplayName} in the off-hand");
                 return;
             }
@@ -278,7 +278,7 @@ namespace CorruptedCourt.Gameplay
             }
 
             currentlyHeldItem = newItem;
-            currentlyHeldItem.AttachToHand(rightHandSocket);
+            ItemLifecycle.GiveToHand(player, currentlyHeldItem, Hand.Right);
 
             Log.Game($"Equipped {currentlyHeldItem.DisplayName}");
         }
@@ -355,7 +355,7 @@ namespace CorruptedCourt.Gameplay
         {
             if (itemSwappedToLeftHand && currentlyHeldItem != null)
             {
-                currentlyHeldItem.AttachToHand(rightHandSocket);
+                ItemLifecycle.GiveToHand(player, currentlyHeldItem, Hand.Right);
                 itemSwappedToLeftHand = false;
             }
         }

@@ -18,9 +18,9 @@ namespace CorruptedCourt.Gameplay
 
     /// <summary>
     /// Single surface for item spawn / hand-placement / state / payload / station-placement / drop /
-    /// despawn (ARCHITECTURE.md §9.1). B4a only: every method below calls into logic that already
-    /// exists scattered across PickupItem, PlayerInventory and TaskDepositStation - nothing here is
-    /// wired to a caller yet (that's B4b), and none of those files are touched by this phase.
+    /// despawn (ARCHITECTURE.md §9.1). As of B4b, PickupItem/PlayerInventory/TaskDepositStation route
+    /// their internal mutation logic through here instead of duplicating it inline - SetPayload has
+    /// no adopted caller yet (that logic still lives in RoundRoleSwitch, untouched by B4b).
     /// </summary>
     public static class ItemLifecycle
     {
@@ -73,13 +73,16 @@ namespace CorruptedCourt.Gameplay
             payload.count = count;
         }
 
-        // TaskDepositStation.DepositIntoSlot(PickupItem, int) already IS this exact operation (places
-        // the item in the slot's Transform, updates depositedItemSlots, raises StationReceivedDeposit) -
-        // delegate straight to it rather than duplicating station-internal bookkeeping.
+        // Places the item at the station's slot-index Transform (GetDropSlot is already public).
+        // Does NOT touch depositedItemSlots / slotDepositors / lastDepositedSlot / the
+        // StationReceivedDeposit event - those are TaskDepositStation-private bookkeeping only
+        // TaskDepositStation.DepositIntoSlot can touch, and that method (as of B4b) calls THIS one
+        // for the placement step - calling DepositIntoSlot from here instead would recurse straight
+        // back into it.
         public static void PlaceInStation(PickupItem item, TaskDepositStation station, int slot)
         {
             if (item == null || station == null) return;
-            station.DepositIntoSlot(item, slot);
+            item.PlaceInStation(station.GetDropSlot(slot), station);
         }
 
         // Mirrors the common core of PlayerInventory.DropHeldItemInPlace/DropHeavyItems: unparent,
