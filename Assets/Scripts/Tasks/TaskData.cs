@@ -2,8 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using CorruptedCourt.Core;
 using UnityEngine.Serialization;
-using CorruptedCourt.Gameplay;
-using CorruptedCourt.Items;
 
 namespace CorruptedCourt.Tasks
 {
@@ -29,17 +27,9 @@ namespace CorruptedCourt.Tasks
         [Range(1, 3)]
         public int taskTier = 1;
 
-        [Header("Stage & Prerequisites")]
+        [Header("Stage")]
         [Tooltip("Which rounds/stages this task is allowed to spawn in (e.g., 1, 2, 3)")]
         public List<int> allowedStages = new List<int> { 1, 2, 3 };
-        [Tooltip("If the prerequisite task was NOT completed, spawn this item to ensure the task is still possible")]
-        public PickupItem autoSpawnItemPrefab;
-
-        [Tooltip("The ID of the TaskDepositStation where the auto-spawned item will be injected (e.g., 'Armory')")]
-        public string autoSpawnLocationID;
-
-        [Tooltip("A task from a previous round that connects to this task (Optional)")]
-        public TaskData prerequisiteTask;
 
         [Header("Modular Steps")]
         [Tooltip("Authoring template for this task's steps, in order. TaskInstance builds a per-player " +

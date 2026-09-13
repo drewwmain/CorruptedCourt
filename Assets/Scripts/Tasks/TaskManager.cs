@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using CorruptedCourt.Core;
 using CorruptedCourt.Gameplay;
-using CorruptedCourt.Items;
 
 namespace CorruptedCourt.Tasks
 {
@@ -151,9 +150,6 @@ namespace CorruptedCourt.Tasks
             if (RoleManager.Instance == null) return;
             Log.Game("--- TASK MANAGER: Distributing new tasks for the Action Stage ---");
 
-            // Track what we auto-spawn this stage to prevent giving out 5 swords if 5 people get the Duel task
-            HashSet<ItemDefinition> spawnedItemsThisStage = new HashSet<ItemDefinition>();
-
             foreach (PlayerController player in RoleManager.Instance.allPlayers)
             {
                 if (player == null) continue;
@@ -190,64 +186,6 @@ namespace CorruptedCourt.Tasks
                 List<TaskInstance> playerTasks = new List<TaskInstance>(carriedTasks);
                 playerTasks.AddRange(freshTasks);
                 player.TaskBook.AssignTasks(playerTasks);
-
-                // --- PREREQUISITE AUTO-SPAWN LOGIC ---
-                // Only the fresh allotment is checked: a carried task's prerequisite item was already
-                // provided when the task was fresh and persists in the world across the rollover.
-                foreach (TaskInstance task in freshTasks)
-                {
-                    if (task == null || task.Definition == null) continue;
-                    TaskData def = task.Definition;
-
-                    // If this task required a past event, and the Court FAILED to do it...
-                    if (def.prerequisiteTask != null && !completedTasksHistory.Contains(def.prerequisiteTask))
-                    {
-                        if (def.autoSpawnItemPrefab != null && def.autoSpawnItemPrefab.definition != null
-                            && !string.IsNullOrEmpty(def.autoSpawnLocationID))
-                        {
-                            // Check if we already spawned this item for another player's task this round
-                            if (spawnedItemsThisStage.Contains(def.autoSpawnItemPrefab.definition)) continue;
-
-                            // Find the required Task Deposit Station in the world
-                            foreach (TaskLocation location in TaskLocation.AllLocations)
-                            {
-                                if (location == null) continue;
-
-                                if (location.locationID == def.autoSpawnLocationID)
-                                {
-                                    TaskDepositStation station = location.GetComponent<TaskDepositStation>();
-                                    if (station != null)
-                                    {
-                                        // Find the first empty slot in the station's grid
-                                        for (int i = 0; i < station.depositedItemSlots.Length; i++)
-                                        {
-                                            if (station.depositedItemSlots[i] == null)
-                                            {
-                                                // Instantiate the required item (identity rides on 'definition', which Instantiate copies)
-                                                PickupItem spawnedItem = Instantiate(def.autoSpawnItemPrefab);
-
-                                                // Flag this as a normal item, not an infinite spawner, so the UI prioritizes it!
-                                                spawnedItem.isInfiniteSource = false;
-
-                                                // Grab the exact drop slot Transform and tell the item to deposit
-                                                Transform exactGridSlot = station.GetDropSlot(i);
-                                                spawnedItem.PlaceInStation(exactGridSlot, station);
-
-                                                // Register it in the station's memory
-                                                station.depositedItemSlots[i] = spawnedItem;
-                                                spawnedItemsThisStage.Add(spawnedItem.definition);
-
-                                                Log.Game($"[TaskManager] Auto-spawned {spawnedItem.DisplayName} at {location.locationID} because prerequisite was failed.");
-                                                break; // Successfully spawned, move to next task
-                                            }
-                                        }
-                                    }
-                                    break; // We found the right location, no need to keep checking other rooms
-                                }
-                            }
-                        }
-                    }
-                }
             }
 
             // After EVERY player in the lobby has been handed their tasks, refresh the UI
