@@ -53,6 +53,15 @@ namespace CorruptedCourt.Tasks
             => CheckCompletion(ctx.Player, ctx.Target, runtime);
 
         /// <summary>
+        /// Called once, immediately when <paramref name="runtime"/> is constructed for this step - i.e.
+        /// at task assignment, before the player has had any chance to act on this specific task, not
+        /// when the step later becomes the active one. For a step that needs to snapshot world state
+        /// "as of assignment" (see DepositItemStep), this is the one moment that's guaranteed to
+        /// predate anything the player does about it. Default no-op.
+        /// </summary>
+        public virtual void OnRuntimeCreated(TaskStepRuntime runtime) { }
+
+        /// <summary>
         /// Editor-only sanity check, run for every step by <see cref="TaskData.OnValidate"/>. Return a
         /// message to flag mis-authored data (e.g. a legacy identity string is filled in but the typed
         /// <see cref="ItemDefinition"/> reference that replaced it is not); return null when the step is

@@ -42,6 +42,27 @@ namespace CorruptedCourt.Minigames
         protected PlayerController player;
         protected TaskInstance activeTask;
 
+        /// <summary>
+        /// One player taking part in this minigame session and the task (if any) it's judged against
+        /// for them. A null Task means this participant has no matching task for this minigame -
+        /// FinishMinigame(null) still runs for them on completion, which resolves any OTHER task they
+        /// hold generically instead of auto-completing this one (R1: any action is open to anyone;
+        /// only credit for the specific task is gated).
+        /// </summary>
+        public struct MinigameParticipant
+        {
+            public PlayerController Player;
+            public TaskInstance Task;
+        }
+
+        /// <summary>
+        /// Every player this session credits on completion. Seeded with one entry (the launching
+        /// player/task) by SetupMinigame, so all of today's single-player minigames are unaffected;
+        /// <see cref="AddParticipant"/> grows it for shared sessions (handshake, cheers, duel, chess -
+        /// B10b/B11). Nothing adds a second participant yet.
+        /// </summary>
+        protected readonly List<MinigameParticipant> participants = new List<MinigameParticipant>();
+
         /// <summary>Richer launch payload. Null when launched via the legacy 2-arg SetupMinigame.</summary>
         public MinigameContext Context { get; protected set; }
 
@@ -55,9 +76,13 @@ namespace CorruptedCourt.Minigames
         {
             player = playerRef;
             activeTask = task;
-            // Every launch path sets this so WaypointManager can hide this task's marker while any
-            // minigame is open, regardless of which of the two launchers started it.
-            if (playerRef != null) playerRef.activeMinigameTask = task;
+            if (playerRef != null)
+            {
+                // Every launch path sets this so WaypointManager can hide this task's marker while any
+                // minigame is open, regardless of which of the two launchers started it.
+                playerRef.activeMinigameTask = task;
+                participants.Add(new MinigameParticipant { Player = playerRef, Task = task });
+            }
             active.Add(this);
             OnMinigameBegin();
         }
@@ -73,15 +98,32 @@ namespace CorruptedCourt.Minigames
                           context != null ? context.Task : null);
         }
 
+        /// <summary>Adds another player to this shared session (B10b/B11 - handshake, cheers, duel,
+        /// chess). No-op for a null player or one already in <see cref="participants"/>.</summary>
+        public void AddParticipant(PlayerController p, TaskInstance task)
+        {
+            if (p == null) return;
+
+            foreach (MinigameParticipant existing in participants)
+            {
+                if (existing.Player == p) return;
+            }
+
+            participants.Add(new MinigameParticipant { Player = p, Task = task });
+        }
+
         /// <summary>Call when the player successfully finishes the minigame's action.</summary>
         public virtual void CompleteMinigame()
         {
             active.Remove(this);
             OnMinigameEnd(true);
 
-            if (player != null)
+            // Every participant is credited independently - the minigame's own win/lose outcome is
+            // irrelevant to who gets credit (R7); a participant with no matching task still runs
+            // FinishMinigame(null), which resolves any OTHER task they hold instead of this one (R1).
+            foreach (MinigameParticipant participant in participants)
             {
-                player.FinishMinigame(activeTask);
+                if (participant.Player != null) participant.Player.FinishMinigame(participant.Task);
             }
 
             Destroy(gameObject);

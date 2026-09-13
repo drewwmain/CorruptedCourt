@@ -41,12 +41,22 @@ namespace CorruptedCourt.Tasks
         public override bool CheckCompletion(PlayerController player, GameObject targetInteractable = null)
             => CheckCompletion(player, targetInteractable, null);
 
+        // Snapshots eligible stations at task assignment - see TaskStepRuntime.EligibleDepositStations
+        // for why this must happen here (eagerly, before the player can act) and not lazily on the
+        // step's first evaluation.
+        public override void OnRuntimeCreated(TaskStepRuntime runtime)
+        {
+            if (requireOwnDeposit) runtime.EligibleDepositStations = SnapshotEligibleStations();
+        }
+
         public override bool CheckCompletion(PlayerController player, GameObject targetInteractable, TaskStepRuntime runtime)
         {
             if (requiredItem == null) return false; // un-migrated step: nothing to match against
 
-            // Scoped to stations that were still Pending when this attempt began (R3/R4) - only when
-            // requireOwnDeposit is enforced and a runtime is available to remember it across attempts.
+            // Scoped to stations that were still Pending at task assignment (R3/R4) - only when
+            // requireOwnDeposit is enforced. Populated eagerly by OnRuntimeCreated; the lazy fallback
+            // here is just a safety net (e.g. a runtime built some other way) and should normally be a
+            // no-op since OnRuntimeCreated already ran.
             HashSet<TaskDepositStation> eligible = null;
             if (requireOwnDeposit && runtime != null)
             {
@@ -82,10 +92,11 @@ namespace CorruptedCourt.Tasks
             return false;
         }
 
-        // Captures which TaskDepositStation instances at targetStationID count for THIS attempt. A
-        // station with a TaskStationState is included only if it's Pending right now; a station with
-        // none yet (not every TaskDepositStation prefab has one) is included unconditionally, so it
-        // keeps working exactly as before - protected only by requireOwnDeposit, not this scoping.
+        // Captures which TaskDepositStation instances at targetStationID count for this task, as of
+        // right now (called from OnRuntimeCreated, at task assignment). A station with a
+        // TaskStationState is included only if it's Pending at that moment; a station with none yet
+        // (not every TaskDepositStation prefab has one) is included unconditionally, so it keeps
+        // working exactly as before - protected only by requireOwnDeposit, not this scoping.
         private HashSet<TaskDepositStation> SnapshotEligibleStations()
         {
             var result = new HashSet<TaskDepositStation>();
