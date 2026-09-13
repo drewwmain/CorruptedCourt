@@ -261,6 +261,8 @@ GameObject:
   - component: {fileID: 6030539388052492156}
   - component: {fileID: 760245943097495204}
   - component: {fileID: 1268807335812546028}
+  - component: {fileID: 3797888323788394158}
+  - component: {fileID: 5364119693351931893}
   m_Layer: 8
   m_Name: TaskDepositStation
   m_TagString: Untagged
@@ -378,16 +380,53 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af66ef4d53cdda64e97f8d4474cb66d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  depositedItems:
+  depositedItemSlots:
   - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  customDropSlots: []
+  slotHeight: 0.5
+  slotSpacing: 0.33
+  requiredState: 0
+  retrievableFromStage: 999
+  retrieveTestMode: 0
+  depositLocalPosition: {x: 0, y: 0, z: 0}
+  depositLocalEuler: {x: 0, y: 0, z: 0}
+  preserveDepositedItemScale: 1
+  depositMinigamePrefab: {fileID: 0}
+  sabotageEjectsLastDeposit: 1
+  isSabotaged: 0
+  fallbackTargetRadius: 0.15
+--- !u!114 &3797888323788394158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6990409252194868565}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 225239cb145fd5e408d590b1dc98a3cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  locationID: 
+  acceptedItem: {fileID: 0}
+--- !u!114 &5364119693351931893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6990409252194868565}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f430ace45ae02b4408845c823f6c4831, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  seatCapacity: 1
+  playerReversible: 1
+  revertVerb: reset
+  revertHoldSeconds: 1
+  pendingVisual: {fileID: 0}
+  satisfiedVisual: {fileID: 0}
 --- !u!1 &7211545403756674322
 GameObject:
   m_ObjectHideFlags: 0

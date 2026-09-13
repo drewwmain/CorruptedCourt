@@ -70,6 +70,7 @@ namespace CorruptedCourt.Gameplay
 
         private Transform[] dropSlots;
         private TaskLocation taskLocation;
+        private TaskStationState stationState; // optional; kept in sync whenever depositedItemSlots changes
 
         // Runtime only: which slot took the most recent deposit, so Targeted Sabotage can target it.
         [System.NonSerialized] private int lastDepositedSlot = -1;
@@ -82,6 +83,7 @@ namespace CorruptedCourt.Gameplay
         void Awake()
         {
             taskLocation = GetComponent<TaskLocation>();
+            stationState = GetComponent<TaskStationState>();
             BuildDropSlots();
         }
 
@@ -328,6 +330,7 @@ namespace CorruptedCourt.Gameplay
             lastDepositedSlot = slotIndex;
             Log.Game($"{item.DisplayName} hung on the {taskLocation.locationID} (slot {slotIndex}).");
             GameEvents.RaiseStationReceivedDeposit(this);
+            if (stationState != null) stationState.RefreshFromDeposit();
         }
 
         public bool IsSlotFree(int slotIndex)
@@ -400,6 +403,7 @@ namespace CorruptedCourt.Gameplay
                         PickupItem item = depositedItemSlots[i];
                         depositedItemSlots[i] = null;
                         RecordDepositor(i, null);
+                        if (stationState != null) stationState.RefreshFromDeposit();
                         player.EquipItem(item); // AttachToHand also frees the slot / clears currentStation
                         Log.Game($"Took {item.DisplayName} out of the {taskLocation.locationID}.");
                         return;
@@ -425,6 +429,7 @@ namespace CorruptedCourt.Gameplay
                                 player.EquipItem(depositedItem);
                                 depositedItemSlots[i] = null; // Clear the slot
                                 RecordDepositor(i, null);
+                                if (stationState != null) stationState.RefreshFromDeposit();
 
                                 Log.Game($"Retrieved {depositedItem.DisplayName} from slot {i}.");
                                 itemRetrieved = true;
@@ -476,6 +481,7 @@ namespace CorruptedCourt.Gameplay
             depositedItemSlots[slot] = null;
             RecordDepositor(slot, null);
             if (lastDepositedSlot == slot) lastDepositedSlot = -1;
+            if (stationState != null) stationState.RefreshFromDeposit();
 
             string where = taskLocation != null ? taskLocation.locationID : gameObject.name;
             if (sabotageEjectsLastDeposit)
@@ -499,6 +505,7 @@ namespace CorruptedCourt.Gameplay
                 {
                     depositedItemSlots[i] = null;
                     RecordDepositor(i, null);
+                    if (stationState != null) stationState.RefreshFromDeposit();
                     Log.Game($"Item removed from slot {i}. Space is now available.");
                     break;
                 }

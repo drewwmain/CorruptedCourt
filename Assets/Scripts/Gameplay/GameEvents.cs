@@ -100,6 +100,12 @@ namespace CorruptedCourt.Gameplay
         public static event Action<TaskDepositStation> StationReceivedDeposit;
         public static void RaiseStationReceivedDeposit(TaskDepositStation station) => StationReceivedDeposit?.Invoke(station);
 
+        /// <summary>A <see cref="TaskStationState"/>'s condition (Pending/Busy/Satisfied) changed -
+        /// via <c>MarkSatisfied</c>/<c>TryRevert</c>, or <c>RefreshFromDeposit</c> for a deposit-backed
+        /// station. Carries that station.</summary>
+        public static event Action<TaskStationState> StationConditionChanged;
+        public static void RaiseStationConditionChanged(TaskStationState station) => StationConditionChanged?.Invoke(station);
+
         /// <summary>The Corrupted power-up inventory changed. Carries the 3-slot array.</summary>
         public static event Action<PowerUpData[]> CorruptedInventoryChanged;
         public static void RaiseCorruptedInventoryChanged(PowerUpData[] inventory) => CorruptedInventoryChanged?.Invoke(inventory);
@@ -169,6 +175,7 @@ namespace CorruptedCourt.Gameplay
             PlayerZoneChanged = null;
             PlayerGhosted = null;
             StationReceivedDeposit = null;
+            StationConditionChanged = null;
             CorruptedInventoryChanged = null;
             CorruptedSlotHighlighted = null;
             TransitionTimerTicked = null;

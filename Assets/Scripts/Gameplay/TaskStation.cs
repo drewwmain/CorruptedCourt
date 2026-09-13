@@ -13,10 +13,15 @@ namespace CorruptedCourt.Gameplay
         public GameObject processMinigamePrefab;
 
         private TaskLocation taskLocation;
+        private TaskStationState stationState;
+
+        /// <summary>This station's TaskStationState, or null if one hasn't been added yet.</summary>
+        public TaskStationState StationState => stationState;
 
         void Awake()
         {
             taskLocation = GetComponent<TaskLocation>();
+            stationState = GetComponent<TaskStationState>();
         }
 
         public string GetInteractionPrompt()
