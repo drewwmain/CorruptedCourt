@@ -6,13 +6,30 @@ using CorruptedCourt.Gameplay;
 namespace CorruptedCourt.Minigames
 {
     /// <summary>
+    /// Restricts which emotes <see cref="EmoteWheelController.Open(PlayerController, EmoteFilter, Action{EmoteDefinition})"/>
+    /// offers. <see cref="freeChoice"/> is the only mode a task step uses - the step judges the
+    /// committed emote afterward (a future EmoteStep) rather than the wheel narrowing it, since
+    /// narrowing would broadcast to every observer which category their neighbour needs
+    /// (Tasks/ARCHITECTURE.md §11.4). <see cref="category"/> restricts to one category (e.g. a
+    /// Dance/Conversation minigame); <see cref="specific"/> restricts to exactly one emote. Leaving
+    /// every field at its default behaves the same as <see cref="freeChoice"/>.
+    /// </summary>
+    public struct EmoteFilter
+    {
+        public EmoteCategory? category;
+        public EmoteDefinition specific;
+        public bool freeChoice;
+    }
+
+    /// <summary>
     /// Radial "hold a key, mouse to a slice, release to commit" emote picker. A persistent service
     /// (one in the scene / on the player HUD), used both by roleplay gameplay and by the emote-driven
     /// minigames (Speech at the podium, Dance, Conversation).
     ///
     /// Scaffolding: the open/commit API and the catalogue are here; the actual wheel UI (slices,
-    /// hover-by-angle, categories tab) is built at P4. <see cref="Open"/> currently just exposes the
-    /// filtered options and waits for <see cref="Commit"/> / <see cref="Cancel"/> to be driven by that UI.
+    /// hover-by-angle, categories tab) is built at B13b. <see cref="Open(PlayerController, EmoteFilter, Action{EmoteDefinition})"/>
+    /// currently just exposes the filtered options and waits for <see cref="Commit"/> / <see cref="Cancel"/>
+    /// to be driven by that UI.
     /// </summary>
     public class EmoteWheelController : MonoBehaviour
     {
@@ -25,7 +42,7 @@ namespace CorruptedCourt.Minigames
         public KeyCode openKey = KeyCode.B;
 
         public bool IsOpen { get; private set; }
-        public EmoteCategory? ActiveFilter { get; private set; }
+        public EmoteFilter ActiveFilter { get; private set; }
 
         private Action<EmoteDefinition> onCommit;
         private PlayerController performer;
@@ -42,35 +59,49 @@ namespace CorruptedCourt.Minigames
             get
             {
                 foreach (EmoteDefinition e in catalogue)
-                    if (e != null && (ActiveFilter == null || e.category == ActiveFilter.Value))
-                        yield return e;
+                {
+                    if (e == null) continue;
+                    if (ActiveFilter.freeChoice) { yield return e; continue; }
+                    if (ActiveFilter.specific != null) { if (e == ActiveFilter.specific) yield return e; continue; }
+                    if (ActiveFilter.category != null) { if (e.category == ActiveFilter.category.Value) yield return e; continue; }
+                    yield return e; // every field at default - same as freeChoice
+                }
             }
         }
 
         /// <summary>
-        /// Open the wheel. <paramref name="filter"/> restricts it to one category (minigames pass their
-        /// required one). <paramref name="onCommit"/> fires with the chosen emote, or null if cancelled.
+        /// Open the wheel. <paramref name="filter"/> restricts the offered emotes - see
+        /// <see cref="EmoteFilter"/>. <paramref name="onCommit"/> fires with the chosen emote, or null
+        /// if cancelled. Refuses (no-op) while a minigame is open, or the player is strangling or arrested.
         /// </summary>
-        public void Open(PlayerController player, EmoteCategory? filter, Action<EmoteDefinition> onCommit)
+        public void Open(PlayerController player, EmoteFilter filter, Action<EmoteDefinition> onCommit)
         {
+            if (player == null) return;
+            if (MinigameBase.IsAnyActive || player.Vitals.isStrangling || player.Vitals.isArrested) return;
+
             performer = player;
             ActiveFilter = filter;
             this.onCommit = onCommit;
             IsOpen = true;
-            // TODO(P4): show the radial UI, populate from CurrentOptions.
+            // TODO(B13b): show the radial UI, populate from CurrentOptions.
         }
+
+        /// <summary>Category-only convenience overload, kept for every pre-B13a call site (EmoteMinigame) -
+        /// forwards to <see cref="Open(PlayerController, EmoteFilter, Action{EmoteDefinition})"/>.</summary>
+        public void Open(PlayerController player, EmoteCategory? filter, Action<EmoteDefinition> onCommit)
+            => Open(player, new EmoteFilter { category = filter }, onCommit);
 
         /// <summary>Called by the wheel UI when the player releases on a slice.</summary>
         public void Commit(EmoteDefinition choice)
         {
             if (!IsOpen) return;
             IsOpen = false;
-            ActiveFilter = null;
+            ActiveFilter = default;
 
-            if (choice != null && performer != null && !string.IsNullOrEmpty(choice.animTrigger))
+            if (choice != null && performer != null)
             {
-                Animator a = performer.GetComponentInChildren<Animator>();
-                if (a != null) a.SetTrigger(choice.animTrigger);
+                PlayerEmotes emotes = performer.GetComponent<PlayerEmotes>();
+                if (emotes != null) emotes.Perform(choice);
             }
 
             Action<EmoteDefinition> cb = onCommit;
@@ -83,7 +114,7 @@ namespace CorruptedCourt.Minigames
         {
             if (!IsOpen) return;
             IsOpen = false;
-            ActiveFilter = null;
+            ActiveFilter = default;
             Action<EmoteDefinition> cb = onCommit;
             onCommit = null;
             cb?.Invoke(null);
