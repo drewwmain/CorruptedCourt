@@ -41,5 +41,5 @@ MonoBehaviour:
         requiredItem: {fileID: 11400000, guid: be1b9bbd508b2c746801437da260cc15, type: 2}
         requiredState: 1
         targetStationID: WeaponRack
-        requireOwnDeposit: 0
+        requireOwnDeposit: 1
         legacyRequiredItemName: 

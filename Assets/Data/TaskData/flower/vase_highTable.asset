@@ -42,5 +42,5 @@ MonoBehaviour:
         requiredItem: {fileID: 11400000, guid: 69afb08c8427c87488822d1f51c0f44a, type: 2}
         requiredState: 2
         targetStationID: HighTable
-        requireOwnDeposit: 0
+        requireOwnDeposit: 1
         legacyRequiredItemName: 
