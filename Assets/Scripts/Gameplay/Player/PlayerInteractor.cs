@@ -82,9 +82,12 @@ namespace CorruptedCourt.Gameplay
 
         // Resolves what a hit collider means for interaction:
         //  1. a grabbable PickupItem ON the exact collider (a loose item wins over a station behind it)
-        //  2. any IInteractable ON the exact collider
+        //  2. any IInteractable ON the exact collider - an active StationReversal wins over its
+        //     co-located station's own IInteractable (see PreferActiveReversal)
         //  3. a TaskDepositStation ANCESTOR - so aiming at a chest's lid/sub-mesh deposits, and it beats
-        //     a round-switch PickupItem that shares the same chest hierarchy
+        //     a round-switch PickupItem that shares the same chest hierarchy. StationReversal is never
+        //     active on a deposit station (reversal is retrieval there instead), so this branch never
+        //     needs to consider it.
         //  4. any IInteractable ancestor
         private IInteractable ResolveInteractable(Collider col)
         {
@@ -93,13 +96,35 @@ namespace CorruptedCourt.Gameplay
             PickupItem exactPickup = col.GetComponent<PickupItem>();
             if (exactPickup != null) return exactPickup;
 
-            IInteractable exact = col.GetComponent<IInteractable>();
+            IInteractable exact = PreferActiveReversal(col.GetComponents<IInteractable>());
             if (exact != null) return exact;
 
             TaskDepositStation station = col.GetComponentInParent<TaskDepositStation>();
             if (station != null) return station;
 
             return col.GetComponentInParent<IInteractable>();
+        }
+
+        // A station and its StationReversal both implement IInteractable on the same GameObject, so
+        // GetComponent<IInteractable>() alone can't reliably pick between them. Prefer an active
+        // StationReversal (a satisfied, reversible station showing its reset prompt); otherwise fall
+        // back to the first other interactable found, exactly matching the single-IInteractable
+        // behavior every other object still has.
+        private static IInteractable PreferActiveReversal(IInteractable[] candidates)
+        {
+            if (candidates == null || candidates.Length == 0) return null;
+
+            IInteractable fallback = null;
+            foreach (IInteractable c in candidates)
+            {
+                if (c is StationReversal reversal)
+                {
+                    if (reversal.IsActive) return reversal;
+                    continue;
+                }
+                if (fallback == null) fallback = c;
+            }
+            return fallback;
         }
 
         public void CheckForInteractable()
