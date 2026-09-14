@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using CorruptedCourt.Tasks;
+using CorruptedCourt.Minigames;
 
 namespace CorruptedCourt.Gameplay
 {
@@ -24,20 +25,25 @@ namespace CorruptedCourt.Gameplay
 
         // The sibling PlayerController on this same GameObject.
         private PlayerController player;
+        // Optional sibling - null on a prefab that hasn't had PlayerEmotes added yet (see B12).
+        private PlayerEmotes emotes;
 
         void Awake()
         {
             player = GetComponent<PlayerController>();
+            emotes = GetComponent<PlayerEmotes>();
         }
 
         void OnEnable()
         {
             GameEvents.PlayerZoneChanged += HandleZoneChanged;
+            GameEvents.EmotePerformed += HandleEmotePerformed;
         }
 
         void OnDisable()
         {
             GameEvents.PlayerZoneChanged -= HandleZoneChanged;
+            GameEvents.EmotePerformed -= HandleEmotePerformed;
         }
 
         // TaskZone raises PlayerZoneChanged for whichever player crossed its trigger - filter to this
@@ -46,6 +52,30 @@ namespace CorruptedCourt.Gameplay
         {
             if (p != player) return;
             EvaluateActiveTasks(new TaskEvalContext { Player = player, Reason = TaskEvalReason.ZoneChanged });
+        }
+
+        // Unlike HandleZoneChanged, this does NOT filter to "p == player" - Tasks/ARCHITECTURE.md §7.1
+        // has PlayerEmotes.Perform raise for "the performer and every player in scan range", so either
+        // dancer completing second can satisfy both assignments. Every PlayerTaskBook in the scene reacts
+        // to every emote by re-checking ITS OWN player's current emote state (not the (performer, emote)
+        // arguments, which only describe who just acted) - a partner who was already mid-loop when a
+        // second player starts needs their own task re-evaluated too, even though they didn't just act.
+        // EmoteStep.CheckCompletion does the real distance/zone check against whatever authored
+        // partnerMaxDistance it has, so there's no fixed "scan range" cutoff applied here - with this
+        // game's small lobby size, evaluating every player's few active tasks per emote is cheap, and a
+        // fixed pre-filter risks silently excluding a partner a step's own (possibly larger) authored
+        // distance would have allowed.
+        private void HandleEmotePerformed(PlayerController performer, EmoteDefinition emote)
+        {
+            EmoteDefinition myCurrentEmote = (emotes != null && emotes.IsPerforming) ? emotes.Current : null;
+            if (myCurrentEmote == null) return; // I'm not performing anything - nothing of mine could complete
+
+            EvaluateActiveTasks(new TaskEvalContext
+            {
+                Player = player,
+                Reason = TaskEvalReason.EmotePerformed,
+                Emote = myCurrentEmote
+            });
         }
 
         public void AssignTasks(List<TaskInstance> newTasks)
