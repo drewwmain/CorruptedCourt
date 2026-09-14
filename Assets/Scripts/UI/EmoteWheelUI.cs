@@ -84,10 +84,10 @@ namespace CorruptedCourt.UI
             }
         }
 
-        // Only the free-choice roleplay path originates a session here - a minigame calls
-        // EmoteWheelController.Open itself (e.g. EmoteMinigame.OnMinigameBegin), already active by
-        // the time it does, which is exactly why Open no longer gates on MinigameBase.IsAnyActive -
-        // that check belongs here instead, for the session THIS hotkey would start.
+        // Only the free-choice roleplay path originates a session here - a minigame-triggered wheel
+        // (a future SharedStationMinigame-family concrete, say) would call EmoteWheelController.Open
+        // itself, already active by the time it does, which is exactly why Open no longer gates on
+        // MinigameBase.IsAnyActive - that check belongs here instead, for the session THIS hotkey starts.
         private void TryOpenFromHotkey(EmoteWheelController controller)
         {
             PlayerController local = PlayerController.Local;

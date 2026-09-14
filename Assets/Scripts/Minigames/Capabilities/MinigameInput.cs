@@ -9,8 +9,8 @@ namespace CorruptedCourt.Minigames
     /// the new Input System later.
     ///
     /// Scaffolding: the common reads are implemented; the specialised gesture reads
-    /// (<see cref="DrawPull"/>, <see cref="MouseStrum"/>, <see cref="MouseSwing"/>) return sensible
-    /// values now and can be tuned per minigame when those are built.
+    /// (<see cref="DrawPull"/>, <see cref="MouseSwing"/>) return sensible values now and can be tuned
+    /// per minigame when those are built.
     /// </summary>
     public static class MinigameInput
     {
@@ -47,26 +47,10 @@ namespace CorruptedCourt.Minigames
             }
         }
 
-        // --- specialised gesture reads (instruments / bow / duel) ----------------------------------
-
-        /// <summary>The A/S/D/F/G note keys pressed this frame, as a 5-bit mask (bit0 = A … bit4 = G).</summary>
-        public static int NoteKeysDown()
-        {
-            if (Suppressed) return 0;
-            int mask = 0;
-            if (Input.GetKeyDown(KeyCode.A)) mask |= 1 << 0;
-            if (Input.GetKeyDown(KeyCode.S)) mask |= 1 << 1;
-            if (Input.GetKeyDown(KeyCode.D)) mask |= 1 << 2;
-            if (Input.GetKeyDown(KeyCode.F)) mask |= 1 << 3;
-            if (Input.GetKeyDown(KeyCode.G)) mask |= 1 << 4;
-            return mask;
-        }
+        // --- specialised gesture reads (bow / duel) -------------------------------------------------
 
         /// <summary>Backward mouse-Y travel this frame (bow draw). 0 when pushing forward.</summary>
         public static float DrawPull() => Mathf.Max(0f, -MouseDelta.y);
-
-        /// <summary>True on a fast vertical mouse flick (guitar strum). Threshold in axis units / frame.</summary>
-        public static bool MouseStrum(float threshold = 3f) => Mathf.Abs(MouseDelta.y) >= threshold;
 
         /// <summary>Screen-space mouse velocity in px/sec (duel swing). Magnitude scales with swing power.</summary>
         public static Vector2 MouseSwing()

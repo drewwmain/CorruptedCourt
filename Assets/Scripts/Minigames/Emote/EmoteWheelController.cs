@@ -76,9 +76,9 @@ namespace CorruptedCourt.Minigames
         ///
         /// Deliberately does NOT gate on <see cref="MinigameBase.IsAnyActive"/> here: a minigame is
         /// already in that registry by the time its own OnMinigameBegin runs (see
-        /// MinigameBase.SetupMinigame), so EmoteMinigame calling this from its own OnMinigameBegin
-        /// would otherwise be blocked by its own presence. The "don't let the roleplay wheel interrupt
-        /// an unrelated minigame" check belongs on whoever opens the FREE-CHOICE roleplay wheel
+        /// MinigameBase.SetupMinigame), so a minigame calling this from its own OnMinigameBegin would
+        /// otherwise be blocked by its own presence. The "don't let the roleplay wheel interrupt an
+        /// unrelated minigame" check belongs on whoever opens the FREE-CHOICE roleplay wheel
         /// (EmoteWheelUI), not here, since a minigame legitimately opens the wheel while active.
         /// </summary>
         public void Open(PlayerController player, EmoteFilter filter, Action<EmoteDefinition> onCommit)
@@ -93,8 +93,10 @@ namespace CorruptedCourt.Minigames
             // TODO(B13b): show the radial UI, populate from CurrentOptions.
         }
 
-        /// <summary>Category-only convenience overload, kept for every pre-B13a call site (EmoteMinigame) -
-        /// forwards to <see cref="Open(PlayerController, EmoteFilter, Action{EmoteDefinition})"/>.</summary>
+        /// <summary>Category-only convenience overload - forwards to
+        /// <see cref="Open(PlayerController, EmoteFilter, Action{EmoteDefinition})"/>. Its original
+        /// caller, EmoteMinigame, was deleted in B15b (instrument_play/podium_speech are EmoteStep-driven
+        /// now); currently unused, kept as a simpler entry point for any future single-category caller.</summary>
         public void Open(PlayerController player, EmoteCategory? filter, Action<EmoteDefinition> onCommit)
             => Open(player, new EmoteFilter { category = filter }, onCommit);
 
