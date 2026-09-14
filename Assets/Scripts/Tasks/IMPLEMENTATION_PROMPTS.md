@@ -1090,3 +1090,28 @@ each task prompt should be scoped to exactly that task's deliverables (item/reci
 TaskData/minigame/emote/objective/solo-test per §V) and nothing that touches the evaluation spine,
 adds a base class, or adds a step type — those would mean a gap in this architecture, not a normal
 task prompt, per Part V's own scope boundary.
+
+---
+
+## DEFERRED — B13b Editor setup (not yet done)
+
+`EmoteWheelUI`/`EmoteWheelSlice` (`Assets/Scripts/UI/`) are written and compile, but the wheel is not
+wired up in the scene/prefabs yet — this is Editor-only work Claude can't do itself. Nothing later
+depends on this being done immediately, but the wheel is not testable in Play Mode until it is:
+
+1. Build one slice prefab: an `Image` (background — doubles as the highlight tint) with a child
+   `TextMeshProUGUI` label, `EmoteWheelSlice` component on the root wired to both. RectTransform
+   anchored/pivoted at center (0.5, 0.5), same as the nameplate text.
+2. In a Screen Space - Overlay canvas (the existing HUD canvas is fine — unlike the nameplate, this
+   one should NOT be World Space): a root panel GameObject for `wheelRoot` (can start inactive),
+   containing two empty `RectTransform` children — `outerRingRoot` and `innerRingRoot` — both
+   anchored to screen center. Double-check their scale is (1,1,1), not (0,0,0) - that exact mistake
+   bit the nameplate setup in B12.
+3. Add `EmoteWheelUI` to that panel (or a manager object) and wire `wheelRoot` / `outerRingRoot` /
+   `innerRingRoot` / `slicePrefab`. Leave the radius/deadzone fields at their defaults to start.
+4. Create a few actual `EmoteDefinition` assets and add them to `EmoteWheelController`'s `catalogue`
+   to see the inner ring populate with anything — none exist yet as of B12.
+
+Once done, Play Mode verify (from B13b): hold B, confirm the outer ring (4 categories) appears, hover
+one, confirm its inner ring populates, release on an emote, confirm the nameplate shows the right
+line above your head; release off any slice, confirm it cancels cleanly.
