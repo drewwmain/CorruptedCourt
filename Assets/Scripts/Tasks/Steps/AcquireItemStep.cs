@@ -72,5 +72,26 @@ namespace CorruptedCourt.Tasks
             => requiredItem == null && requiredItemSet == null && !string.IsNullOrEmpty(legacyRequiredItemName)
                 ? $"legacyRequiredItemName '{legacyRequiredItemName}' is set but Required Item is not - assign the ItemDefinition."
                 : null;
+
+        public override ObjectiveTarget GetObjectiveTarget(PlayerController player, TaskStepRuntime runtime)
+        {
+            if (ItemSourceResolver.Instance == null) return default;
+            Vector3 from = player.transform.position;
+
+            if (requiredItem != null)
+                return ItemSourceResolver.Instance.Resolve(new ItemIdentity { definition = requiredItem, state = requiredState }, from);
+
+            if (requiredItemSet != null && requiredItemSet.members != null)
+            {
+                foreach (ItemDefinition member in requiredItemSet.members)
+                {
+                    if (member == null) continue;
+                    ObjectiveTarget target = ItemSourceResolver.Instance.Resolve(new ItemIdentity { definition = member, state = requiredState }, from);
+                    if (target.Transform != null) return target;
+                }
+            }
+
+            return default;
+        }
     }
 }

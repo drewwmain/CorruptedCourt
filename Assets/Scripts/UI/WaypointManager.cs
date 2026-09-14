@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using CorruptedCourt.Gameplay;
-using CorruptedCourt.Items;
 using CorruptedCourt.Minigames;
 using CorruptedCourt.Tasks;
 
@@ -129,150 +128,30 @@ namespace CorruptedCourt.UI
                 // through that whole window, not flicker back on while the item is still falling.
                 if (localPlayer.activeMinigameTask == task) continue;
 
-                // --- NEW: FETCH THE ACTIVE STEP ---
+                // Every step now answers for itself via GetObjectiveTarget (ARCHITECTURE.md §12) instead
+                // of this manager pattern-matching each step type - see TaskStep.GetObjectiveTarget and
+                // its per-step overrides in Tasks/Steps/.
                 TaskStep activeStep = task.GetCurrentStep();
                 if (activeStep == null) continue; // Skip if the task is completely finished
 
-                List<Transform> targetsForThisTask = new List<Transform>();
+                ObjectiveTarget target = task.GetCurrentObjectiveTarget(localPlayer);
 
-                // --- NEW: POLYMORPHIC EVALUATION USING PATTERN MATCHING ---
-
-                // 1. Acquire Item Step
-                if (activeStep is AcquireItemStep acquireStep)
-                {
-                    Transform t = FindItemByDefinition(acquireStep.requiredItem, acquireStep.requiredState);
-                    if (t != null) targetsForThisTask.Add(t);
-                }
-                // 2. Navigate Step
-                else if (activeStep is NavigateStep navigateStep)
-                {
-                    Transform t = FindLocationByID(navigateStep.targetZoneID);
-                    if (t != null) targetsForThisTask.Add(t);
-                }
-                // 3. Station Interact Step
-                else if (activeStep is StationInteractStep stationStep)
-                {
-                    Transform t = FindLocationByID(stationStep.targetStationID);
-                    if (t != null) targetsForThisTask.Add(t);
-                }
-                // 4. Player Interact Step
-                else if (activeStep is PlayerInteractStep playerStep)
-                {
-                    // If they need an item and don't have it (in either hand), point to the item on the floor first
-                    if (playerStep.requiredItem != null &&
-                        !localPlayer.IsHoldingItem(playerStep.requiredItem, playerStep.requiredState))
-                    {
-                        Transform t = FindItemByDefinition(playerStep.requiredItem, playerStep.requiredState);
-                        if (t != null) targetsForThisTask.Add(t);
-                    }
-                    else // They have the item (or don't need one), so point to matching players
-                    {
-                        targetsForThisTask.AddRange(FindPlayersWithSameTask(localPlayer, task.Definition.taskID));
-                    }
-                }
-                // --- NEW: DEPOSIT ITEM STEP ---
-                else if (activeStep is DepositItemStep depositStep)
-                {
-                    // Point directly to the target deposit station (e.g., "Armory")
-                    Transform t = FindLocationByID(depositStep.targetStationID);
-                    if (t != null) targetsForThisTask.Add(t);
-                }
-
-                // --- NEW: PROCESS ITEM STEP ---
-                else if (activeStep is ProcessItemStep processStep)
-                {
-                    // Point to the processing station if one is set, otherwise to the target item in the world.
-                    Transform t = FindLocationByID(processStep.targetStationID);
-                    if (t == null && processStep.targetItem != null)
-                        t = FindItemByDefinition(processStep.targetItem, processStep.targetItemState);
-
-                    // (If the item is already in their hand, this naturally returns null and hides the waypoint, which is correct!)
-                    if (t != null) targetsForThisTask.Add(t);
-                }
-
-
-                // --- Spawning Logic (Remains identical!) ---
-                if (targetsForThisTask.Count > 0)
+                if (target.Transform != null)
                 {
                     activeWaypoints[task] = new List<RectTransform>();
                     taskTargets[task] = new List<Transform>();
 
-                    foreach (Transform targetTransform in targetsForThisTask)
-                    {
-                        GameObject marker = Instantiate(waypointPrefab, waypointContainer);
-                        activeWaypoints[task].Add(marker.GetComponent<RectTransform>());
-                        taskTargets[task].Add(targetTransform);
+                    GameObject marker = Instantiate(waypointPrefab, waypointContainer);
+                    activeWaypoints[task].Add(marker.GetComponent<RectTransform>());
+                    taskTargets[task].Add(target.Transform);
 
-                        TextMeshProUGUI label = marker.GetComponentInChildren<TextMeshProUGUI>();
-                        if (label != null)
-                        {
-                            label.text = taskNumber.ToString();
-                        }
+                    TextMeshProUGUI label = marker.GetComponentInChildren<TextMeshProUGUI>();
+                    if (label != null)
+                    {
+                        label.text = taskNumber.ToString();
                     }
                 }
             }
-        }
-
-        // Helper method to locate the item in the 3D world by its typed identity + required state.
-        private Transform FindItemByDefinition(ItemDefinition def, ItemState requiredState)
-        {
-            if (def == null) return null;
-
-            Transform fallbackSpawner = null;
-
-            foreach (PickupItem item in PickupItem.AllItems)
-            {
-                if (item == null) continue;
-
-                // Only point to the item if it's actually sitting in the world (not held by someone else)
-                if (item.Matches(def, requiredState) && item.transform.parent == null)
-                {
-                    // PRIORITY: If we find a dropped clone (not an infinite spawner), point to this immediately!
-                    if (!item.isInfiniteSource)
-                    {
-                        return item.transform;
-                    }
-
-                    // Otherwise, remember this spawner in case we don't find any dropped clones
-                    if (fallbackSpawner == null)
-                    {
-                        fallbackSpawner = item.transform;
-                    }
-                }
-            }
-
-            // If no dropped clones were found on the ground, point to the infinite spawner
-            return fallbackSpawner;
-        }
-
-        // NEW: Helper method to find all other living players in the lobby with the exact same task
-        private List<Transform> FindPlayersWithSameTask(PlayerController localPlayer, string taskIDToMatch)
-        {
-            List<Transform> matchingPlayers = new List<Transform>();
-
-            if (RoleManager.Instance != null)
-            {
-                foreach (PlayerController player in RoleManager.Instance.allPlayers)
-                {
-                    if (player == null) continue;
-
-                    // Ignore ourselves and ghosts
-                    if (player == localPlayer || player.Vitals.isGhost) continue;
-
-                    // Check if they have the exact same task (compare the shared Definition's ID,
-                    // never the per-player instance reference).
-                    foreach (TaskInstance task in player.TaskBook.activeTasks)
-                    {
-                        if (task != null && task.Definition != null && task.Definition.taskID == taskIDToMatch)
-                        {
-                            matchingPlayers.Add(player.transform);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            return matchingPlayers;
         }
 
         void Update()
@@ -415,27 +294,6 @@ namespace CorruptedCourt.UI
                     activeMeetingMarker.SetAsLastSibling();
                 }
             }
-        }
-
-        private Transform FindLocationByID(string id)
-        {
-            if (string.IsNullOrEmpty(id)) return null;
-
-            // 1. Check physical Stations/TaskLocations first
-            foreach (TaskLocation loc in TaskLocation.AllLocations)
-            {
-                if (loc == null) continue;
-                if (loc.locationID == id) return loc.transform;
-            }
-
-            // 2. NEW: Check invisible TaskZones (Rooms)
-            foreach (TaskZone zone in TaskZone.AllZones)
-            {
-                if (zone == null) continue;
-                if (zone.zoneID == id) return zone.transform;
-            }
-
-            return null;
         }
 
         public void SetMeetingWaypoint(Transform meetingTransform)

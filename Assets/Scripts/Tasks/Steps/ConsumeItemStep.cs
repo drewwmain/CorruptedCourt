@@ -70,5 +70,17 @@ namespace CorruptedCourt.Tasks
             => requiredItem == null && !string.IsNullOrEmpty(legacyRequiredItemName)
                 ? $"legacyRequiredItemName '{legacyRequiredItemName}' is set but Required Item is not - assign the ItemDefinition."
                 : null;
+
+        // New capability - WaypointManager's old if-else chain never handled this step at all, so
+        // consume tasks had no waypoint before B16.
+        public override ObjectiveTarget GetObjectiveTarget(PlayerController player, TaskStepRuntime runtime)
+        {
+            if (requiredItem == null) return default;
+            if (player.IsHoldingItem(requiredItem, requiredState)) return default; // already holding it - nothing to point at, just consume it
+
+            return ItemSourceResolver.Instance != null
+                ? ItemSourceResolver.Instance.Resolve(new ItemIdentity { definition = requiredItem, state = requiredState }, player.transform.position)
+                : default;
+        }
     }
 }

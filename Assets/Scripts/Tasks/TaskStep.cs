@@ -28,6 +28,16 @@ namespace CorruptedCourt.Tasks
         public virtual string GetObjectiveText(TaskStepRuntime runtime) => GetObjectiveText();
 
         /// <summary>
+        /// Where the waypoint should point for <paramref name="player"/> right now, and why
+        /// (ARCHITECTURE.md §12). Default is no target - most steps override this; a step with no
+        /// sensible location (nothing to point at even in principle) can leave it as-is.
+        /// <see cref="ObjectiveTarget.Transform"/> null means no waypoint marker; a non-empty
+        /// <see cref="ObjectiveTarget.Hint"/> still reaches the player via the task panel's
+        /// description line regardless (R2's "polish one first" / R4's "everything's already lit").
+        /// </summary>
+        public virtual ObjectiveTarget GetObjectiveTarget(PlayerController player, TaskStepRuntime runtime) => default;
+
+        /// <summary>
         /// Evaluates whether the player's current action fulfills the requirements of this step.
         /// </summary>
         /// <param name="player">Reference to the player attempting the action.</param>
@@ -80,6 +90,25 @@ namespace CorruptedCourt.Tasks
             TaskLocation loc = go.GetComponent<TaskLocation>();
             if (loc == null) loc = go.GetComponentInParent<TaskLocation>();
             return loc;
+        }
+
+        /// <summary>
+        /// Resolves <paramref name="id"/> against <see cref="TaskLocation.AllLocations"/> first, then
+        /// <see cref="TaskZone.AllZones"/> - the same two-pass lookup WaypointManager used to do inline
+        /// for every step needing a plain locationID/zoneID target (navigate, station, and the
+        /// no-station-state fallback for deposit). Null if neither has a match.
+        /// </summary>
+        protected static Transform FindLocationOrZone(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+
+            foreach (TaskLocation loc in TaskLocation.AllLocations)
+                if (loc != null && loc.locationID == id) return loc.transform;
+
+            foreach (TaskZone zone in TaskZone.AllZones)
+                if (zone != null && zone.zoneID == id) return zone.transform;
+
+            return null;
         }
     }
 }

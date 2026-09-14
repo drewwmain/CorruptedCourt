@@ -124,6 +124,14 @@ namespace CorruptedCourt.Tasks
             return "Completed";
         }
 
+        /// <summary>Where the waypoint should point right now for <paramref name="player"/>, and why
+        /// (ARCHITECTURE.md §12). Default (no target) once the task is complete.</summary>
+        public ObjectiveTarget GetCurrentObjectiveTarget(PlayerController player)
+        {
+            TaskStep activeStep = GetCurrentStep();
+            return activeStep != null ? activeStep.GetObjectiveTarget(player, CurrentStepRuntime) : default;
+        }
+
         /// <summary>
         /// Checks if any previously completed steps (like acquiring an item) are broken, and reverts
         /// progress if necessary.

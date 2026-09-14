@@ -127,5 +127,27 @@ namespace CorruptedCourt.Tasks
             // authoring choice, not an inherited default.
             return null;
         }
+
+        public override ObjectiveTarget GetObjectiveTarget(PlayerController player, TaskStepRuntime runtime)
+        {
+            TaskStationState station = StationRegistry.FindNearestPending(targetStationID, player.transform.position);
+            if (station != null) return new ObjectiveTarget { Transform = station.transform, IsDirect = true };
+
+            // No TaskStationState registered at this locationID at all - not every deposit target has
+            // one yet (B9/B19) - so fall back to a plain location lookup rather than reporting R4's
+            // "everything's satisfied" hint for a station that was never tracked in the first place.
+            if (StationRegistry.ByLocation(targetStationID).Count == 0)
+            {
+                Transform loc = FindLocationOrZone(targetStationID);
+                return loc != null ? new ObjectiveTarget { Transform = loc, IsDirect = true } : default;
+            }
+
+            // Registered stations exist here, but none are Pending right now (R4).
+            return new ObjectiveTarget
+            {
+                Transform = null,
+                Hint = $"Every {targetStationID} is already filled - find or ask for one to be reset."
+            };
+        }
     }
 }

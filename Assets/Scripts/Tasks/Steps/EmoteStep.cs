@@ -124,5 +124,27 @@ namespace CorruptedCourt.Tasks
                        "it, so Required Category is unused here. Clear one or align them.";
             return null;
         }
+
+        // New capability - WaypointManager's old if-else chain never handled this step at all, so
+        // emote tasks had no waypoint before B16.
+        public override ObjectiveTarget GetObjectiveTarget(PlayerController player, TaskStepRuntime runtime)
+        {
+            if (!string.IsNullOrEmpty(requiredZoneID) && player.Vitals.currentZoneID != requiredZoneID)
+            {
+                Transform zone = FindLocationOrZone(requiredZoneID);
+                if (zone != null) return new ObjectiveTarget { Transform = zone, IsDirect = true };
+            }
+
+            if (partner != PartnerRule.None)
+            {
+                return new ObjectiveTarget
+                {
+                    Transform = null,
+                    Hint = "Find another player performing this nearby."
+                };
+            }
+
+            return default; // in the right place already (or no zone required) - just perform the emote
+        }
     }
 }

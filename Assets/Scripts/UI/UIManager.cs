@@ -330,7 +330,15 @@ namespace CorruptedCourt.UI
         {
             // Because we moved all the logic into the TaskStep classes,
             // the UI Manager simply asks the task what to display!
-            return task.GetCurrentObjectiveText();
+            string text = task.GetCurrentObjectiveText();
+
+            // ObjectiveTarget.Hint is how R2's fallback ("polish a sword first") and R4's edge case
+            // ("every candle is lit") reach the player (ARCHITECTURE.md §12) - there's no separate
+            // hint UI, so it rides along on this same line rather than the waypoint marker itself.
+            string hint = task.GetCurrentObjectiveTarget(player).Hint;
+            if (!string.IsNullOrEmpty(hint)) text += $" ({hint})";
+
+            return text;
         }
 
         // --- GHOST SPECTATOR HUD (G3.2) ---

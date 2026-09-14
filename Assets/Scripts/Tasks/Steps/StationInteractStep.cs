@@ -65,5 +65,25 @@ namespace CorruptedCourt.Tasks
 
             return true; // Standard single-player interaction successful
         }
+
+        public override ObjectiveTarget GetObjectiveTarget(PlayerController player, TaskStepRuntime runtime)
+        {
+            TaskStationState station = StationRegistry.FindNearestPending(targetStationID, player.transform.position);
+            if (station != null) return new ObjectiveTarget { Transform = station.transform, IsDirect = true };
+
+            // No TaskStationState registered here at all - fall back to a plain location lookup rather
+            // than claiming R4's "everything's satisfied" for a station that isn't tracked that way.
+            if (StationRegistry.ByLocation(targetStationID).Count == 0)
+            {
+                Transform loc = FindLocationOrZone(targetStationID);
+                return loc != null ? new ObjectiveTarget { Transform = loc, IsDirect = true } : default;
+            }
+
+            return new ObjectiveTarget
+            {
+                Transform = null,
+                Hint = $"Every {targetStationID} is already done - find or ask for one to be reset."
+            };
+        }
     }
 }

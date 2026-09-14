@@ -86,5 +86,44 @@ namespace CorruptedCourt.Tasks
                 return $"legacyTargetRequiredItemName '{legacyTargetRequiredItemName}' is set but Target Required Item is not - assign the ItemDefinition.";
             return null;
         }
+
+        // Points at the nearest OTHER living player, full stop - not filtered to "also has this exact
+        // task" like the old WaypointManager if-else chain did, since neither GetObjectiveTarget's
+        // signature nor TaskStepRuntime carries the owning task's identity (B16 - a deliberate
+        // single-target simplification, flagged in the phase plan rather than silently dropped).
+        public override ObjectiveTarget GetObjectiveTarget(PlayerController player, TaskStepRuntime runtime)
+        {
+            if (requiredItem != null && !player.IsHoldingItem(requiredItem, requiredState))
+            {
+                return ItemSourceResolver.Instance != null
+                    ? ItemSourceResolver.Instance.Resolve(new ItemIdentity { definition = requiredItem, state = requiredState }, player.transform.position)
+                    : default;
+            }
+
+            PlayerController nearest = FindNearestOtherLivingPlayer(player);
+            return nearest != null ? new ObjectiveTarget { Transform = nearest.transform, IsDirect = true } : default;
+        }
+
+        private static PlayerController FindNearestOtherLivingPlayer(PlayerController player)
+        {
+            if (RoleManager.Instance == null) return null;
+
+            PlayerController nearest = null;
+            float nearestDistSq = float.MaxValue;
+
+            foreach (PlayerController p in RoleManager.Instance.allPlayers)
+            {
+                if (p == null || p == player || p.Vitals.isGhost) continue;
+
+                float distSq = (p.transform.position - player.transform.position).sqrMagnitude;
+                if (distSq < nearestDistSq)
+                {
+                    nearestDistSq = distSq;
+                    nearest = p;
+                }
+            }
+
+            return nearest;
+        }
     }
 }

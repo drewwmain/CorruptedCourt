@@ -2876,6 +2876,7 @@ GameObject:
   - component: {fileID: 698097558}
   - component: {fileID: 698097559}
   - component: {fileID: 698097560}
+  - component: {fileID: 698097561}
   m_Layer: 8
   m_Name: MatchManager
   m_TagString: Untagged
@@ -3031,6 +3032,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   fadeDuration: 0.35
+--- !u!114 &698097561
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 698097553}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88f6d0b1dbc75fc4589ef217cd08e14d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  recipeIndex: {fileID: 0}
 --- !u!1 &702280349
 GameObject:
   m_ObjectHideFlags: 0
@@ -8346,9 +8360,65 @@ PrefabInstance:
       propertyPath: 'rightHandFingerBones.Array.data[1]'
       value: 
       objectReference: {fileID: 1412770203}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 1920
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 1080
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 960
+      objectReference: {fileID: 0}
+    - target: {fileID: 4363848995519328971, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 538.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6163880823998623467, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_RenderMode
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6479238678288258100, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
       propertyPath: leanViewPitch
       value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 7227799617969207268, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
+      propertyPath: m_Cameras.Array.size
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7227799617969207268, guid: 5675daa2f83559844a395aef58ab4f46, type: 3}
       propertyPath: 'm_Cameras.Array.data[0]'

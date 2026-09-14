@@ -21,5 +21,11 @@ namespace CorruptedCourt.Tasks
         {
             return player.Vitals.currentZoneID == targetZoneID;
         }
+
+        public override ObjectiveTarget GetObjectiveTarget(PlayerController player, TaskStepRuntime runtime)
+        {
+            Transform t = FindLocationOrZone(targetZoneID);
+            return t != null ? new ObjectiveTarget { Transform = t, IsDirect = true } : default;
+        }
     }
 }

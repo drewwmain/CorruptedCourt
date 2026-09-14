@@ -60,5 +60,33 @@ namespace CorruptedCourt.Tasks
             => targetItem == null && string.IsNullOrEmpty(targetStationID) && !string.IsNullOrEmpty(legacyTargetStationOrItemName)
                 ? $"legacyTargetStationOrItemName '{legacyTargetStationOrItemName}' is set but neither Target Station ID nor Target Item is - assign one."
                 : null;
+
+        public override ObjectiveTarget GetObjectiveTarget(PlayerController player, TaskStepRuntime runtime)
+        {
+            if (!string.IsNullOrEmpty(targetStationID))
+            {
+                TaskStationState station = StationRegistry.FindNearestPending(targetStationID, player.transform.position);
+                if (station != null) return new ObjectiveTarget { Transform = station.transform, IsDirect = true };
+
+                if (StationRegistry.ByLocation(targetStationID).Count == 0)
+                {
+                    Transform loc = FindLocationOrZone(targetStationID);
+                    if (loc != null) return new ObjectiveTarget { Transform = loc, IsDirect = true };
+                }
+                else
+                {
+                    return new ObjectiveTarget
+                    {
+                        Transform = null,
+                        Hint = $"Every {targetStationID} is already done - find or ask for one to be reset."
+                    };
+                }
+            }
+
+            if (targetItem != null && ItemSourceResolver.Instance != null)
+                return ItemSourceResolver.Instance.Resolve(new ItemIdentity { definition = targetItem, state = targetItemState }, player.transform.position);
+
+            return default;
+        }
     }
 }
