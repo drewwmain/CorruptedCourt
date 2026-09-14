@@ -1115,3 +1115,35 @@ depends on this being done immediately, but the wheel is not testable in Play Mo
 Once done, Play Mode verify (from B13b): hold B, confirm the outer ring (4 categories) appears, hover
 one, confirm its inner ring populates, release on an emote, confirm the nameplate shows the right
 line above your head; release off any slice, confirm it cancels cleanly.
+
+---
+
+## DEFERRED — B17 Editor setup (not yet done)
+
+`LedgerStation`, `OrderRecallStep`, and the order-recall UI code in `UIManager.cs` are written and
+compile, but nothing is wired up in the scene/prefabs yet — this is Editor-only work Claude can't do
+itself. Nothing later depends on this being done immediately, but order-recall is not testable in
+Play Mode until it is:
+
+1. Build one reusable numbered-order button prefab: a `Button` with a child `TextMeshProUGUI` label
+   (the label text gets overwritten at runtime with each position's number — any placeholder text is
+   fine).
+2. Build the reveal panel: a `GameObject` (start inactive) with a `TextMeshProUGUI` for the revealed
+   order and a `Continue` button. Wire the button's `OnClick` to `UIManager.OnOrderRevealContinuePressed`.
+3. Build the input panel: a `GameObject` (start inactive) with a `TextMeshProUGUI` for the in-progress
+   submission, an empty child `RectTransform`/`Transform` container for the spawned number buttons,
+   and a `Cancel` button. Wire the button's `OnClick` to `UIManager.OnOrderInputCancelPressed`.
+4. On the `UIManager` component, wire: `orderRevealPanel`, `orderRevealText`, `orderInputPanel`,
+   `orderInputProgressText`, `orderInputButtonPrefab` (from step 1), `orderInputButtonContainer`
+   (from step 3).
+5. For testing (no real Ledger/Confirmation Box placement exists yet — that's B19b): make one test
+   object with `TaskLocation` (a `locationID`, e.g. `"Ledger"`) + `TaskStation` + `LedgerStation`
+   (set `Sequence Length`, e.g. `3`), and a second test object with `TaskLocation`
+   (`"ConfirmationBox"`) + `TaskStation`. Author one throwaway `TaskData` with a single
+   `OrderRecallStep`: `Source Station ID = "Ledger"`, `Input Station ID = "ConfirmationBox"`.
+
+Once done, Play Mode verify (from B17): interact with the Ledger test object, confirm the reveal
+panel shows the order once; walk to the Confirmation Box test object and interact, confirm the input
+panel opens with that many numbered buttons; click them in the wrong order, confirm the submission
+clears and the panel stays open for an immediate retry; click them in the right order, confirm the
+step (and task, if it was the last step) completes and both panels close.

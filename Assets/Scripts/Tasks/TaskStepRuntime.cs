@@ -25,6 +25,22 @@ namespace CorruptedCourt.Tasks
         /// </summary>
         public HashSet<TaskDepositStation> EligibleDepositStations;
 
+        /// <summary>OrderRecallStep only (B17). The fixed order copied from the LedgerStation the
+        /// moment this player reads it. Null until <see cref="HasObserved"/>.</summary>
+        public List<int> ObservedSequence;
+
+        /// <summary>OrderRecallStep only. True once this player has read the Ledger this attempt.</summary>
+        public bool HasObserved;
+
+        /// <summary>OrderRecallStep only. One-shot: set the moment the order is first observed - the
+        /// order-recall UI panel shows the reveal popup once, then clears this itself.</summary>
+        public bool SequenceRevealPending;
+
+        /// <summary>OrderRecallStep only. One-shot: set each time the player interacts with the input
+        /// station having already observed the order. The order-recall UI panel opens the input popup
+        /// off this and clears it (on submit, correct or not, or on cancel).</summary>
+        public bool InputPending;
+
         public TaskStepRuntime(TaskStep template)
         {
             Template = template;

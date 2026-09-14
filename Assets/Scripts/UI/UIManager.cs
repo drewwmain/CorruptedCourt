@@ -18,6 +18,24 @@ namespace CorruptedCourt.UI
         public TextMeshProUGUI taskListText;
         public Slider courtProgressMeter;
 
+        [Header("Order Recall UI")]
+        [Tooltip("Shown once when an OrderRecallStep's fixed order is first read at the Ledger.")]
+        public GameObject orderRevealPanel;
+        public TextMeshProUGUI orderRevealText;
+        [Tooltip("Shown while the player is at the Confirmation Box with an order to submit.")]
+        public GameObject orderInputPanel;
+        public TextMeshProUGUI orderInputProgressText;
+        [Tooltip("One reusable Button + TextMeshProUGUI label, instantiated once per order position.")]
+        public GameObject orderInputButtonPrefab;
+        public Transform orderInputButtonContainer;
+
+        // Which task's OrderRecallStep the two panels above are currently driving, and the player's
+        // in-progress click sequence for the input panel. Both are session-local UI state, not
+        // authoring or per-player game state - they don't belong on TaskStepRuntime.
+        private TaskInstance orderRecallTask;
+        private readonly List<int> orderInputSubmission = new List<int>();
+        private readonly List<GameObject> orderInputSpawnedButtons = new List<GameObject>();
+
         [Header("Transition & Meeting UI")]
         public GameObject transitionPanel; // Shows during the 20s scramble
         public TextMeshProUGUI transitionTimerText;
@@ -147,6 +165,7 @@ namespace CorruptedCourt.UI
             if (player == null) return;
 
             UpdatePlayerTaskList(player, player.TaskBook.allAssignedTasks, player.TaskBook.activeTasks, player.Vitals.courtTitle);
+            UpdateOrderRecallPanels(player.TaskBook.activeTasks);
         }
 
         private void OnMatchStateChanged(MatchManager.MatchState state)
@@ -339,6 +358,156 @@ namespace CorruptedCourt.UI
             if (!string.IsNullOrEmpty(hint)) text += $" ({hint})";
 
             return text;
+        }
+
+        // --- ORDER RECALL UI (B17) ---
+        // Reveal panel: shown once when OrderRecallStep first records the Ledger's fixed order.
+        // Input panel: shown while the player is at the Confirmation Box with an order to submit.
+        // Both are driven by the one-shot pending flags on the active OrderRecallStep's
+        // TaskStepRuntime, refreshed the same way the rest of the HUD reacts to LocalTasksChanged.
+
+        private void UpdateOrderRecallPanels(List<TaskInstance> activeTasks)
+        {
+            if (activeTasks == null) return;
+
+            foreach (TaskInstance task in activeTasks)
+            {
+                if (task == null || !(task.GetCurrentStep() is OrderRecallStep)) continue;
+
+                TaskStepRuntime runtime = task.CurrentStepRuntime;
+                if (runtime == null) continue;
+
+                if (runtime.SequenceRevealPending) ShowOrderReveal(task, runtime);
+                if (runtime.InputPending) ShowOrderInput(task, runtime);
+            }
+        }
+
+        private void ShowOrderReveal(TaskInstance task, TaskStepRuntime runtime)
+        {
+            if (orderRevealPanel == null) return;
+
+            orderRecallTask = task;
+            if (orderRevealText != null && runtime.ObservedSequence != null)
+                orderRevealText.text = string.Join("  -  ", runtime.ObservedSequence);
+
+            orderRevealPanel.SetActive(true);
+        }
+
+        /// <summary>Wire to the reveal panel's Continue button.</summary>
+        public void OnOrderRevealContinuePressed()
+        {
+            if (orderRecallTask != null && orderRecallTask.CurrentStepRuntime != null)
+                orderRecallTask.CurrentStepRuntime.SequenceRevealPending = false;
+
+            if (orderRevealPanel != null) orderRevealPanel.SetActive(false);
+        }
+
+        private void ShowOrderInput(TaskInstance task, TaskStepRuntime runtime)
+        {
+            if (orderInputPanel == null || runtime.ObservedSequence == null) return;
+
+            orderRecallTask = task;
+            orderInputSubmission.Clear();
+            RebuildOrderInputButtons(runtime.ObservedSequence.Count);
+            UpdateOrderInputProgressText();
+
+            orderInputPanel.SetActive(true);
+        }
+
+        private void RebuildOrderInputButtons(int count)
+        {
+            foreach (GameObject go in orderInputSpawnedButtons)
+            {
+                if (go != null) Destroy(go);
+            }
+            orderInputSpawnedButtons.Clear();
+
+            if (orderInputButtonPrefab == null || orderInputButtonContainer == null) return;
+
+            for (int i = 1; i <= count; i++)
+            {
+                int value = i; // captured per-button - i itself changes after the loop
+                GameObject buttonObj = Instantiate(orderInputButtonPrefab, orderInputButtonContainer);
+
+                TextMeshProUGUI label = buttonObj.GetComponentInChildren<TextMeshProUGUI>();
+                if (label != null) label.text = value.ToString();
+
+                Button button = buttonObj.GetComponent<Button>();
+                if (button != null) button.onClick.AddListener(() => OnOrderDigitClicked(value));
+
+                orderInputSpawnedButtons.Add(buttonObj);
+            }
+        }
+
+        private void OnOrderDigitClicked(int value)
+        {
+            TaskStepRuntime runtime = orderRecallTask != null ? orderRecallTask.CurrentStepRuntime : null;
+            if (runtime == null || runtime.ObservedSequence == null) return;
+
+            orderInputSubmission.Add(value);
+            UpdateOrderInputProgressText();
+
+            if (orderInputSubmission.Count < runtime.ObservedSequence.Count) return; // not done yet
+
+            if (SequenceMatches(orderInputSubmission, runtime.ObservedSequence))
+            {
+                CompleteOrderRecall(orderRecallTask, runtime);
+            }
+            else
+            {
+                // Wrong full guess - clear and let them retry immediately, no need to leave the panel.
+                orderInputSubmission.Clear();
+                UpdateOrderInputProgressText();
+            }
+        }
+
+        private static bool SequenceMatches(List<int> submitted, List<int> observed)
+        {
+            if (submitted.Count != observed.Count) return false;
+            for (int i = 0; i < submitted.Count; i++)
+            {
+                if (submitted[i] != observed[i]) return false;
+            }
+            return true;
+        }
+
+        private void UpdateOrderInputProgressText()
+        {
+            if (orderInputProgressText != null) orderInputProgressText.text = string.Join("  -  ", orderInputSubmission);
+        }
+
+        private void CompleteOrderRecall(TaskInstance task, TaskStepRuntime runtime)
+        {
+            if (task == null) return;
+
+            runtime.InputPending = false; // clear on the step we're finishing, before advancing
+
+            task.CompleteActiveStep();
+            if (task.IsComplete && TaskManager.Instance != null && LocalPlayer != null)
+                TaskManager.Instance.CompleteTask(LocalPlayer, task); // also refreshes waypoints via RemoveCompletedTask
+
+            CloseOrderInputPanel();
+        }
+
+        /// <summary>Wire to the input panel's Cancel button.</summary>
+        public void OnOrderInputCancelPressed()
+        {
+            if (orderRecallTask != null && orderRecallTask.CurrentStepRuntime != null)
+                orderRecallTask.CurrentStepRuntime.InputPending = false;
+
+            CloseOrderInputPanel();
+        }
+
+        private void CloseOrderInputPanel()
+        {
+            foreach (GameObject go in orderInputSpawnedButtons)
+            {
+                if (go != null) Destroy(go);
+            }
+            orderInputSpawnedButtons.Clear();
+            orderInputSubmission.Clear();
+
+            if (orderInputPanel != null) orderInputPanel.SetActive(false);
         }
 
         // --- GHOST SPECTATOR HUD (G3.2) ---
