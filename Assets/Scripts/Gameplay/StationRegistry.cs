@@ -40,6 +40,11 @@ namespace CorruptedCourt.Gameplay
             return byLocationID.TryGetValue(locationID, out List<TaskStationState> list) ? list : empty;
         }
 
+        /// <summary>Every distinct locationID currently registered. Debug/tooling only
+        /// (StationDebugPanel) - normal gameplay code already has its locationID in hand and should use
+        /// ByLocation/FindNearestPending/PendingCount instead.</summary>
+        public static IEnumerable<string> AllLocationIDs => byLocationID.Keys;
+
         /// <summary>The nearest Pending station at <paramref name="locationID"/> to <paramref name="from"/>,
         /// or null if none are pending - the honest waypoint target under R4 (never points at an
         /// already-satisfied instance when another is available).</summary>

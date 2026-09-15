@@ -46,6 +46,12 @@ namespace CorruptedCourt.Gameplay
             ? (depositStation.HasReceivedItem() ? Condition.Satisfied : Condition.Pending)
             : condition;
 
+        /// <summary>True when this station's Current derives from a sibling TaskDepositStation rather
+        /// than the stored condition field - MarkSatisfied/TryRevert/DebugForceRevert are all no-ops for
+        /// these (see the class summary). Debug/tooling only, e.g. StationDebugPanel disabling its
+        /// force-cheat buttons here rather than offering ones that silently do nothing.</summary>
+        public bool IsDepositBacked => depositStation != null;
+
         /// <summary>Who satisfied this station. Logging/UI only - never gates anything.</summary>
         public PlayerController SatisfiedBy { get; private set; }
 
@@ -115,6 +121,20 @@ namespace CorruptedCourt.Gameplay
             UpdateVisual();
             GameEvents.RaiseStationConditionChanged(this);
             return true;
+        }
+
+        /// <summary>Debug-only: forces this station back to Pending, bypassing playerReversible (real
+        /// player-facing reversal must still respect it - see TryRevert). No-op for a deposit-backed
+        /// station, same as TryRevert. Used by StationDebugPanel; never called by real gameplay.</summary>
+        public void DebugForceRevert()
+        {
+            if (depositStation != null) return;
+            if (condition != Condition.Satisfied) return;
+
+            condition = Condition.Pending;
+            SatisfiedBy = null;
+            UpdateVisual();
+            GameEvents.RaiseStationConditionChanged(this);
         }
 
         /// <summary>Called by TaskDepositStation whenever its deposited-item slots change (deposit,
