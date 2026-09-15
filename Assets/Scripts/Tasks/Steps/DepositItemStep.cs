@@ -122,9 +122,11 @@ namespace CorruptedCourt.Tasks
             if (requiredItem == null && !string.IsNullOrEmpty(legacyRequiredItemName))
                 return $"legacyRequiredItemName '{legacyRequiredItemName}' is set but Required Item is not - assign the ItemDefinition.";
 
-            // TODO(B18): TaskDataValidator should warn here when requireOwnDeposit is explicitly
-            // false - per ARCHITECTURE.md §III.4, the permissive form should be a deliberate
-            // authoring choice, not an inherited default.
+            // Per ARCHITECTURE.md §III.4: the permissive form should be a deliberate authoring choice
+            // (any player's earlier deposit satisfies this for everyone), not an inherited default.
+            if (!requireOwnDeposit)
+                return "Require Own Deposit is off - confirm this is deliberate, not an accident.";
+
             return null;
         }
 
