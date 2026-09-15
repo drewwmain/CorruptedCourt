@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3b9934e1ce9a514cb3562f1d81cbffd, type: 3}
+  m_Name: Instrument
+  m_EditorClassIdentifier:
+  members:
+  - {fileID: 11400000, guid: 46573b9f0bbbd39c6e97a1aebdece079, type: 2}
+  - {fileID: 11400000, guid: a9597b2e5b9b4723dfcb5124adf4879e, type: 2}
+  - {fileID: 11400000, guid: 6365c694a6991e28f52a40b137ce88c7, type: 2}

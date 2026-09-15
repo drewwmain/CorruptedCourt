@@ -10,10 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e99ec463783640ddbb9c6eefd4ce0a49, type: 3}
-  m_Name: WineGlass
-  m_EditorClassIdentifier: 
-  itemID: WineGlass
-  displayName: Wine Glass
-  variantNames:
-  - whenState: 2
-    displayName: Glass of Wine
+  m_Name: Quiver
+  m_EditorClassIdentifier:
+  itemID: Quiver
+  displayName: Quiver

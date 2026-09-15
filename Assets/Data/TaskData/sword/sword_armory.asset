@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
   m_Name: sword_armory
   m_EditorClassIdentifier: 
-  taskID: sword_polish
+  taskID: sword_armory
   taskName: Maintain the Steel
   taskDescription: 'The ceremonial sword has dulled. Take it to the grindstone and
     polish it to a mirror shine.

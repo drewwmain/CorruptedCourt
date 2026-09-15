@@ -14,3 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemID: Sword
   displayName: Sword
+  variantNames:
+  - whenState: 1
+    displayName: Polished Sword

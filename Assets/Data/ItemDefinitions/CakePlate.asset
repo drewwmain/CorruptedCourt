@@ -14,3 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemID: CakePlate
   displayName: CakePlate
+  variantNames:
+  - whenState: 2
+    displayName: Plate of Cake
