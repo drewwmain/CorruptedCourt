@@ -1,50 +1,67 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 using CorruptedCourt.Gameplay;
 using CorruptedCourt.Minigames;
 
 namespace CorruptedCourt.UI
 {
     /// <summary>
-    /// Drives the two-ring radial emote wheel: detects the roleplay "hold B" gesture, renders
+    /// Drives the paginated radial emote wheel: detects the roleplay "hold B" gesture, renders
     /// whichever session <see cref="EmoteWheelController"/> has open (roleplay or minigame-triggered -
     /// both use the same hold/aim/release gesture), and calls <see cref="EmoteWheelController.Commit"/>
     /// / <see cref="EmoteWheelController.Cancel"/> on release.
     ///
-    /// Ring layout is entirely code-driven - each slice's position is <c>radius * (cos, sin)</c>
-    /// around a circle sized by however many entries exist that frame - so the Editor side only needs
-    /// one reusable <see cref="EmoteWheelSlice"/> prefab and two empty ring containers, not a
-    /// hand-placed layout per category/emote (the inner ring's count varies by category anyway).
+    /// One fixed 8-slot ring is shown at a time, one page per <see cref="EmoteCategory"/>. A free-choice
+    /// session can scroll the mouse wheel to turn pages; a minigame-restricted session (category or a
+    /// specific emote) opens locked to the one relevant page with paging disabled. Every page always
+    /// renders exactly <see cref="SlotsPerPage"/> slots regardless of how many emotes exist in that
+    /// category - unused slots render vacant - so slot position never has to renumber, and the same
+    /// gesture lands the same slot in every category.
+    ///
+    /// Ring layout is entirely code-driven - each slice's position is <c>radius * (cos, sin)</c> around
+    /// a circle - so the Editor side only needs one reusable <see cref="EmoteWheelSlice"/> prefab and
+    /// one empty ring container, not a hand-placed layout per category.
     /// </summary>
     public class EmoteWheelUI : MonoBehaviour
     {
         [Header("Wiring")]
         [Tooltip("Root panel toggled active/inactive to show/hide the whole wheel.")]
         [SerializeField] private GameObject wheelRoot;
-        [Tooltip("Empty RectTransform anchored to screen centre - outer-ring (category) slices are parented here.")]
-        [SerializeField] private RectTransform outerRingRoot;
-        [Tooltip("Empty RectTransform anchored to screen centre - inner-ring (emote) slices are parented here.")]
-        [SerializeField] private RectTransform innerRingRoot;
-        [Tooltip("Reusable slice view, instantiated once per category / per emote as needed.")]
+        [Tooltip("Empty RectTransform anchored to screen centre - the ring's slices are parented here.")]
+        [SerializeField] private RectTransform ringRoot;
+        [Tooltip("Reusable slice view, instantiated once per slot (up to SlotsPerPage) on every page.")]
         [SerializeField] private EmoteWheelSlice slicePrefab;
+        [Tooltip("Optional - shows the active category name. The only on-screen page indicator, since paging is scroll-only.")]
+        [SerializeField] private TextMeshProUGUI pageLabel;
 
         [Header("Layout")]
-        [SerializeField] private float outerRadius = 150f;
-        [SerializeField] private float innerRadius = 280f;
+        [SerializeField] private float ringRadius = 220f;
         [Tooltip("Mouse must move at least this far from screen centre before any slice counts as hovered.")]
         [SerializeField] private float deadzoneRadius = 40f;
+        [Tooltip("Minimum time between scroll-driven page turns, so one scroll tick is one page, not a spin.")]
+        [SerializeField] private float pageScrollCooldown = 0.2f;
+        [Tooltip("How long the committed slot's selected-glow flashes before the wheel actually closes.")]
+        [SerializeField] private float selectedFlashSeconds = 0.2f;
+
+        private const int SlotsPerPage = 8;
+        private const float ScrollThreshold = 0.05f;
 
         private static readonly EmoteCategory[] Categories = (EmoteCategory[])Enum.GetValues(typeof(EmoteCategory));
 
-        private readonly List<EmoteWheelSlice> outerSlices = new List<EmoteWheelSlice>();
-        private readonly List<EmoteWheelSlice> innerSlices = new List<EmoteWheelSlice>();
-        private readonly List<EmoteDefinition> innerOptions = new List<EmoteDefinition>();
+        private readonly List<EmoteWheelSlice> slices = new List<EmoteWheelSlice>();
+        private readonly List<EmoteDefinition> slotEntries = new List<EmoteDefinition>();
+        private readonly List<EmoteDefinition> pageOptionsBuffer = new List<EmoteDefinition>();
 
         private bool isShowing;
-        private bool isShowingInner;
-        private int hoveredOuterIndex = -1;
-        private int hoveredInnerIndex = -1;
+        private bool canPage;
+        private bool isClosing;
+        private bool ownsCursorLock;
+        private int activeCategoryIndex;
+        private int hoveredIndex = -1;
+        private float lastPageScrollTime;
+        private float pendingCloseTime;
 
         private void Awake()
         {
@@ -53,6 +70,12 @@ namespace CorruptedCourt.UI
 
         private void Update()
         {
+            if (isClosing)
+            {
+                if (Time.time >= pendingCloseTime) HideWheel();
+                return;
+            }
+
             EmoteWheelController controller = EmoteWheelController.Instance;
             if (controller == null)
             {
@@ -72,16 +95,36 @@ namespace CorruptedCourt.UI
             if (!isShowing) BeginShow(controller.ActiveFilter);
 
             UpdateHover();
+            if (canPage) UpdatePaging();
 
             if (Input.GetKeyUp(controller.openKey))
             {
-                EmoteDefinition chosen = (isShowingInner && hoveredInnerIndex >= 0 && hoveredInnerIndex < innerOptions.Count)
-                    ? innerOptions[hoveredInnerIndex]
+                EmoteDefinition chosen = (hoveredIndex >= 0 && hoveredIndex < slotEntries.Count)
+                    ? slotEntries[hoveredIndex]
                     : null;
 
-                if (chosen != null) controller.Commit(chosen);
-                else controller.Cancel();
+                if (chosen != null)
+                {
+                    controller.Commit(chosen);
+                    BeginClosingFlash();
+                }
+                else
+                {
+                    controller.Cancel();
+                    HideWheel();
+                }
             }
+        }
+
+        // Commit fires the emote and closes the controller's session immediately, but the chosen
+        // slice's selected-glow needs a beat on screen first - hold the visual open for
+        // selectedFlashSeconds rather than hiding on the very next frame.
+        private void BeginClosingFlash()
+        {
+            isClosing = true;
+            pendingCloseTime = Time.time + selectedFlashSeconds;
+            if (hoveredIndex >= 0 && hoveredIndex < slices.Count && slices[hoveredIndex] != null)
+                slices[hoveredIndex].SetSelected(true);
         }
 
         // Only the free-choice roleplay path originates a session here - a minigame-triggered wheel
@@ -101,44 +144,52 @@ namespace CorruptedCourt.UI
         private void BeginShow(EmoteFilter filter)
         {
             isShowing = true;
-            hoveredOuterIndex = -1;
-            hoveredInnerIndex = -1;
+            hoveredIndex = -1;
+            activeCategoryIndex = 0;
 
-            bool browseCategories = filter.freeChoice || (filter.specific == null && filter.category == null);
+            // Every field at default behaves like freeChoice - mirrors EmoteWheelController.CurrentOptions.
+            canPage = filter.freeChoice || (filter.specific == null && filter.category == null);
 
-            if (browseCategories)
+            if (!canPage)
             {
-                isShowingInner = false;
-                PopulateOuterRing();
-                SetRingActive(outer: true, inner: false);
-            }
-            else
-            {
-                isShowingInner = true;
                 EmoteCategory? cat = filter.specific != null ? filter.specific.category : filter.category;
-                PopulateInnerRing(cat, filter.specific);
-                SetRingActive(outer: false, inner: true);
+                if (cat != null)
+                {
+                    int idx = Array.IndexOf(Categories, cat.Value);
+                    if (idx >= 0) activeCategoryIndex = idx;
+                }
             }
 
+            PopulateRing();
             if (wheelRoot != null) wheelRoot.SetActive(true);
+
+            // Hover reads raw Input.mousePosition, which doesn't track real movement while the cursor
+            // is locked - the roleplay hotkey path is the only one responsible for that lock (a
+            // minigame-triggered wheel's host minigame already manages its own cursor state, e.g.
+            // HandMinigame's OnHandBegin/OnHandEnd - stealing that back on close would fight it).
+            ownsCursorLock = !MinigameBase.IsAnyActive;
+            if (ownsCursorLock)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
         }
 
         private void HideWheel()
         {
             isShowing = false;
-            isShowingInner = false;
-            hoveredOuterIndex = -1;
-            hoveredInnerIndex = -1;
-            ClearRing(outerRingRoot, outerSlices);
-            ClearRing(innerRingRoot, innerSlices);
-            innerOptions.Clear();
+            isClosing = false;
+            hoveredIndex = -1;
+            ClearRing();
+            slotEntries.Clear();
             if (wheelRoot != null) wheelRoot.SetActive(false);
-        }
 
-        private void SetRingActive(bool outer, bool inner)
-        {
-            if (outerRingRoot != null) outerRingRoot.gameObject.SetActive(outer);
-            if (innerRingRoot != null) innerRingRoot.gameObject.SetActive(inner);
+            if (ownsCursorLock)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
+            ownsCursorLock = false;
         }
 
         private void UpdateHover()
@@ -147,92 +198,79 @@ namespace CorruptedCourt.UI
             Vector2 offset = (Vector2)Input.mousePosition - center;
             bool pastDeadzone = offset.magnitude >= deadzoneRadius;
 
-            if (!isShowingInner)
-            {
-                hoveredOuterIndex = (pastDeadzone && outerSlices.Count > 0) ? AngleToIndex(offset, outerSlices.Count) : -1;
-                Highlight(outerSlices, hoveredOuterIndex);
+            int idx = pastDeadzone ? AngleToIndex(offset, SlotsPerPage) : -1;
+            if (idx >= 0 && (idx >= slotEntries.Count || slotEntries[idx] == null)) idx = -1; // vacant slot = nothing hovered
 
-                if (hoveredOuterIndex >= 0)
-                {
-                    // Locks in for the rest of this session - see the class comment / B13b plan for why
-                    // this is a deliberate one-way transition, not a re-browsable ring switch: the
-                    // player can still Cancel and re-open to try a different category.
-                    isShowingInner = true;
-                    PopulateInnerRing(Categories[hoveredOuterIndex], null);
-                    SetRingActive(outer: false, inner: true);
-                    hoveredInnerIndex = -1;
-                }
-            }
-            else
-            {
-                hoveredInnerIndex = (pastDeadzone && innerSlices.Count > 0) ? AngleToIndex(offset, innerSlices.Count) : -1;
-                Highlight(innerSlices, hoveredInnerIndex);
-            }
+            hoveredIndex = idx;
+            for (int i = 0; i < slices.Count; i++)
+                if (slices[i] != null) slices[i].SetHighlighted(i == hoveredIndex);
         }
 
-        private void PopulateOuterRing()
+        private void UpdatePaging()
         {
-            ClearRing(outerRingRoot, outerSlices);
-            for (int i = 0; i < Categories.Length; i++)
-            {
-                EmoteWheelSlice slice = SpawnSlice(outerRingRoot, i, Categories.Length, outerRadius);
-                if (slice == null) continue;
-                slice.SetLabel(Categories[i].ToString());
-                outerSlices.Add(slice);
-            }
+            float scroll = Input.mouseScrollDelta.y;
+            if (Mathf.Abs(scroll) < ScrollThreshold) return;
+            if (Time.time < lastPageScrollTime + pageScrollCooldown) return;
+            lastPageScrollTime = Time.time;
+
+            int dir = scroll > 0f ? 1 : -1;
+            activeCategoryIndex = ((activeCategoryIndex + dir) % Categories.Length + Categories.Length) % Categories.Length;
+            hoveredIndex = -1;
+            PopulateRing();
         }
 
-        // category == null && specific == null means "every current option" - mirrors
-        // EmoteWheelController.CurrentOptions treating an all-default filter the same as free choice.
-        private void PopulateInnerRing(EmoteCategory? category, EmoteDefinition specific)
+        private void PopulateRing()
         {
-            ClearRing(innerRingRoot, innerSlices);
-            innerOptions.Clear();
+            ClearRing();
+            slotEntries.Clear();
+            pageOptionsBuffer.Clear();
 
+            EmoteCategory activeCategory = Categories[activeCategoryIndex];
             EmoteWheelController controller = EmoteWheelController.Instance;
             if (controller != null)
             {
                 foreach (EmoteDefinition e in controller.CurrentOptions)
                 {
-                    if (e == null) continue;
-                    if (specific != null) { if (e == specific) innerOptions.Add(e); continue; }
-                    if (category != null) { if (e.category == category.Value) innerOptions.Add(e); continue; }
-                    innerOptions.Add(e);
+                    if (e == null || e.category != activeCategory) continue;
+                    pageOptionsBuffer.Add(e);
+                    if (pageOptionsBuffer.Count >= SlotsPerPage) break;
                 }
             }
 
-            for (int i = 0; i < innerOptions.Count; i++)
+            for (int i = 0; i < SlotsPerPage; i++)
             {
-                EmoteWheelSlice slice = SpawnSlice(innerRingRoot, i, innerOptions.Count, innerRadius);
+                EmoteDefinition entry = i < pageOptionsBuffer.Count ? pageOptionsBuffer[i] : null;
+                slotEntries.Add(entry);
+
+                EmoteWheelSlice slice = SpawnSlice(i);
                 if (slice == null) continue;
-                slice.SetLabel(innerOptions[i].displayName);
-                innerSlices.Add(slice);
+
+                if (entry != null) slice.SetLabel(entry.displayName);
+                else slice.SetVacant(true);
+
+                slices.Add(slice);
             }
+
+            if (pageLabel != null) pageLabel.text = activeCategory.ToString();
         }
 
-        private EmoteWheelSlice SpawnSlice(RectTransform root, int index, int count, float radius)
+        private EmoteWheelSlice SpawnSlice(int index)
         {
-            if (slicePrefab == null || root == null || count <= 0) return null;
+            if (slicePrefab == null || ringRoot == null) return null;
 
-            EmoteWheelSlice slice = Instantiate(slicePrefab, root);
+            EmoteWheelSlice slice = Instantiate(slicePrefab, ringRoot);
             RectTransform rt = slice.transform as RectTransform;
-            if (rt != null) rt.anchoredPosition = SliceDirection(index, count) * radius;
+            if (rt != null) rt.anchoredPosition = SliceDirection(index, SlotsPerPage) * ringRadius;
             return slice;
         }
 
-        private static void ClearRing(RectTransform root, List<EmoteWheelSlice> slices)
+        private void ClearRing()
         {
-            if (root != null)
+            if (ringRoot != null)
             {
-                for (int i = root.childCount - 1; i >= 0; i--) Destroy(root.GetChild(i).gameObject);
+                for (int i = ringRoot.childCount - 1; i >= 0; i--) Destroy(ringRoot.GetChild(i).gameObject);
             }
             slices.Clear();
-        }
-
-        private static void Highlight(List<EmoteWheelSlice> slices, int hoveredIndex)
-        {
-            for (int i = 0; i < slices.Count; i++)
-                if (slices[i] != null) slices[i].SetHighlighted(i == hoveredIndex);
         }
 
         // Index 0 points straight up; increasing index rotates clockwise. Shared by SpawnSlice's

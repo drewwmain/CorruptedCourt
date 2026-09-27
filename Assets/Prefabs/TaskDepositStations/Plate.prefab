@@ -123,6 +123,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7514774133032322923, guid: cb8386124d89e7b4e8663753514991dd, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6498782174418888750}
+    - targetCorrespondingSourceObject: {fileID: 7514774133032322923, guid: cb8386124d89e7b4e8663753514991dd, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1065668365592452985}
   m_SourcePrefab: {fileID: 100100000, guid: cb8386124d89e7b4e8663753514991dd, type: 3}
 --- !u!1 &8483664478107861741 stripped
 GameObject:
@@ -189,6 +192,24 @@ MonoBehaviour:
   locationID: Plate
   acceptedItem: {fileID: 11400000, guid: 17208e9f1565b9a40a8f63a7dd5baab0, type: 2}
   acceptedItemName: CakePiece
+--- !u!114 &1065668365592452985
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8483664478107861741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f430ace45ae02b4408845c823f6c4831, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  seatCapacity: 1
+  playerReversible: 1
+  revertVerb: retrieve
+  revertHoldSeconds: 1
+  pendingVisual: {fileID: 0}
+  satisfiedVisual: {fileID: 0}
 --- !u!4 &9149017873900394583 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7134273482050756049, guid: cb8386124d89e7b4e8663753514991dd, type: 3}

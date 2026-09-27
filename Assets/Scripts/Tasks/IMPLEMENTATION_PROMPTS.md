@@ -1093,28 +1093,103 @@ task prompt, per Part V's own scope boundary.
 
 ---
 
-## DEFERRED — B13b Editor setup (not yet done)
+## B13c — Paginated emote wheel rework
 
-`EmoteWheelUI`/`EmoteWheelSlice` (`Assets/Scripts/UI/`) are written and compile, but the wheel is not
-wired up in the scene/prefabs yet — this is Editor-only work Claude can't do itself. Nothing later
-depends on this being done immediately, but the wheel is not testable in Play Mode until it is:
+**Depends on:** B13b. **Risk:** Medium (replaces `EmoteWheelUI`'s ring model outright; one added guard
+line in `PlayerPowerUps`).
 
-1. Build one slice prefab: an `Image` (background — doubles as the highlight tint) with a child
-   `TextMeshProUGUI` label, `EmoteWheelSlice` component on the root wired to both. RectTransform
-   anchored/pivoted at center (0.5, 0.5), same as the nameplate text.
-2. In a Screen Space - Overlay canvas (the existing HUD canvas is fine — unlike the nameplate, this
-   one should NOT be World Space): a root panel GameObject for `wheelRoot` (can start inactive),
-   containing two empty `RectTransform` children — `outerRingRoot` and `innerRingRoot` — both
-   anchored to screen center. Double-check their scale is (1,1,1), not (0,0,0) - that exact mistake
-   bit the nameplate setup in B12.
-3. Add `EmoteWheelUI` to that panel (or a manager object) and wire `wheelRoot` / `outerRingRoot` /
-   `innerRingRoot` / `slicePrefab`. Leave the radius/deadzone fields at their defaults to start.
-4. Create a few actual `EmoteDefinition` assets and add them to `EmoteWheelController`'s `catalogue`
-   to see the inner ring populate with anything — none exist yet as of B12.
+### Do
 
-Once done, Play Mode verify (from B13b): hold B, confirm the outer ring (4 categories) appears, hover
-one, confirm its inner ring populates, release on an emote, confirm the nameplate shows the right
-line above your head; release off any slice, confirm it cancels cleanly.
+Replace the two-ring (outer category / inner emote) model in `EmoteWheelUI.cs` with a single paginated
+ring, approved from a mockup: one page per `EmoteCategory`, one ring of exactly 8 fixed slot positions
+per page (a category with fewer than 8 emotes renders the rest disabled/vacant rather than shrinking
+the ring), scroll wheel turns the page. `EmoteWheelController.cs` needs no changes — it already only
+exposes `CurrentOptions` and `Commit`/`Cancel`; the ring/paging model is entirely UI-side.
+
+- `EmoteWheelUI`: drop `outerRingRoot`/`innerRingRoot`/`isShowingInner`/`hoveredOuterIndex` and the
+  separate outer/inner slice lists. Replace with one `ringRoot`, one slice list, and
+  `activeCategoryIndex`. Collapse `outerRadius`/`innerRadius` into a single `ringRadius`.
+- Free-choice (roleplay hotkey) opens on `activeCategoryIndex = 0` and lets the scroll wheel step
+  through all 4 categories, wrapping (Music → Gesture, Gesture → Music). A minigame-restricted filter
+  (`category` or `specific` set) opens locked to that one category, rendered the same fixed-8-slot way
+  but with paging disabled — one rendering path for both modes, matching today's "narrowing doesn't
+  let you browse other categories" behavior.
+- Populate the ring with exactly 8 slots every time: slot `i` gets `CurrentOptions` filtered to the
+  active category, indexed `i`, if one exists there — else the slice renders vacant (new
+  `EmoteWheelSlice.SetVacant()`, see below) and is excluded from hover/commit. Slot position is a fixed
+  `i`-of-8 angle, never dependent on how many emotes exist, so the same gesture lands the same slot in
+  every category — that consistency is the entire point of the rework, so call it out explicitly in
+  Verify below rather than assuming it.
+- Hover-by-angle: keep the existing deadzone-radius technique (`AngleToIndex`), just against a fixed
+  8-slot ring instead of a variable-count one. A hovered vacant slot must behave as "nothing hovered"
+  for both highlight and commit — same as hovering the true gap between slices today.
+- Scroll paging: read `Input.mouseScrollDelta.y` directly in `Update()` while the wheel is showing and
+  unrestricted (same "poke `Input` directly" precedent this file already sets — not the `PlayerInput`
+  message path). One tick past a small magnitude threshold (guards against hardware/trackpad jitter
+  re-firing) steps `activeCategoryIndex` by ±1 with wraparound, re-populates the ring, and clears
+  hover. Add a short cooldown between page turns, mirroring `PlayerPowerUps.scrollCooldown`'s pattern,
+  so one scroll tick is one page turn, not a spin.
+- Add a `pageLabel` (`TextMeshProUGUI`, optional/nullable wiring) that `EmoteWheelUI` sets to the active
+  `EmoteCategory.ToString()` whenever the page changes — the only on-screen indicator of which category
+  is active, since paging is scroll-only with no clickable tabs in-game (the approved mockup's tabs were
+  a web-demo affordance, not a real-input plan — the mouse stays reserved for angle-hover).
+- `EmoteWheelSlice`: add `SetVacant(bool)` — dims the slice, disables it as a raycast/hover target, and
+  shows a muted placeholder label (e.g. "—") — alongside the existing `SetLabel`/`SetHighlighted` for
+  filled slices. Still no icon-sprite field (see the Editor-setup prompt below for why) — a filled
+  slice's only visual content is still the emote's `displayName`.
+- **Fix a real input collision this creates**: `PlayerController.OnScrollWheel` →
+  `PlayerPowerUps.HandleScrollWheel` already cycles the Corrupted power-up loadout on scroll. Add one
+  guard line at the top of `HandleScrollWheel`: return early if
+  `CorruptedCourt.Minigames.EmoteWheelController.Instance != null && EmoteWheelController.Instance.IsOpen`
+  (needs a `using CorruptedCourt.Minigames;` in `PlayerPowerUps.cs`), so opening the wheel and scrolling
+  to change pages doesn't also cycle whatever power-up the player is holding.
+
+### Verify
+
+Compiles clean. Can't be exercised in Play Mode until the Editor setup below is redone for the new
+ring — see that prompt's own Verify.
+
+---
+
+## DEFERRED — B13c Editor setup (supersedes the old B13b one)
+
+The prefab/scene wiring under the old "DEFERRED — B13b Editor setup" assumed the two-ring model B13c
+just replaced — **skip that section, it's stale.** `EmoteWheelUI`/`EmoteWheelSlice` are rewritten and
+compile after B13c, but nothing is wired up in the scene/prefabs yet; this is Editor-only work Claude
+can't do itself. The real Synty Fantasy Warrior HUD icon/frame assets aren't picked out yet, so this
+builds the whole thing on built-in Unity UI primitives (`Image`, `TextMeshProUGUI`) only — swapping in
+real frame/background sprites later means dragging new sprites onto the `Image` components this
+creates, not rebuilding anything:
+
+1. Build one slice prefab (`EmoteWheelSlice`): a root `Image` (flat color placeholder — this is the
+   wedge/tile backdrop `EmoteWheelSlice.background` tints on hover; there's no wedge-shaped sprite yet,
+   so a plain square or circle stands in for it) with a child `TextMeshProUGUI` label, anchored/pivoted
+   at center, wired to `EmoteWheelSlice.label` — this is standing in for the emote's icon, so give it
+   word-wrap and enough height for a couple of lines ("Strum a Chord" needs to fit). Same pivot
+   convention as the nameplate/old wheel slices from B12/B13b.
+2. In the existing HUD canvas (Screen Space - Overlay, same as the old rings): a root panel GameObject
+   for `wheelRoot` (start inactive), containing one empty `RectTransform` child — `ringRoot` — anchored
+   to screen center. Double-check its scale is (1,1,1) — the (0,0,0) mistake bit both the nameplate
+   (B12) and the original wheel rings.
+3. Add `EmoteWheelUI` to that panel (or a manager object) and wire `wheelRoot` / `ringRoot` /
+   `slicePrefab`. Leave `ringRadius` / `deadzoneRadius` at their defaults to start.
+4. Add a `TextMeshProUGUI` near screen center (above or behind where `ringRoot`'s slices sit) for the
+   page readout and wire it to `EmoteWheelUI.pageLabel`.
+5. Create a few actual `EmoteDefinition` assets (the 13 real ones from the B19b plan's data table, if
+   not already done) and add them to `EmoteWheelController`'s `catalogue` so the ring has something to
+   populate. Some categories will show fewer than 8 filled slots and some vacant ones — that's correct,
+   not a bug.
+
+Once done, Play Mode verify: hold B, confirm one page of up to 8 slots appears with any short category
+visibly showing dim/disabled vacant slots rather than a shrunken ring; scroll the mouse wheel and
+confirm the page changes to the next category, the label updates, and whatever you were hovering stops
+being hovered; confirm the *same slot position* holds an emote (or is vacant) consistently as you page
+back and forth — the whole reason for the fixed 8-slot layout; confirm scrolling while the wheel is
+open does **not** also cycle your held power-up if you're playing Corrupted; hover a filled slot and
+release B, confirm the nameplate shows the right line above your head; release off any slice (or on a
+vacant one), confirm it cancels cleanly; open a minigame-restricted wheel (whichever concrete calls
+`EmoteWheelController.Open` with a `category` or `specific` filter) and confirm scrolling does nothing
+there.
 
 ---
 

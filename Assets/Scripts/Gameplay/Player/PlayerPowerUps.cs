@@ -101,6 +101,10 @@ namespace CorruptedCourt.Gameplay
         {
             if (vitals.faction != Faction.Corrupted || vitals.isGhost) return;
 
+            // The emote wheel also reads scroll (to turn pages) while it's open - don't let the same
+            // scroll tick also cycle the power-up loadout underneath it.
+            if (Minigames.EmoteWheelController.Instance != null && Minigames.EmoteWheelController.Instance.IsOpen) return;
+
             if (Mathf.Abs(scrollY) < 0.1f) return;
 
             // Hardware spam prevention

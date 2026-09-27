@@ -438,6 +438,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 843d4e989c665e54881a4a6ca244d4ac, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8623841145838889634}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 843d4e989c665e54881a4a6ca244d4ac, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1021905524506852675}
   m_SourcePrefab: {fileID: 100100000, guid: 843d4e989c665e54881a4a6ca244d4ac, type: 3}
 --- !u!4 &1204913814882776573 stripped
 Transform:
@@ -520,6 +523,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   depositedItemSlots:
   - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   customDropSlots:
   - {fileID: 1119450417285932944}
   - {fileID: 2713115121197713872}
@@ -536,3 +541,21 @@ MonoBehaviour:
   sabotageEjectsLastDeposit: 1
   isSabotaged: 0
   fallbackTargetRadius: 0.15
+--- !u!114 &1021905524506852675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2014065709679390535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f430ace45ae02b4408845c823f6c4831, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  seatCapacity: 1
+  playerReversible: 1
+  revertVerb: retrieve
+  revertHoldSeconds: 1
+  pendingVisual: {fileID: 0}
+  satisfiedVisual: {fileID: 0}

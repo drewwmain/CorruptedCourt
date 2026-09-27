@@ -12,15 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d40d2972f025b641a7d397eb56f117f, type: 3}
   m_Name: sword_arm
   m_EditorClassIdentifier: 
-  taskID: sword_arm
+  taskID: sword_weaponRack
   taskName: Prepare for the Melee
   taskDescription: Carry a practice sword to the tournament grounds.
   isSabotage: 0
   taskTier: 1
   allowedStages: 01000000
-  autoSpawnItemPrefab: {fileID: 0}
-  autoSpawnLocationID: 
-  prerequisiteTask: {fileID: 11400000, guid: f5b567c42f6c3d547aa51dc1218c0cd2, type: 2}
   stepTemplates:
   - rid: 5911507332722851840
   - rid: 5911507332722851841
@@ -33,6 +30,7 @@ MonoBehaviour:
         minigamePrefab: {fileID: 0}
         requiredItem: {fileID: 11400000, guid: be1b9bbd508b2c746801437da260cc15, type: 2}
         requiredState: 1
+        requiredItemSet: {fileID: 0}
         legacyRequiredItemName: 
     - rid: 5911507332722851841
       type: {class: DepositItemStep, ns: CorruptedCourt.Tasks, asm: CorruptedCourt.Gameplay}

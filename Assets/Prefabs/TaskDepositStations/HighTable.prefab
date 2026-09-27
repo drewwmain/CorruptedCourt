@@ -88,6 +88,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1845ce75acb749d4b853f670ca4ca0a7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1319048006198401073}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 1845ce75acb749d4b853f670ca4ca0a7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1031338022942183592}
   m_SourcePrefab: {fileID: 100100000, guid: 1845ce75acb749d4b853f670ca4ca0a7, type: 3}
 --- !u!1 &7699967105141614296 stripped
 GameObject:
@@ -176,3 +179,21 @@ MonoBehaviour:
   locationID: HighTable
   acceptedItem: {fileID: 11400000, guid: 69afb08c8427c87488822d1f51c0f44a, type: 2}
   acceptedItemName: DepositedVase
+--- !u!114 &1031338022942183592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7699967105141614296}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f430ace45ae02b4408845c823f6c4831, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  seatCapacity: 1
+  playerReversible: 1
+  revertVerb: retrieve
+  revertHoldSeconds: 1
+  pendingVisual: {fileID: 0}
+  satisfiedVisual: {fileID: 0}

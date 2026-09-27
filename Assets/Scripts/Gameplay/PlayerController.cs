@@ -196,6 +196,11 @@ namespace CorruptedCourt.Gameplay
             // use the menu with the mouse. No movement, look, interaction or animation updates.
             if (!controlsLocked)
             {
+                // The emote wheel repurposes the mouse to aim at a slice (EmoteWheelUI reads raw
+                // Input.mousePosition) - camera rotation must not also consume that same movement while
+                // it's open, roleplay wheel or minigame-triggered alike.
+                bool emoteWheelOpen = EmoteWheelController.Instance != null && EmoteWheelController.Instance.IsOpen;
+
                 // 1. ALWAYS update the IK tracking (so the hand follows the mouse)
                 ikRig.UpdateMinigameIKTarget();
                 ikRig.UpdateHaulIKTarget();
@@ -204,7 +209,7 @@ namespace CorruptedCourt.Gameplay
                 //    and NOT locked into a strangle (the strangle coroutine drives position/rotation itself).
                 if (!isPlayingMinigame && !vitals.isStrangling)
                 {
-                    look.HandleRotation(lookInput);
+                    if (!emoteWheelOpen) look.HandleRotation(lookInput);
 
                     if (vitals.isGhost && IsLocal && ghost != null)
                     {
@@ -223,7 +228,7 @@ namespace CorruptedCourt.Gameplay
                 else
                 {
                     // Allow camera rotation if holding RMB in a minigame
-                    if (isPlayingMinigame && isMinigameLooking)
+                    if (isPlayingMinigame && isMinigameLooking && !emoteWheelOpen)
                     {
                         look.HandleRotation(lookInput);
                     }

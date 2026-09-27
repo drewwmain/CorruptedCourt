@@ -596,6 +596,7 @@ GameObject:
   - component: {fileID: 3784496838001564433}
   - component: {fileID: 6264651012086794756}
   - component: {fileID: 4128027428604341237}
+  - component: {fileID: 1026962637423791666}
   m_Layer: 8
   m_Name: DowryChest_Station
   m_TagString: Untagged
@@ -1018,3 +1019,21 @@ Transform:
   - {fileID: 892707807346395281}
   m_Father: {fileID: 7329068394081718598}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 180}
+--- !u!114 &1026962637423791666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7997764511639063548}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f430ace45ae02b4408845c823f6c4831, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  seatCapacity: 1
+  playerReversible: 1
+  revertVerb: retrieve
+  revertHoldSeconds: 1
+  pendingVisual: {fileID: 0}
+  satisfiedVisual: {fileID: 0}
